@@ -2,6 +2,7 @@ import { Router, Request, Response } from 'express';
 import { prisma } from '../db';
 import { backfillRepo } from '../services/sync';
 import { requireAuth } from '../middleware/auth';
+import { generateAggregateSummary } from '../services/summarizer';
 
 const router = Router();
 
@@ -86,11 +87,21 @@ router.get('/clients/:clientId/repos/:repoId/summaries', requireAuth, async (req
 /**
  * GET /api/clients/:clientId/summaries
  * Get aggregated summaries across all repos for a client
+ * Query params: from (YYYY-MM-DD), to (YYYY-MM-DD), limit, offset
  */
-router.get('/clients/:clientId/summaries', async (req: Request, res: Response) => {
+router.get('/clients/:clientId/summaries', requireAuth, async (req: Request, res: Response) => {
   try {
     const { clientId } = req.params;
     const { from, to, limit = '100', offset = '0' } = req.query;
+
+    // Verify client belongs to user
+    const client = await prisma.client.findFirst({
+      where: { id: clientId, userId: req.userId || undefined },
+    });
+
+    if (!client) {
+      return res.status(404).json({ error: 'Client not found' });
+    }
 
     const where: any = {
       repo: {
@@ -150,24 +161,121 @@ router.get('/clients/:clientId/summaries', async (req: Request, res: Response) =
 });
 
 /**
+ * GET /api/clients/:clientId/summary/7days
+ * Get aggregated 7-day summary across all repos for a client
+ */
+router.get('/clients/:clientId/summary/7days', requireAuth, async (req: Request, res: Response) => {
+  try {
+    const { clientId } = req.params;
+
+    // Verify client belongs to user
+    const client = await prisma.client.findFirst({
+      where: { id: clientId, userId: req.userId || undefined },
+      include: {
+        repos: {
+          where: { isEnabled: true },
+        },
+      },
+    });
+
+    if (!client) {
+      return res.status(404).json({ error: 'Client not found' });
+    }
+
+    // Get date range (last 7 days)
+    const to = new Date();
+    to.setUTCHours(23, 59, 59, 999);
+    const from = new Date(to);
+    from.setUTCDate(from.getUTCDate() - 6);
+    from.setUTCHours(0, 0, 0, 0);
+
+    // Fetch all summaries from last 7 days
+    const summaries = await prisma.repoDailySummary.findMany({
+      where: {
+        repo: {
+          clientId,
+          isEnabled: true,
+        },
+        date: {
+          gte: from,
+          lte: to,
+        },
+      },
+      include: {
+        repo: {
+          select: {
+            owner: true,
+            name: true,
+          },
+        },
+      },
+      orderBy: {
+        date: 'desc',
+      },
+    });
+
+    // Generate aggregate summary
+    const aggregateSummary = await generateAggregateSummary(summaries);
+
+    // Calculate aggregate stats
+    const stats = summaries.reduce((acc, summary) => {
+      if (summary.stats) {
+        const s = summary.stats as any;
+        acc.mergedPRs += s.mergedPRs || 0;
+        acc.releases += s.releases || 0;
+        acc.commits += s.commits || 0;
+        acc.repos.add(summary.repoId);
+      }
+      return acc;
+    }, { mergedPRs: 0, releases: 0, commits: 0, repos: new Set<string>() });
+
+    res.json({
+      summary: aggregateSummary,
+      stats: {
+        mergedPRs: stats.mergedPRs,
+        releases: stats.releases,
+        commits: stats.commits,
+        repos: stats.repos.size,
+        days: summaries.filter(s => !s.noChanges).length,
+      },
+      period: {
+        from: from.toISOString(),
+        to: to.toISOString(),
+      },
+    });
+  } catch (error) {
+    console.error('Error generating 7-day summary:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+/**
  * POST /api/repos/:repoId/backfill
  * Manually trigger a backfill for a repo
  */
-router.post('/repos/:repoId/backfill', async (req: Request, res: Response) => {
+router.post('/repos/:repoId/backfill', requireAuth, async (req: Request, res: Response) => {
   try {
     const { repoId } = req.params;
 
     const repo = await prisma.gitHubRepo.findUnique({
       where: { id: repoId },
+      include: {
+        client: true,
+      },
     });
 
     if (!repo) {
       return res.status(404).json({ error: 'Repo not found' });
     }
 
+    // Verify repo belongs to user
+    if (repo.client.userId !== req.userId) {
+      return res.status(403).json({ error: 'Access denied' });
+    }
+
     // Run backfill asynchronously
     backfillRepo(repoId).catch(error => {
-      console.error(`Error in backfill for ${repoId}:`, error);
+      console.error(`Error in backfill for repo ${repoId}:`, error);
     });
 
     res.json({ message: 'Backfill started', repoId });
@@ -179,14 +287,32 @@ router.post('/repos/:repoId/backfill', async (req: Request, res: Response) => {
 
 /**
  * GET /api/repos/:repoId/summaries
- * Get summaries for a repo (convenience endpoint)
+ * Get summaries for a repo (alias for client/repo route)
  */
-router.get('/repos/:repoId/summaries', async (req: Request, res: Response) => {
+router.get('/repos/:repoId/summaries', requireAuth, async (req: Request, res: Response) => {
   try {
     const { repoId } = req.params;
     const { from, to, limit = '100', offset = '0' } = req.query;
 
-    const where: any = { repoId };
+    const repo = await prisma.gitHubRepo.findUnique({
+      where: { id: repoId },
+      include: {
+        client: true,
+      },
+    });
+
+    if (!repo) {
+      return res.status(404).json({ error: 'Repo not found' });
+    }
+
+    // Verify repo belongs to user
+    if (repo.client.userId !== req.userId) {
+      return res.status(403).json({ error: 'Access denied' });
+    }
+
+    const where: any = {
+      repoId,
+    };
 
     if (from || to) {
       where.date = {};
@@ -205,23 +331,11 @@ router.get('/repos/:repoId/summaries', async (req: Request, res: Response) => {
       },
       take: parseInt(limit as string, 10),
       skip: parseInt(offset as string, 10),
-      include: {
-        repo: {
-          select: {
-            owner: true,
-            name: true,
-          },
-        },
-      },
     });
 
     res.json(
       summaries.map(summary => ({
         id: summary.id,
-        repo: {
-          owner: summary.repo.owner,
-          name: summary.repo.name,
-        },
         date: summary.date,
         windowStart: summary.windowStart,
         windowEnd: summary.windowEnd,
@@ -232,7 +346,7 @@ router.get('/repos/:repoId/summaries', async (req: Request, res: Response) => {
       }))
     );
   } catch (error) {
-    console.error('Error fetching repo summaries:', error);
+    console.error('Error fetching summaries:', error);
     res.status(500).json({ error: 'Internal server error' });
   }
 });

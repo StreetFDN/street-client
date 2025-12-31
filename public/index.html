@@ -61,6 +61,22 @@
             color: #c33;
         }
 
+        .summary-7days-card {
+            background: white;
+            border-radius: 12px;
+            padding: 1.5rem;
+            margin-bottom: 2rem;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            border-left: 4px solid #667eea;
+        }
+
+        .summary-7days-text {
+            color: #2d3748;
+            line-height: 1.7;
+            font-size: 0.95rem;
+            white-space: pre-wrap;
+        }
+
         .client-card {
             background: white;
             border-radius: 12px;
@@ -341,6 +357,16 @@
                 }
 
                 let html = '';
+                
+                // Add 7-day aggregate summary at the top
+                try {
+                    const summary7days = await fetchJSON(`${API_BASE}/clients/${clients[0].id}/summary/7days`);
+                    html += render7DaySummary(summary7days);
+                } catch (error) {
+                    console.error('Error loading 7-day summary:', error);
+                    // Continue without it
+                }
+                
                 for (const client of clients) {
                     html += await renderClient(client);
                 }
@@ -350,6 +376,34 @@
             } catch (error) {
                 showError(`Error loading clients: ${error.message}`);
             }
+        }
+
+        function render7DaySummary(data) {
+            const summaryText = data.summary || 'No activity recorded in the last 7 days.';
+            const stats = data.stats || {};
+            
+            // Format summary with line breaks preserved
+            const formattedSummary = summaryText.split('\n').map(line => {
+                line = line.trim();
+                if (line.startsWith('-') || line.match(/^\d+\./)) {
+                    return `<div style="margin-top: 0.5rem;">${escapeHtml(line)}</div>`;
+                }
+                return `<div style="margin-top: 0.75rem;">${escapeHtml(line)}</div>`;
+            }).join('');
+
+            return `
+                <div class="summary-7days-card">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+                        <h2 style="font-size: 1.25rem; font-weight: 600; color: #1a202c; margin: 0;">Last 7 Days</h2>
+                        <div style="display: flex; gap: 1rem; font-size: 0.875rem; color: #718096;">
+                            ${stats.repos > 0 ? `<span>${stats.repos} repos</span>` : ''}
+                            ${stats.mergedPRs > 0 ? `<span>${stats.mergedPRs} PRs</span>` : ''}
+                            ${stats.releases > 0 ? `<span>${stats.releases} releases</span>` : ''}
+                        </div>
+                    </div>
+                    <div class="summary-7days-text">${formattedSummary}</div>
+                </div>
+            `;
         }
 
         async function renderClient(client) {
