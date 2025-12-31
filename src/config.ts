@@ -1,31 +1,35 @@
-import dotenv from 'dotenv';
+import dotenv from "dotenv";
 
 dotenv.config();
 
+const port = Number(process.env.PORT) || 8080;
+
+// If Railway provides a public URL, use it. Otherwise fall back to localhost.
+const railwayPublicUrl =
+  process.env.RAILWAY_PUBLIC_DOMAIN
+    ? `https://${process.env.RAILWAY_PUBLIC_DOMAIN}`
+    : process.env.RAILWAY_STATIC_URL || ""; // sometimes present
+
+const baseUrl =
+  process.env.BASE_URL ||
+  railwayPublicUrl ||
+  `http://localhost:${port}`;
+
 export const config = {
-  port: parseInt(process.env.PORT || '3000', 10),
-  nodeEnv: process.env.NODE_ENV || 'development',
-  databaseUrl: process.env.DATABASE_URL || '',
+  port,
+  nodeEnv: process.env.NODE_ENV || "development",
+  databaseUrl: process.env.DATABASE_URL || "",
   github: {
-    appId: process.env.GITHUB_APP_ID || '',
-    privateKey: process.env.GITHUB_APP_PRIVATE_KEY?.replace(/\\n/g, '\n') || '',
-    webhookSecret: process.env.GITHUB_APP_WEBHOOK_SECRET || '',
+    appId: process.env.GITHUB_APP_ID || "",
+    privateKey: process.env.GITHUB_APP_PRIVATE_KEY?.replace(/\\n/g, "\n") || "",
+    webhookSecret: process.env.GITHUB_APP_WEBHOOK_SECRET || "",
   },
   openai: {
-    apiKey: process.env.OPENAI_API_KEY || '',
+    apiKey: process.env.OPENAI_API_KEY || "",
   },
-  baseUrl: process.env.BASE_URL || 'http://localhost:3000',
+  baseUrl,
 };
 
 if (!config.databaseUrl) {
-  throw new Error('DATABASE_URL is required');
+  throw new Error("DATABASE_URL is required");
 }
-
-// GitHub App credentials are required for production, but can be empty during setup
-// Uncomment these checks once you've set up your GitHub App:
-// if (!config.github.appId) {
-//   throw new Error('GITHUB_APP_ID is required');
-// }
-// if (!config.github.privateKey) {
-//   throw new Error('GITHUB_APP_PRIVATE_KEY is required');
-// }

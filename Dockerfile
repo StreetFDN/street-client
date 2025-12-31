@@ -1,16 +1,13 @@
 # Build stage
-FROM node:18-alpine AS builder
+FROM node:18-bullseye-slim AS builder
 
 WORKDIR /app
 
-# Copy package files
 COPY package*.json ./
 COPY prisma ./prisma/
 
-# Install dependencies
 RUN npm ci
 
-# Copy source code
 COPY . .
 
 # Generate Prisma Client
@@ -19,25 +16,22 @@ RUN npm run generate
 # Build TypeScript
 RUN npm run build
 
+
 # Production stage
-FROM node:18-alpine
+FROM node:18-bullseye-slim
 
 WORKDIR /app
 
-# Copy package files
 COPY package*.json ./
+RUN npm ci --omit=dev
 
-# Install production dependencies only
-RUN npm ci --only=production
-
-# Copy built files from builder
 COPY --from=builder /app/dist ./dist
 COPY --from=builder /app/node_modules/.prisma ./node_modules/.prisma
 COPY --from=builder /app/node_modules/@prisma ./node_modules/@prisma
 COPY --from=builder /app/prisma ./prisma
 
-# Expose port
-EXPOSE 3000
+# Railway sets PORT dynamically; EXPOSE can be 8080 or omitted
+EXPOSE 8080
 
-# Start the server
 CMD ["npm", "start"]
+
