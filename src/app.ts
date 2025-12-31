@@ -1,4 +1,5 @@
 import express from 'express';
+import path from 'path';
 import webhookRoutes from './routes/webhooks';
 import clientRoutes from './routes/clients';
 import installationRoutes from './routes/installations';
@@ -19,6 +20,9 @@ app.use('/api', clientRoutes);
 app.use('/api', installationRoutes);
 app.use('/api', repoRoutes);
 app.use('/api', summaryRoutes);
+
+// Serve static files (frontend)
+app.use(express.static(path.join(__dirname, '../public')));
 
 // Health check
 app.get('/health', (req, res) => {
