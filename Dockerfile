@@ -10,10 +10,7 @@ RUN npm ci
 
 COPY . .
 
-# Generate Prisma Client
 RUN npm run generate
-
-# Build TypeScript
 RUN npm run build
 
 
@@ -30,8 +27,7 @@ COPY --from=builder /app/node_modules/.prisma ./node_modules/.prisma
 COPY --from=builder /app/node_modules/@prisma ./node_modules/@prisma
 COPY --from=builder /app/prisma ./prisma
 
-# Railway sets PORT dynamically; EXPOSE can be 8080 or omitted
 EXPOSE 8080
 
-CMD ["npm", "start"]
-
+# ✅ run prod migrations, then start server
+CMD ["sh", "-c", "npm run migrate:deploy && npm start"]
