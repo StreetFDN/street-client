@@ -10,14 +10,32 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+model User {
+  id            String   @id @default(uuid())
+  githubId      Int      @unique
+  githubLogin   String   @unique
+  name          String?
+  email         String?
+  avatarUrl     String?
+  accessToken   String?  // GitHub OAuth token (encrypted in production)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  clients Client[]
+}
+
 model Client {
   id        String   @id @default(uuid())
+  userId    String?
+  user      User?    @relation(fields: [userId], references: [id], onDelete: Cascade)
   name      String
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
   installations GitHubInstallation[]
   repos         GitHubRepo[]
+
+  @@index([userId])
 }
 
 model GitHubInstallation {

@@ -1,24 +1,28 @@
 import { Router, Request, Response } from 'express';
 import { prisma } from '../db';
 import { backfillRepo } from '../services/sync';
+import { requireAuth } from '../middleware/auth';
 
 const router = Router();
 
 /**
  * GET /api/clients/:clientId/repos/:repoId/summaries
- * Get daily summaries for a repo
+ * Get daily summaries for a repo (must belong to authenticated user)
  * Query params: from (YYYY-MM-DD), to (YYYY-MM-DD), limit, offset
  */
-router.get('/clients/:clientId/repos/:repoId/summaries', async (req: Request, res: Response) => {
+router.get('/clients/:clientId/repos/:repoId/summaries', requireAuth, async (req: Request, res: Response) => {
   try {
     const { clientId, repoId } = req.params;
     const { from, to, limit = '100', offset = '0' } = req.query;
 
-    // Verify repo belongs to client
+    // Verify repo belongs to client and user
     const repo = await prisma.gitHubRepo.findFirst({
       where: {
         id: repoId,
         clientId,
+        client: {
+          userId: req.userId || undefined,
+        },
       },
     });
 

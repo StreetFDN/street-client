@@ -21,8 +21,13 @@ export const config = {
   databaseUrl: process.env.DATABASE_URL || "",
   github: {
     appId: process.env.GITHUB_APP_ID || "",
+    clientId: process.env.GITHUB_CLIENT_ID || "",
+    clientSecret: process.env.GITHUB_CLIENT_SECRET || "",
     privateKey: process.env.GITHUB_APP_PRIVATE_KEY?.replace(/\\n/g, "\n") || "",
     webhookSecret: process.env.GITHUB_APP_WEBHOOK_SECRET || "",
+  },
+  session: {
+    secret: process.env.SESSION_SECRET || 'change-me-in-production-' + Math.random().toString(36),
   },
   openai: {
     apiKey: process.env.OPENAI_API_KEY || "",

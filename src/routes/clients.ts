@@ -1,15 +1,19 @@
 import { Router, Request, Response } from 'express';
 import { prisma } from '../db';
+import { requireAuth } from '../middleware/auth';
 
 const router = Router();
 
 /**
  * GET /api/clients
- * List all clients
+ * List clients for the authenticated user
  */
-router.get('/clients', async (req: Request, res: Response) => {
+router.get('/clients', requireAuth, async (req: Request, res: Response) => {
   try {
     const clients = await prisma.client.findMany({
+      where: {
+        userId: req.userId || undefined,
+      },
       include: {
         _count: {
           select: {
@@ -43,14 +47,17 @@ router.get('/clients', async (req: Request, res: Response) => {
 
 /**
  * GET /api/clients/:clientId
- * Get client details
+ * Get client details (must belong to authenticated user)
  */
-router.get('/clients/:clientId', async (req: Request, res: Response) => {
+router.get('/clients/:clientId', requireAuth, async (req: Request, res: Response) => {
   try {
     const { clientId } = req.params;
 
-    const client = await prisma.client.findUnique({
-      where: { id: clientId },
+    const client = await prisma.client.findFirst({
+      where: { 
+        id: clientId,
+        userId: req.userId || undefined,
+      },
       include: {
         installations: {
           include: {
@@ -100,9 +107,9 @@ router.get('/clients/:clientId', async (req: Request, res: Response) => {
 
 /**
  * POST /api/clients
- * Create a new client
+ * Create a new client for the authenticated user
  */
-router.post('/clients', async (req: Request, res: Response) => {
+router.post('/clients', requireAuth, async (req: Request, res: Response) => {
   try {
     const { name } = req.body;
 
@@ -111,7 +118,10 @@ router.post('/clients', async (req: Request, res: Response) => {
     }
 
     const client = await prisma.client.create({
-      data: { name },
+      data: { 
+        name,
+        userId: req.userId!,
+      },
     });
 
     res.status(201).json(client);

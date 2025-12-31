@@ -230,12 +230,31 @@
 <body>
     <div class="container">
         <header>
-            <h1>🚀 Dev Update Engine</h1>
-            <p class="subtitle">Automated GitHub activity summaries for your repositories</p>
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+                <div>
+                    <h1>🚀 Dev Update Engine</h1>
+                    <p class="subtitle">Automated GitHub activity summaries for your repositories</p>
+                </div>
+                <div id="auth-section">
+                    <button id="login-btn" class="hidden" onclick="window.location.href='/api/auth/github'">Login with GitHub</button>
+                    <div id="user-info" class="hidden" style="display: flex; align-items: center; gap: 1rem;">
+                        <img id="user-avatar" src="" alt="" style="width: 40px; height: 40px; border-radius: 50%;">
+                        <div>
+                            <div style="font-weight: 600;" id="user-name"></div>
+                            <button onclick="logout()" style="background: #e53e3e; padding: 0.25rem 0.75rem; font-size: 0.875rem;">Logout</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
         </header>
 
         <div id="loading" class="loading">Loading...</div>
         <div id="error" class="error hidden"></div>
+        <div id="login-prompt" class="hidden" style="background: white; border-radius: 12px; padding: 3rem; text-align: center; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
+            <h2 style="margin-bottom: 1rem;">Welcome to Dev Update Engine</h2>
+            <p style="color: #718096; margin-bottom: 2rem;">Please log in with GitHub to view your repository summaries</p>
+            <button onclick="window.location.href='/api/auth/github'" style="padding: 1rem 2rem; font-size: 1.1rem;">Login with GitHub</button>
+        </div>
         <div id="content"></div>
     </div>
 
@@ -267,6 +286,44 @@
             errorDiv.classList.remove('hidden');
         }
 
+        let currentUser = null;
+
+        async function checkAuth() {
+            try {
+                const user = await fetchJSON(`${API_BASE}/auth/me`);
+                currentUser = user;
+                
+                // Show user info
+                if (user.avatarUrl) {
+                    document.getElementById('user-avatar').src = user.avatarUrl;
+                    document.getElementById('user-avatar').style.display = 'block';
+                }
+                document.getElementById('user-name').textContent = user.name || user.githubLogin || 'User';
+                document.getElementById('user-info').classList.remove('hidden');
+                document.getElementById('login-btn').classList.add('hidden');
+                
+                return true;
+            } catch (error) {
+                // Not authenticated
+                document.getElementById('login-btn').classList.remove('hidden');
+                document.getElementById('user-info').classList.add('hidden');
+                document.getElementById('login-prompt').classList.remove('hidden');
+                document.getElementById('content').classList.add('hidden');
+                document.getElementById('loading').classList.add('hidden');
+                return false;
+            }
+        }
+
+        async function logout() {
+            try {
+                await fetch(`${API_BASE}/auth/logout`, { method: 'POST', credentials: 'include' });
+                window.location.reload();
+            } catch (error) {
+                console.error('Logout error:', error);
+                window.location.reload();
+            }
+        }
+
         async function loadClients() {
             try {
                 const clients = await fetchJSON(`${API_BASE}/clients`);
@@ -275,8 +332,9 @@
                     document.getElementById('loading').classList.add('hidden');
                     document.getElementById('content').innerHTML = `
                         <div class="empty-state">
-                            <h3>No clients found</h3>
-                            <p>Install the GitHub App on repositories to get started.</p>
+                            <h3>No repositories found</h3>
+                            <p>Install the GitHub App on your repositories to get started.</p>
+                            <p style="margin-top: 1rem;"><a href="https://github.com/apps/dev-update-by-street-labs" target="_blank" style="color: #667eea;">Install GitHub App →</a></p>
                         </div>
                     `;
                     return;
@@ -321,7 +379,7 @@
 
         async function renderRepo(clientId, repo) {
             try {
-                const summaries = await fetchJSON(`${API_BASE}/repos/${repo.id}/summaries?limit=10`);
+                const summaries = await fetchJSON(`${API_BASE}/clients/${clientId}/repos/${repo.id}/summaries?limit=10`);
                 
                 let summariesHtml = '';
                 if (summaries.length === 0) {
@@ -378,11 +436,14 @@
             return div.innerHTML;
         }
 
-        // Load data on page load
-        loadClients();
-
-        // Auto-refresh every 5 minutes
-        setInterval(loadClients, 5 * 60 * 1000);
+        // Check auth and load data on page load
+        checkAuth().then(authenticated => {
+            if (authenticated) {
+                loadClients();
+                // Auto-refresh every 5 minutes
+                setInterval(loadClients, 5 * 60 * 1000);
+            }
+        });
     </script>
 </body>
 </html>

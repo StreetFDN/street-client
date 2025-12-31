@@ -46,8 +46,12 @@ async function handleInstallationCreated(payload: any): Promise<void> {
   const installation = payload.installation;
   const account = payload.installation.account;
 
-  // For now, we'll create a default client or use installation ID as client identifier
-  // In a real app, you'd have a way to associate installations with clients
+  // Try to find user by GitHub login
+  const user = await prisma.user.findUnique({
+    where: { githubLogin: account.login },
+  });
+
+  // Find or create client
   let client = await prisma.client.findFirst({
     where: {
       installations: {
@@ -62,8 +66,16 @@ async function handleInstallationCreated(payload: any): Promise<void> {
     client = await prisma.client.create({
       data: {
         name: `${account.login} (GitHub)`,
+        userId: user?.id || null, // Link to user if exists
       },
     });
+  } else if (user && !client.userId) {
+    // Link existing client to user if user just logged in
+    const updatedClient = await prisma.client.update({
+      where: { id: client.id },
+      data: { userId: user.id },
+    });
+    client = updatedClient;
   }
 
   // Create or update installation

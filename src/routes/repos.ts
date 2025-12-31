@@ -1,16 +1,26 @@
 import { Router, Request, Response } from 'express';
 import { getInstallationOctokit } from '../services/github/auth';
 import { prisma } from '../db';
+import { requireAuth } from '../middleware/auth';
 
 const router = Router();
 
 /**
  * GET /api/clients/:clientId/repos
- * List all repos for a client
+ * List all repos for a client (must belong to authenticated user)
  */
-router.get('/clients/:clientId/repos', async (req: Request, res: Response) => {
+router.get('/clients/:clientId/repos', requireAuth, async (req: Request, res: Response) => {
   try {
     const { clientId } = req.params;
+
+    // Verify client belongs to user
+    const client = await prisma.client.findFirst({
+      where: { id: clientId, userId: req.userId || undefined },
+    });
+
+    if (!client) {
+      return res.status(404).json({ error: 'Client not found' });
+    }
 
     const repos = await prisma.gitHubRepo.findMany({
       where: { clientId },
@@ -122,9 +132,9 @@ router.post('/repos/:repoId/disable', async (req: Request, res: Response) => {
 
 /**
  * GET /api/repos/:repoId
- * Get repo details
+ * Get repo details (must belong to authenticated user)
  */
-router.get('/repos/:repoId', async (req: Request, res: Response) => {
+router.get('/repos/:repoId', requireAuth, async (req: Request, res: Response) => {
   try {
     const { repoId } = req.params;
 
