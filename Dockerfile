@@ -29,5 +29,4 @@ COPY --from=builder /app/prisma ./prisma
 
 EXPOSE 8080
 
-# ✅ run prod migrations, then start server
 CMD ["sh", "-c", "npm run migrate:deploy && npm start"]
