@@ -31,8 +31,13 @@ router.post('/', async (req: Request, res: Response) => {
       await handleInstallationCreated(payload_data);
     } else if (event === 'installation' && payload_data.action === 'deleted') {
       await handleInstallationDeleted(payload_data);
-    } else if (event === 'installation_repositories' && payload_data.action === 'added') {
-      await handleRepositoriesAdded(payload_data);
+    } else if (event === 'installation_repositories') {
+      if (payload_data.action === 'added') {
+        await handleRepositoriesAdded(payload_data);
+      } else if (payload_data.action === 'removed') {
+        // Handle repository removal if needed
+        console.log(`Repositories removed from installation ${payload_data.installation.id}`);
+      }
     }
 
     res.status(200).json({ received: true });
@@ -79,7 +84,7 @@ async function handleInstallationCreated(payload: any): Promise<void> {
   }
 
   // Create or update installation
-  await prisma.gitHubInstallation.upsert({
+  const githubInstallation = await prisma.gitHubInstallation.upsert({
     where: {
       installationId: installation.id,
     },
@@ -95,6 +100,69 @@ async function handleInstallationCreated(payload: any): Promise<void> {
   });
 
   console.log(`Installation created: ${installation.id} for ${account.login}`);
+
+  // Fetch all repositories for this installation (handles "All repositories" case)
+  try {
+    const auth = createAppAuth({
+      appId: config.github.appId,
+      privateKey: config.github.privateKey,
+    });
+
+    const { token } = await auth({
+      type: 'installation',
+      installationId: installation.id,
+    });
+
+    const octokit = new Octokit({ auth: token });
+    const response = await octokit.rest.apps.listReposAccessibleToInstallation({
+      per_page: 100,
+    });
+
+    // Process each repository
+    for (const repo of response.data.repositories) {
+      try {
+        await prisma.gitHubRepo.upsert({
+          where: {
+            repoId: repo.id,
+          },
+          create: {
+            clientId: client.id,
+            installationId: githubInstallation.id,
+            owner: repo.owner.login,
+            name: repo.name,
+            repoId: repo.id,
+            isPrivate: repo.private,
+            isEnabled: true,
+          },
+          update: {
+            isPrivate: repo.private,
+          },
+        });
+
+        console.log(`Repo synced: ${repo.owner.login}/${repo.name}`);
+      } catch (error) {
+        console.error(`Error processing repo ${repo.owner.login}/${repo.name}:`, error);
+      }
+    }
+
+    // Trigger backfill for newly added repos (only repos that don't have summaries yet)
+    const newRepos = await prisma.gitHubRepo.findMany({
+      where: {
+        installationId: githubInstallation.id,
+        dailySummaries: {
+          none: {},
+        },
+      },
+    });
+
+    for (const repo of newRepos) {
+      backfillRepo(repo.id).catch(error => {
+        console.error(`Error backfilling repo ${repo.id}:`, error);
+      });
+    }
+  } catch (error) {
+    console.error(`Error fetching repos for installation ${installation.id}:`, error);
+  }
 }
 
 async function handleInstallationDeleted(payload: any): Promise<void> {
