@@ -67,7 +67,7 @@ async function handleInstallationCreated(payload: any): Promise<void> {
   }
 
   // Create or update installation
-  await prisma.githubInstallation.upsert({
+  await prisma.gitHubInstallation.upsert({
     where: {
       installationId: installation.id,
     },
@@ -88,7 +88,7 @@ async function handleInstallationCreated(payload: any): Promise<void> {
 async function handleInstallationDeleted(payload: any): Promise<void> {
   const installationId = payload.installation.id;
 
-  await prisma.githubInstallation.updateMany({
+  await prisma.gitHubInstallation.updateMany({
     where: {
       installationId,
     },
@@ -104,7 +104,7 @@ async function handleRepositoriesAdded(payload: any): Promise<void> {
   const installation = payload.installation;
   const repositories_added = payload.repositories_added || [];
 
-  const githubInstallation = await prisma.githubInstallation.findUnique({
+  const githubInstallation = await prisma.gitHubInstallation.findUnique({
     where: {
       installationId: installation.id,
     },
@@ -138,7 +138,7 @@ async function handleRepositoriesAdded(payload: any): Promise<void> {
       const repoData = fullRepo.data;
 
       // Create or update repo
-      const githubRepo = await prisma.githubRepo.upsert({
+      const githubRepo = await prisma.gitHubRepo.upsert({
         where: {
           repoId: repoData.id,
         },

@@ -12,7 +12,7 @@ router.get('/clients/:clientId/repos', async (req: Request, res: Response) => {
   try {
     const { clientId } = req.params;
 
-    const repos = await prisma.githubRepo.findMany({
+    const repos = await prisma.gitHubRepo.findMany({
       where: { clientId },
       include: {
         installation: true,
@@ -22,7 +22,7 @@ router.get('/clients/:clientId/repos', async (req: Request, res: Response) => {
       },
     });
 
-    res.json(repos.map(repo => ({
+    res.json(repos.map((repo: any) => ({
       id: repo.id,
       owner: repo.owner,
       name: repo.name,
@@ -50,7 +50,7 @@ router.get('/installations/:installationId/repos', async (req: Request, res: Res
   try {
     const installationId = parseInt(req.params.installationId, 10);
 
-    const installation = await prisma.githubInstallation.findUnique({
+    const installation = await prisma.gitHubInstallation.findUnique({
       where: { installationId },
     });
 
@@ -88,7 +88,7 @@ router.post('/repos/:repoId/enable', async (req: Request, res: Response) => {
   try {
     const { repoId } = req.params;
 
-    const repo = await prisma.githubRepo.update({
+    const repo = await prisma.gitHubRepo.update({
       where: { id: repoId },
       data: { isEnabled: true },
     });
@@ -108,7 +108,7 @@ router.post('/repos/:repoId/disable', async (req: Request, res: Response) => {
   try {
     const { repoId } = req.params;
 
-    const repo = await prisma.githubRepo.update({
+    const repo = await prisma.gitHubRepo.update({
       where: { id: repoId },
       data: { isEnabled: false },
     });
@@ -128,7 +128,7 @@ router.get('/repos/:repoId', async (req: Request, res: Response) => {
   try {
     const { repoId } = req.params;
 
-    const repo = await prisma.githubRepo.findUnique({
+    const repo = await prisma.gitHubRepo.findUnique({
       where: { id: repoId },
       include: {
         installation: true,

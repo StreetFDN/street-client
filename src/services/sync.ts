@@ -11,7 +11,7 @@ export async function syncRepo(
   windowEnd: Date,
   runType: 'daily' | 'backfill'
 ): Promise<void> {
-  const repo = await prisma.githubRepo.findUnique({
+  const repo = await prisma.gitHubRepo.findUnique({
     where: { id: repoId },
     include: { installation: true },
   });
@@ -124,7 +124,7 @@ export async function syncAllReposDaily(): Promise<void> {
   const windowEnd = new Date();
   const windowStart = new Date(windowEnd.getTime() - 24 * 60 * 60 * 1000); // 24 hours ago
 
-  const enabledRepos = await prisma.githubRepo.findMany({
+  const enabledRepos = await prisma.gitHubRepo.findMany({
     where: { isEnabled: true },
   });
 
@@ -144,7 +144,7 @@ export async function syncAllReposDaily(): Promise<void> {
  * Backfills summaries for a repo for the last 7 days
  */
 export async function backfillRepo(repoId: string): Promise<void> {
-  const repo = await prisma.githubRepo.findUnique({
+  const repo = await prisma.gitHubRepo.findUnique({
     where: { id: repoId },
   });
 

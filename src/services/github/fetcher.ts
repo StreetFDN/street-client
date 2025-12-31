@@ -63,11 +63,11 @@ export async function fetchRepoActivity(
             url: pr.html_url,
             author: pr.user?.login || null,
             occurredAt: mergedAt,
-            additions: pr.additions || 0,
-            deletions: pr.deletions || 0,
+            additions: (pr as any).additions || 0,
+            deletions: (pr as any).deletions || 0,
             metadata: {
               number: pr.number,
-              labels: pr.labels?.map(l => l.name) || [],
+              labels: pr.labels?.map((l: any) => l.name) || [],
             },
           });
         }

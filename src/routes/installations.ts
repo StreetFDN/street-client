@@ -11,7 +11,7 @@ router.get('/clients/:clientId/installations', async (req: Request, res: Respons
   try {
     const { clientId } = req.params;
 
-    const installations = await prisma.githubInstallation.findMany({
+    const installations = await prisma.gitHubInstallation.findMany({
       where: {
         clientId,
         revokedAt: null,
@@ -29,7 +29,7 @@ router.get('/clients/:clientId/installations', async (req: Request, res: Respons
     });
 
     res.json(
-      installations.map(inst => ({
+      installations.map((inst: any) => ({
         id: inst.id,
         installationId: inst.installationId,
         accountLogin: inst.accountLogin,
@@ -49,7 +49,7 @@ router.get('/clients/:clientId/installations', async (req: Request, res: Respons
  */
 router.get('/installations', async (req: Request, res: Response) => {
   try {
-    const installations = await prisma.githubInstallation.findMany({
+    const installations = await prisma.gitHubInstallation.findMany({
       where: {
         revokedAt: null,
       },
@@ -72,7 +72,7 @@ router.get('/installations', async (req: Request, res: Response) => {
     });
 
     res.json(
-      installations.map(inst => ({
+      installations.map((inst: any) => ({
         id: inst.id,
         installationId: inst.installationId,
         accountLogin: inst.accountLogin,

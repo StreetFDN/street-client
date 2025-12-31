@@ -15,7 +15,7 @@ router.get('/clients/:clientId/repos/:repoId/summaries', async (req: Request, re
     const { from, to, limit = '100', offset = '0' } = req.query;
 
     // Verify repo belongs to client
-    const repo = await prisma.githubRepo.findFirst({
+    const repo = await prisma.gitHubRepo.findFirst({
       where: {
         id: repoId,
         clientId,
@@ -153,7 +153,7 @@ router.post('/repos/:repoId/backfill', async (req: Request, res: Response) => {
   try {
     const { repoId } = req.params;
 
-    const repo = await prisma.githubRepo.findUnique({
+    const repo = await prisma.gitHubRepo.findUnique({
       where: { id: repoId },
     });
 
