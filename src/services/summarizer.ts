@@ -174,15 +174,32 @@ export async function generateAggregateSummary(summaries: any[], activityEvents:
       activityItems.push(`[${release.repo}] Release: "${release.title}"`);
     }
 
-    // Only include commits if no PRs (commits are less informative)
+    // Include commits if no PRs, or if commits are significant (many commits = likely important)
     if (prs.length === 0 && commits.length > 0) {
       for (const commit of commits.slice(0, 10)) {
         activityItems.push(`[${commit.repo}] Commit: "${commit.title}"`);
       }
+    } else if (commits.length > 5 && prs.length < 3) {
+      // If many commits but few PRs, include representative commits
+      for (const commit of commits.slice(0, 5)) {
+        activityItems.push(`[${commit.repo}] Commit: "${commit.title}"`);
+      }
+    }
+
+    // If no activity events found, try using summary texts as fallback
+    if (activityItems.length === 0) {
+      console.log(`No activity events found, checking summaries...`);
+      // Fall back to using summary texts if events aren't available yet
+      for (const summary of activeSummaries.slice(0, 10)) {
+        if (summary.repo && summary.summary && !summary.noChanges) {
+          const repoName = `${summary.repo.owner}/${summary.repo.name}`;
+          activityItems.push(`[${repoName}] ${summary.summary.substring(0, 200)}`);
+        }
+      }
     }
 
     if (activityItems.length === 0) {
-      return 'Only minor or mechanical changes this period.';
+      return 'Quiet shipping week. Focused on polish and reliability.';
     }
 
     const prompt = `You are generating a public-facing founder update for Twitter.
