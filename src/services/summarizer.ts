@@ -269,6 +269,8 @@ TONE:
 If there is truly nothing worth sharing, output:
 "Quiet shipping week. Focused on polish and reliability."
 
+IMPORTANT: Even if some changes seem cosmetic or mechanical, if there are multiple changes across multiple repos, focus on the substantive ones. Only say "Quiet shipping week" if there truly is nothing meaningful to report (e.g., only formatting, assets, or metadata changes with no functional impact).
+
 Activity across repositories (last 7 days):
 ${activityItems.join('\n\n')}
 
