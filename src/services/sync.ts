@@ -33,6 +33,8 @@ export async function syncRepo(
   });
 
   try {
+    console.log(`Fetching activity for ${repo.owner}/${repo.name} (${windowStart.toISOString()} to ${windowEnd.toISOString()})`);
+    
     // Fetch activity
     const activity = await fetchRepoActivity(
       repo.installation.installationId,
@@ -42,31 +44,61 @@ export async function syncRepo(
       windowEnd
     );
 
+    console.log(`Found: ${activity.counts.mergedPRs} PRs, ${activity.counts.releases} releases, ${activity.counts.commits} commits for ${repo.owner}/${repo.name}`);
+
     // Store activity events (optional but useful for debugging)
     const allEvents = [...activity.mergedPRs, ...activity.releases, ...activity.commits];
+    console.log(`Storing ${allEvents.length} activity events for ${repo.owner}/${repo.name}`);
+    
     for (const event of allEvents) {
-      await prisma.repoActivityEvent.create({
-        data: {
-          repoId,
-          occurredAt: event.occurredAt,
-          type: event.type,
-          title: event.title,
-          url: event.url,
-          author: event.author || undefined,
-          additions: event.additions,
-          deletions: event.deletions,
-          metadata: event.metadata || undefined,
-        },
-      });
+      try {
+        // Check if event already exists by URL (to avoid duplicates)
+        const existing = await prisma.repoActivityEvent.findFirst({
+          where: {
+            repoId,
+            url: event.url,
+          },
+        });
+
+        if (!existing) {
+          await prisma.repoActivityEvent.create({
+            data: {
+              repoId,
+              occurredAt: event.occurredAt,
+              type: event.type,
+              title: event.title,
+              url: event.url,
+              author: event.author || undefined,
+              additions: event.additions,
+              deletions: event.deletions,
+              metadata: event.metadata || undefined,
+            },
+          });
+        }
+      } catch (error) {
+        // Log error but continue - don't fail sync if event storage fails
+        console.error(`Error storing event ${event.url}:`, error);
+      }
     }
 
     // Generate summary
+    console.log(`Generating summary for ${repo.owner}/${repo.name} - Activity: ${activity.counts.mergedPRs} PRs, ${activity.counts.releases} releases, ${activity.counts.commits} commits`);
     const summaryText = await generateSummary(activity);
     const noChanges = activity.counts.mergedPRs === 0 && activity.counts.releases === 0 && activity.counts.commits === 0;
+    console.log(`Summary for ${repo.owner}/${repo.name}: ${noChanges ? 'NO CHANGES' : 'HAS CHANGES'} - "${summaryText.substring(0, 100)}..."`);
 
-    // Get date for the summary (use window start's date)
-    const date = new Date(windowStart);
-    date.setUTCHours(0, 0, 0, 0);
+    // Get date for the summary
+    // For daily sync, use today's date. For backfill, use window start's date
+    let date: Date;
+    if (runType === 'daily') {
+      // For daily sync, use today's UTC date (the day we're syncing)
+      date = new Date();
+      date.setUTCHours(0, 0, 0, 0);
+    } else {
+      // For backfill, use window start's date
+      date = new Date(windowStart);
+      date.setUTCHours(0, 0, 0, 0);
+    }
 
     // Store or update summary (idempotent by repo_id + date)
     await prisma.repoDailySummary.upsert({
@@ -122,13 +154,14 @@ export async function syncRepo(
  */
 export async function syncAllReposDaily(): Promise<void> {
   const windowEnd = new Date();
-  const windowStart = new Date(windowEnd.getTime() - 24 * 60 * 60 * 1000); // 24 hours ago
+  // Use last 48 hours to ensure we capture all activity (some commits might be slightly delayed)
+  const windowStart = new Date(windowEnd.getTime() - 48 * 60 * 60 * 1000); // 48 hours ago
 
   const enabledRepos = await prisma.gitHubRepo.findMany({
     where: { isEnabled: true },
   });
 
-  console.log(`Starting daily sync for ${enabledRepos.length} repos`);
+  console.log(`Starting daily sync for ${enabledRepos.length} repos (window: ${windowStart.toISOString()} to ${windowEnd.toISOString()})`);
 
   for (const repo of enabledRepos) {
     try {
@@ -138,6 +171,8 @@ export async function syncAllReposDaily(): Promise<void> {
       console.error(`✗ Failed to sync ${repo.owner}/${repo.name}:`, error);
     }
   }
+
+  console.log(`Daily sync completed for ${enabledRepos.length} repos`);
 }
 
 /**

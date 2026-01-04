@@ -7,16 +7,21 @@ const router = Router();
 
 /**
  * POST /api/sync/trigger
- * Manually trigger a sync for all repos (last 24 hours)
+ * Manually trigger a sync for all repos (last 24 hours, updates today's date)
  */
 router.post('/trigger', requireAuth, async (req: Request, res: Response) => {
   try {
+    console.log('Manual sync triggered');
     // Run sync asynchronously
-    syncAllReposDaily().catch(error => {
-      console.error('Error in manual sync:', error);
-    });
+    syncAllReposDaily()
+      .then(() => {
+        console.log('Manual sync completed successfully');
+      })
+      .catch(error => {
+        console.error('Error in manual sync:', error);
+      });
 
-    res.json({ message: 'Sync started for all enabled repos' });
+    res.json({ message: 'Sync started for all enabled repos', status: 'started' });
   } catch (error) {
     console.error('Error triggering sync:', error);
     res.status(500).json({ error: 'Internal server error' });
