@@ -189,7 +189,7 @@ router.get('/clients/:clientId/summary/7days', requireAuth, async (req: Request,
     from.setUTCDate(from.getUTCDate() - 6);
     from.setUTCHours(0, 0, 0, 0);
 
-    // Fetch all summaries from last 7 days
+    // Fetch all summaries from last 7 days with full repo info
     const summaries = await prisma.repoDailySummary.findMany({
       where: {
         repo: {
@@ -204,6 +204,7 @@ router.get('/clients/:clientId/summary/7days', requireAuth, async (req: Request,
       include: {
         repo: {
           select: {
+            id: true,
             owner: true,
             name: true,
           },

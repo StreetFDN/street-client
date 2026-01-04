@@ -130,32 +130,85 @@ export async function generateAggregateSummary(summaries: any[]): Promise<string
 
   // If we have OpenAI, generate a summary
   if (config.openai.apiKey) {
-    const items: string[] = [];
+    // Collect actual PR titles, release names, and commit messages from summaries
+    const prTitles: string[] = [];
+    const releaseNames: string[] = [];
+    const commitMessages: string[] = [];
+    const repoNames = new Set<string>();
+
+    for (const summary of activeSummaries) {
+      if (summary.repo) {
+        repoNames.add(`${summary.repo.owner}/${summary.repo.name}`);
+      }
+      
+      // Extract from summary text - look for PR titles, releases, commits
+      const summaryText = summary.summary || '';
+      
+      // Try to extract PR titles (they're often in quotes or after "PR:")
+      const prMatches = summaryText.match(/(?:PR|pull request)[\s#:]*["']?([^"'\n]+)["']?/gi);
+      if (prMatches) {
+        prTitles.push(...prMatches.slice(0, 5)); // Limit to avoid token bloat
+      }
+      
+      // Extract release names
+      const releaseMatches = summaryText.match(/(?:release|version)[\s:]*["']?([^"'\n]+)["']?/gi);
+      if (releaseMatches) {
+        releaseNames.push(...releaseMatches.slice(0, 3));
+      }
+    }
+
+    // Build detailed activity list
+    const activityItems: string[] = [];
     
-    if (stats.mergedPRs > 0) {
-      items.push(`${stats.mergedPRs} pull request${stats.mergedPRs > 1 ? 's' : ''} merged across ${stats.reposWithPRs.size} repo${stats.reposWithPRs.size > 1 ? 's' : ''}`);
-    }
-    
-    if (stats.releases > 0) {
-      items.push(`${stats.releases} release${stats.releases > 1 ? 's' : ''} published across ${stats.reposWithReleases.size} repo${stats.reposWithReleases.size > 1 ? 's' : ''}`);
-    }
-    
-    if (stats.commits > 0 && stats.mergedPRs === 0) {
-      items.push(`${stats.commits} commit${stats.commits > 1 ? 's' : ''}`);
+    for (const summary of activeSummaries.slice(0, 20)) { // Limit to avoid token bloat
+      if (summary.repo && summary.summary && !summary.noChanges) {
+        const repoName = `${summary.repo.owner}/${summary.repo.name}`;
+        const summaryText = summary.summary.substring(0, 200); // Truncate long summaries
+        activityItems.push(`[${repoName}] ${summaryText}`);
+      }
     }
 
-    if (items.length === 0) {
-      return 'No meaningful changes across repositories in the last 7 days.';
+    if (activityItems.length === 0) {
+      return 'Only minor or mechanical changes this period.';
     }
 
-    const prompt = `Summarize the following aggregated GitHub activity across multiple repositories over 7 days. Write in a founder-level, technical tone. Be concise, factual, and slightly dry. No hype, no marketing language, no emojis. Assume the reader is technical and time-constrained. Focus on concrete changes. Format as: one-sentence summary, then 3-6 short bullet points (max 140 chars each):
+    const prompt = `You are generating a factual dev update for founders and investors.
 
-${items.join('\n')}
+CRITICAL RULES:
+- Do NOT generalize (e.g. "feature improvements", "bug fixes").
+- Do NOT infer intent or impact unless explicitly stated in commits or PRs.
+- Do NOT merge unrelated changes into themes.
+- Every bullet must be traceable to a concrete change.
 
-Structure:
-1. One-sentence summary of what changed.
-2. 3-6 short bullet points (max 140 chars each).
-3. Optional: one risk or open question if relevant.`;
+Write ONLY what actually changed.
+
+SPECIFICITY REQUIREMENTS:
+- Reference concrete actions (e.g. "added X", "removed Y", "changed Z").
+- Prefer file names, functions, endpoints, or PR titles when available.
+- If multiple small commits exist, list representative ones instead of summarizing them.
+
+STRUCTURE (MANDATORY):
+1. One sentence stating WHAT changed and WHERE.
+2. 3–7 bullets, each:
+   - max 120 characters
+   - starts with a verb
+   - refers to a specific repo / file / system
+3. Optional final line:
+   - "Open issue:" or "Known risk:" only if explicitly present.
+
+IF DATA IS TOO THIN:
+- Say: "Only minor or mechanical changes this period."
+- Do not pad or embellish.
+
+TONE:
+- Neutral, dry, internal.
+- No marketing language.
+- No forward-looking statements.
+
+Activity across repositories (last 7 days):
+${activityItems.join('\n\n')}
+
+Generate the summary now:`;
 
     try {
       const completion = await openai.chat.completions.create({
@@ -163,15 +216,15 @@ Structure:
         messages: [
           {
             role: 'system',
-            content: 'You are writing a founder-level technical update for stakeholders. Be concise, factual, and slightly dry. No hype, no marketing language, no emojis. Do not narrate emotions or intent. Prefer concrete changes over explanations. If progress is small, say so plainly. Goal is credibility, not excitement.',
+            content: 'You are generating a factual dev update for founders and investors. Do NOT generalize. Do NOT infer intent. Write ONLY what actually changed. Be neutral, dry, internal. No marketing language. No forward-looking statements.',
           },
           {
             role: 'user',
             content: prompt,
           },
         ],
-        temperature: 0.7,
-        max_tokens: 400,
+        temperature: 0.3, // Lower temperature for more factual output
+        max_tokens: 500,
       });
 
       return completion.choices[0]?.message?.content?.trim() || generateAggregateSummaryFallback(stats);
