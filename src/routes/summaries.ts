@@ -215,8 +215,34 @@ router.get('/clients/:clientId/summary/7days', requireAuth, async (req: Request,
       },
     });
 
-    // Generate aggregate summary
-    const aggregateSummary = await generateAggregateSummary(summaries);
+    // Fetch actual activity events for concrete data (PR titles, commits, releases)
+    const activityEvents = await prisma.repoActivityEvent.findMany({
+      where: {
+        repo: {
+          clientId,
+          isEnabled: true,
+        },
+        occurredAt: {
+          gte: from,
+          lte: to,
+        },
+      },
+      include: {
+        repo: {
+          select: {
+            owner: true,
+            name: true,
+          },
+        },
+      },
+      orderBy: {
+        occurredAt: 'desc',
+      },
+      take: 100, // Limit to avoid token bloat
+    });
+
+    // Generate aggregate summary with actual activity events
+    const aggregateSummary = await generateAggregateSummary(summaries, activityEvents);
 
     // Calculate aggregate stats
     const stats = summaries.reduce((acc, summary) => {

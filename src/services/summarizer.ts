@@ -95,9 +95,9 @@ function generateSummaryFallback(activity: ActivityPacket): string {
 
 /**
  * Generates an aggregate summary for multiple daily summaries across repos
- * Uses founder-level, non-cringe tone
+ * Uses founder-level, non-cringe tone with concrete activity events
  */
-export async function generateAggregateSummary(summaries: any[]): Promise<string> {
+export async function generateAggregateSummary(summaries: any[], activityEvents: any[] = []): Promise<string> {
   if (summaries.length === 0) {
     return 'No activity recorded in the last 7 days.';
   }
@@ -130,41 +130,54 @@ export async function generateAggregateSummary(summaries: any[]): Promise<string
 
   // If we have OpenAI, generate a summary
   if (config.openai.apiKey) {
-    // Collect actual PR titles, release names, and commit messages from summaries
-    const prTitles: string[] = [];
-    const releaseNames: string[] = [];
-    const commitMessages: string[] = [];
+    // Build concrete activity list from actual events
+    const activityItems: string[] = [];
     const repoNames = new Set<string>();
 
-    for (const summary of activeSummaries) {
-      if (summary.repo) {
-        repoNames.add(`${summary.repo.owner}/${summary.repo.name}`);
+    // Group events by type and repo
+    const prs: any[] = [];
+    const releases: any[] = [];
+    const commits: any[] = [];
+
+    for (const event of activityEvents) {
+      if (event.repo) {
+        repoNames.add(`${event.repo.owner}/${event.repo.name}`);
       }
-      
-      // Extract from summary text - look for PR titles, releases, commits
-      const summaryText = summary.summary || '';
-      
-      // Try to extract PR titles (they're often in quotes or after "PR:")
-      const prMatches = summaryText.match(/(?:PR|pull request)[\s#:]*["']?([^"'\n]+)["']?/gi);
-      if (prMatches) {
-        prTitles.push(...prMatches.slice(0, 5)); // Limit to avoid token bloat
-      }
-      
-      // Extract release names
-      const releaseMatches = summaryText.match(/(?:release|version)[\s:]*["']?([^"'\n]+)["']?/gi);
-      if (releaseMatches) {
-        releaseNames.push(...releaseMatches.slice(0, 3));
+
+      if (event.type === 'pr_merged') {
+        prs.push({
+          repo: event.repo ? `${event.repo.owner}/${event.repo.name}` : 'unknown',
+          title: event.title,
+          url: event.url,
+        });
+      } else if (event.type === 'release') {
+        releases.push({
+          repo: event.repo ? `${event.repo.owner}/${event.repo.name}` : 'unknown',
+          title: event.title,
+          url: event.url,
+        });
+      } else if (event.type === 'commit') {
+        commits.push({
+          repo: event.repo ? `${event.repo.owner}/${event.repo.name}` : 'unknown',
+          title: event.title,
+          url: event.url,
+        });
       }
     }
 
-    // Build detailed activity list
-    const activityItems: string[] = [];
-    
-    for (const summary of activeSummaries.slice(0, 20)) { // Limit to avoid token bloat
-      if (summary.repo && summary.summary && !summary.noChanges) {
-        const repoName = `${summary.repo.owner}/${summary.repo.name}`;
-        const summaryText = summary.summary.substring(0, 200); // Truncate long summaries
-        activityItems.push(`[${repoName}] ${summaryText}`);
+    // Build concrete activity list
+    for (const pr of prs.slice(0, 15)) {
+      activityItems.push(`[${pr.repo}] Merged PR: "${pr.title}"`);
+    }
+
+    for (const release of releases.slice(0, 10)) {
+      activityItems.push(`[${release.repo}] Release: "${release.title}"`);
+    }
+
+    // Only include commits if no PRs (commits are less informative)
+    if (prs.length === 0 && commits.length > 0) {
+      for (const commit of commits.slice(0, 10)) {
+        activityItems.push(`[${commit.repo}] Commit: "${commit.title}"`);
       }
     }
 
