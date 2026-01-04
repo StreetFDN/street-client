@@ -361,6 +361,39 @@
             }
         }
 
+        async function triggerSync() {
+            const button = document.getElementById('sync-btn');
+            if (button) {
+                button.disabled = true;
+                button.textContent = 'Syncing...';
+            }
+
+            try {
+                const response = await fetch(`${API_BASE}/sync/trigger`, {
+                    method: 'POST',
+                    credentials: 'include',
+                });
+
+                if (!response.ok) {
+                    throw new Error('Sync failed');
+                }
+
+                const data = await response.json();
+                alert('Sync started! Check back in a few moments to see updated summaries.');
+                
+                // Reload after a short delay
+                setTimeout(() => {
+                    window.location.reload();
+                }, 2000);
+            } catch (error) {
+                alert(`Error triggering sync: ${error.message}`);
+                if (button) {
+                    button.disabled = false;
+                    button.textContent = 'Sync Now';
+                }
+            }
+        }
+
         async function loadClients() {
             try {
                 const clients = await fetchJSON(`${API_BASE}/clients`);
