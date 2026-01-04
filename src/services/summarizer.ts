@@ -195,6 +195,32 @@ CRITICAL RULES:
 
 Write ONLY what actually changed.
 
+RELEVANCE FILTER (MANDATORY):
+
+Before writing the update, classify each change as one of:
+- Core product logic
+- Data model / persistence
+- API / integration surface
+- Automation / scheduling
+- Infra / deployment
+- UI / cosmetic
+- Asset / static files
+- Tooling / refactor
+
+EXCLUDE from the final output:
+- Pure asset changes (images, icons, favicons, SVGs)
+- Cosmetic-only UI tweaks unless they affect user flows
+- Repeated or mechanically similar changes
+- Metadata-only updates (titles, descriptions, formatting)
+
+ONLY include UI changes if they:
+- unlock new functionality
+- change user navigation or flows
+- affect onboarding, auth, or permissions
+
+If the majority of changes are excluded, say:
+"Changes this period were mostly cosmetic or mechanical."
+
 SPECIFICITY REQUIREMENTS:
 - Reference concrete actions (e.g. "added X", "removed Y", "changed Z").
 - Prefer file names, functions, endpoints, or PR titles when available.
@@ -229,7 +255,7 @@ Generate the summary now:`;
         messages: [
           {
             role: 'system',
-            content: 'You are generating a factual dev update for founders and investors. Do NOT generalize. Do NOT infer intent. Write ONLY what actually changed. Be neutral, dry, internal. No marketing language. No forward-looking statements.',
+            content: 'You are generating a factual dev update for founders and investors. Do NOT generalize. Do NOT infer intent. Write ONLY what actually changed. EXCLUDE: pure assets, cosmetic-only UI, repeated changes, metadata-only. ONLY include UI changes if they unlock functionality or change flows. Be neutral, dry, internal. No marketing language. No forward-looking statements. If most changes are excluded, say "mostly cosmetic or mechanical."',
           },
           {
             role: 'user',
