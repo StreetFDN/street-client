@@ -185,15 +185,23 @@ export async function generateAggregateSummary(summaries: any[], activityEvents:
       return 'Only minor or mechanical changes this period.';
     }
 
-    const prompt = `You are generating a factual dev update for founders and investors.
+    const prompt = `You are generating a public-facing founder update for Twitter.
 
-CRITICAL RULES:
-- Do NOT generalize (e.g. "feature improvements", "bug fixes").
-- Do NOT infer intent or impact unless explicitly stated in commits or PRs.
-- Do NOT merge unrelated changes into themes.
-- Every bullet must be traceable to a concrete change.
+GOAL:
+Signal momentum and direction to technical founders, operators, and early investors.
 
-Write ONLY what actually changed.
+TRANSLATION RULE:
+Never mention repository names.
+Always describe changes in terms of product surfaces or capabilities.
+
+EXAMPLES:
+- "landingsiteonly" → "public landing page / onboarding surface"
+- "street-client" → "Dev Update Engine backend"
+
+FRAMING RULES:
+- Do not say "cosmetic", "mechanical", or "internal".
+- If changes are incremental, frame them as groundwork or polish.
+- Focus on what is now possible or more reliable.
 
 RELEVANCE FILTER (MANDATORY):
 
@@ -219,30 +227,30 @@ ONLY include UI changes if they:
 - affect onboarding, auth, or permissions
 
 If the majority of changes are excluded, say:
-"Changes this period were mostly cosmetic or mechanical."
+"Quiet shipping week. Focused on polish and reliability."
 
 SPECIFICITY REQUIREMENTS:
 - Reference concrete actions (e.g. "added X", "removed Y", "changed Z").
 - Prefer file names, functions, endpoints, or PR titles when available.
 - If multiple small commits exist, list representative ones instead of summarizing them.
+- Translate repo names to product surfaces/capabilities.
 
-STRUCTURE (MANDATORY):
-1. One sentence stating WHAT changed and WHERE.
-2. 3–7 bullets, each:
-   - max 120 characters
-   - starts with a verb
-   - refers to a specific repo / file / system
-3. Optional final line:
-   - "Open issue:" or "Known risk:" only if explicitly present.
-
-IF DATA IS TOO THIN:
-- Say: "Only minor or mechanical changes this period."
-- Do not pad or embellish.
+STRUCTURE:
+1. 1-line headline (directional, confident, factual)
+2. 3–5 bullets, each:
+   - starts with a strong verb
+   - ≤ 140 chars
+   - describes capability, not implementation
+3. Optional closing line: "Next:" only if something concrete is coming.
 
 TONE:
-- Neutral, dry, internal.
-- No marketing language.
-- No forward-looking statements.
+- Calm confidence
+- No hype words ("huge", "massive", "excited")
+- No emojis
+- No apologies
+
+If there is truly nothing worth sharing, output:
+"Quiet shipping week. Focused on polish and reliability."
 
 Activity across repositories (last 7 days):
 ${activityItems.join('\n\n')}
@@ -255,7 +263,7 @@ Generate the summary now:`;
         messages: [
           {
             role: 'system',
-            content: 'You are generating a factual dev update for founders and investors. Do NOT generalize. Do NOT infer intent. Write ONLY what actually changed. EXCLUDE: pure assets, cosmetic-only UI, repeated changes, metadata-only. ONLY include UI changes if they unlock functionality or change flows. Be neutral, dry, internal. No marketing language. No forward-looking statements. If most changes are excluded, say "mostly cosmetic or mechanical."',
+            content: 'You are generating a public-facing founder update for Twitter. Never mention repository names - translate to product surfaces/capabilities. Do not say "cosmetic", "mechanical", or "internal". Frame incremental changes as groundwork or polish. Focus on capabilities, not implementation. Calm confidence tone. No hype words, no emojis, no apologies. EXCLUDE: pure assets, cosmetic-only UI, repeated changes, metadata-only. If most changes excluded, say "Quiet shipping week. Focused on polish and reliability."',
           },
           {
             role: 'user',
