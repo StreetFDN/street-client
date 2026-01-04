@@ -34,6 +34,27 @@
             box-shadow: 0 4px 6px rgba(0,0,0,0.1);
         }
 
+        .sync-button {
+            background: #667eea;
+            color: white;
+            border: none;
+            padding: 0.5rem 1rem;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.875rem;
+            margin-left: 1rem;
+            transition: background 0.2s;
+        }
+
+        .sync-button:hover {
+            background: #5568d3;
+        }
+
+        .sync-button:disabled {
+            background: #cbd5e0;
+            cursor: not-allowed;
+        }
+
         h1 {
             font-size: 2rem;
             margin-bottom: 0.5rem;
@@ -395,10 +416,13 @@
                 <div class="summary-7days-card">
                     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
                         <h2 style="font-size: 1.25rem; font-weight: 600; color: #1a202c; margin: 0;">Last 7 Days</h2>
-                        <div style="display: flex; gap: 1rem; font-size: 0.875rem; color: #718096;">
-                            ${stats.repos > 0 ? `<span>${stats.repos} repos</span>` : ''}
-                            ${stats.mergedPRs > 0 ? `<span>${stats.mergedPRs} PRs</span>` : ''}
-                            ${stats.releases > 0 ? `<span>${stats.releases} releases</span>` : ''}
+                        <div style="display: flex; gap: 1rem; align-items: center;">
+                            <div style="display: flex; gap: 1rem; font-size: 0.875rem; color: #718096;">
+                                ${stats.repos > 0 ? `<span>${stats.repos} repos</span>` : ''}
+                                ${stats.mergedPRs > 0 ? `<span>${stats.mergedPRs} PRs</span>` : ''}
+                                ${stats.releases > 0 ? `<span>${stats.releases} releases</span>` : ''}
+                            </div>
+                            <button id="sync-btn" class="sync-button" onclick="triggerSync()">Sync Now</button>
                         </div>
                     </div>
                     <div class="summary-7days-text">${formattedSummary}</div>
