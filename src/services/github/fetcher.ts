@@ -106,21 +106,30 @@ export async function fetchRepoActivity(
     console.error(`Error fetching releases for ${owner}/${repo}:`, error);
   }
 
-  // Only fetch commits if no PRs or releases (fallback)
-  if (mergedPRs.length === 0 && releases.length === 0) {
-    try {
-      const commitsResponse = await octokit.rest.repos.listCommits({
-        owner,
-        repo,
-        since: windowStart.toISOString(),
-        until: windowEnd.toISOString(),
-        per_page: MAX_COMMITS,
-      });
+  // Always fetch commits (PRs might not be merged yet, and commits show direct activity)
+  try {
+    const commitsResponse = await octokit.rest.repos.listCommits({
+      owner,
+      repo,
+      since: windowStart.toISOString(),
+      until: windowEnd.toISOString(),
+      per_page: MAX_COMMITS,
+    });
 
-      for (const commit of commitsResponse.data) {
-        const commitDate = new Date(commit.commit.author?.date || commit.commit.committer?.date || Date.now());
-        if (commitDate >= windowStart && commitDate <= windowEnd) {
-          const message = commit.commit.message.split('\n')[0]; // First line only
+    for (const commit of commitsResponse.data) {
+      const commitDate = new Date(commit.commit.author?.date || commit.commit.committer?.date || Date.now());
+      if (commitDate >= windowStart && commitDate <= windowEnd) {
+        const message = commit.commit.message.split('\n')[0]; // First line only
+        
+        // Skip merge commits and dependabot/automated commits unless they're the only activity
+        const isMergeCommit = message.toLowerCase().startsWith('merge') || 
+                              message.toLowerCase().startsWith('merging');
+        const isAutomated = commit.author?.login?.includes('dependabot') || 
+                           commit.author?.login?.includes('bot') ||
+                           commit.commit.author?.name?.includes('bot');
+        
+        // Only skip if we have PRs - if no PRs, include everything to show activity
+        if (!isMergeCommit && (!isAutomated || (mergedPRs.length === 0 && releases.length === 0))) {
           commits.push({
             type: 'commit',
             title: message,
@@ -133,9 +142,9 @@ export async function fetchRepoActivity(
           });
         }
       }
-    } catch (error) {
-      console.error(`Error fetching commits for ${owner}/${repo}:`, error);
     }
+  } catch (error) {
+    console.error(`Error fetching commits for ${owner}/${repo}:`, error);
   }
 
   return {

@@ -37,7 +37,7 @@ async function generateSummaryWithLLM(activity: ActivityPacket): Promise<string>
     return 'No relevant GitHub changes in the last 24h.';
   }
 
-  const prompt = `Summarize the following GitHub activity in a brief, factual paragraph. Be concise, technical, and slightly dry. No hype, no marketing language, no emojis. Focus on concrete changes. Format as plain text, no markdown:
+  const prompt = `Summarize the following GitHub activity in a brief, factual paragraph. Be concise, technical, and slightly dry. No hype, no marketing language, no emojis. Focus on concrete changes. INCLUDE all meaningful changes - don't filter out unless it's truly only assets/images/icons or formatting. Format as plain text, no markdown:
 
 ${items.join('\n')}`;
 
@@ -47,7 +47,7 @@ ${items.join('\n')}`;
       messages: [
         {
           role: 'system',
-          content: 'You are writing a founder-level technical update. Be concise, factual, and slightly dry. Assume the reader is technical and time-constrained. No hype, no marketing language, no emojis. Do not narrate emotions or intent. Prefer concrete changes over explanations. If progress is small, say so plainly. Goal is credibility, not excitement.',
+          content: 'You are writing a founder-level technical update. Be concise, factual, and slightly dry. Assume the reader is technical and time-constrained. No hype, no marketing language, no emojis. Do not narrate emotions or intent. Prefer concrete changes over explanations. INCLUDE all meaningful changes including UI improvements, API changes, bug fixes, and features. Only exclude pure assets/images/icons or formatting-only changes. Goal is to show activity, not filter it out.',
         },
         {
           role: 'user',
@@ -86,8 +86,18 @@ function generateSummaryFallback(activity: ActivityPacket): string {
     }
   }
 
+  // Always include commits if they exist - shows activity even if PRs aren't merged yet
   if (activity.counts.commits > 0) {
-    parts.push(`${activity.counts.commits} commit${activity.counts.commits > 1 ? 's' : ''}`);
+    if (activity.counts.mergedPRs === 0) {
+      // If no PRs, show commit details
+      parts.push(`${activity.counts.commits} commit${activity.counts.commits > 1 ? 's' : ''}`);
+      if (activity.commits.length > 0) {
+        parts.push(`including "${activity.commits[0].title.substring(0, 60)}"`);
+      }
+    } else {
+      // If PRs exist, still mention commits to show activity
+      parts.push(`${activity.counts.commits} additional commit${activity.counts.commits > 1 ? 's' : ''}`);
+    }
   }
 
   return parts.join(', ') + '.';
@@ -282,7 +292,7 @@ Generate the summary now:`;
         messages: [
           {
             role: 'system',
-            content: 'You are generating a public-facing founder update for Twitter. Never mention repository names - translate to product surfaces/capabilities. Do not say "cosmetic", "mechanical", or "internal". Frame incremental changes as groundwork or polish. Focus on capabilities, not implementation. Calm confidence tone. No hype words, no emojis, no apologies. EXCLUDE: pure assets, cosmetic-only UI, repeated changes, metadata-only. If most changes excluded, say "Quiet shipping week. Focused on polish and reliability."',
+            content: 'You are generating a public-facing founder update for Twitter. Never mention repository names - translate to product surfaces/capabilities. Do not say "cosmetic", "mechanical", or "internal". Frame incremental changes as groundwork or polish. Focus on capabilities, not implementation. Calm confidence tone. No hype words, no emojis, no apologies. DEFAULT TO INCLUDING changes - only exclude pure assets/images/icons or formatting-only changes with zero functional impact. Include all code changes, UI improvements, API changes, bug fixes, and features. When in doubt, include it.',
           },
           {
             role: 'user',
