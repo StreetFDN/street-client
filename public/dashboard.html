@@ -1,0 +1,1396 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard - Dev Update Engine</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500;600;700&family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-primary: #faf9f7;
+            --bg-secondary: #f5f3ef;
+            --bg-card: #ffffff;
+            --bg-dark: #1a1a1a;
+            --text-primary: #1a1a1a;
+            --text-secondary: #555555;
+            --text-muted: #888888;
+            --accent-primary: #d35400;
+            --accent-secondary: #e67e22;
+            --accent-tertiary: #2c3e50;
+            --accent-green: #27ae60;
+            --accent-blue: #3498db;
+            --accent-purple: #9b59b6;
+            --border-color: #e8e4df;
+            --gradient-earth: linear-gradient(135deg, #d35400 0%, #e67e22 50%, #f39c12 100%);
+            --shadow-soft: 0 4px 20px rgba(0,0,0,0.06);
+            --shadow-medium: 0 8px 40px rgba(0,0,0,0.1);
+            --shadow-float: 0 20px 60px rgba(0,0,0,0.12);
+            --font-serif: 'Playfair Display', Georgia, serif;
+            --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            --font-mono: 'JetBrains Mono', monospace;
+            --sidebar-width: 280px;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: var(--font-sans);
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            display: flex;
+            min-height: 100vh;
+        }
+
+        /* SIDEBAR */
+        .sidebar {
+            width: var(--sidebar-width);
+            background: var(--bg-card);
+            border-right: 1px solid var(--border-color);
+            display: flex;
+            flex-direction: column;
+            position: fixed;
+            top: 0;
+            left: 0;
+            bottom: 0;
+            z-index: 100;
+            transition: transform 0.3s ease;
+        }
+
+        .sidebar-header {
+            padding: 1.5rem;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            text-decoration: none;
+            color: var(--text-primary);
+        }
+
+        .logo-icon {
+            width: 40px;
+            height: 40px;
+            background: var(--gradient-earth);
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.25rem;
+        }
+
+        .logo-text {
+            font-family: var(--font-serif);
+            font-size: 1.1rem;
+            font-weight: 600;
+        }
+
+        /* NAV ITEMS */
+        .sidebar-nav {
+            flex: 1;
+            padding: 1rem 0;
+            overflow-y: auto;
+        }
+
+        .nav-section {
+            margin-bottom: 1.5rem;
+        }
+
+        .nav-section-title {
+            padding: 0.5rem 1.5rem;
+            font-size: 0.7rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            color: var(--text-muted);
+        }
+
+        .nav-item {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            padding: 0.75rem 1.5rem;
+            color: var(--text-secondary);
+            text-decoration: none;
+            font-size: 0.9rem;
+            font-weight: 500;
+            transition: all 0.2s ease;
+            position: relative;
+            cursor: pointer;
+        }
+
+        .nav-item::before {
+            content: '';
+            position: absolute;
+            left: 0;
+            top: 0;
+            bottom: 0;
+            width: 3px;
+            background: var(--accent-primary);
+            transform: scaleY(0);
+            transition: transform 0.2s ease;
+        }
+
+        .nav-item:hover {
+            background: var(--bg-secondary);
+            color: var(--text-primary);
+        }
+
+        .nav-item.active {
+            background: rgba(211, 84, 0, 0.08);
+            color: var(--accent-primary);
+        }
+
+        .nav-item.active::before {
+            transform: scaleY(1);
+        }
+
+        .nav-icon {
+            width: 20px;
+            height: 20px;
+            opacity: 0.7;
+        }
+
+        .nav-item:hover .nav-icon,
+        .nav-item.active .nav-icon {
+            opacity: 1;
+        }
+
+        .nav-badge {
+            margin-left: auto;
+            background: var(--accent-primary);
+            color: white;
+            font-size: 0.7rem;
+            font-weight: 600;
+            padding: 0.2rem 0.5rem;
+            border-radius: 100px;
+        }
+
+        /* USER SECTION */
+        .sidebar-user {
+            padding: 1rem 1.5rem;
+            border-top: 1px solid var(--border-color);
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+
+        .user-avatar {
+            width: 40px;
+            height: 40px;
+            border-radius: 10px;
+            background: var(--gradient-earth);
+            overflow: hidden;
+        }
+
+        .user-avatar img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .user-info {
+            flex: 1;
+        }
+
+        .user-name {
+            font-weight: 600;
+            font-size: 0.9rem;
+        }
+
+        .user-role {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+        }
+
+        .user-menu-btn {
+            background: none;
+            border: none;
+            padding: 0.5rem;
+            cursor: pointer;
+            color: var(--text-muted);
+            border-radius: 8px;
+            transition: all 0.2s ease;
+        }
+
+        .user-menu-btn:hover {
+            background: var(--bg-secondary);
+            color: var(--text-primary);
+        }
+
+        /* MAIN CONTENT */
+        .main-content {
+            flex: 1;
+            margin-left: var(--sidebar-width);
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* TOP BAR */
+        .topbar {
+            background: var(--bg-card);
+            border-bottom: 1px solid var(--border-color);
+            padding: 1rem 2rem;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            position: sticky;
+            top: 0;
+            z-index: 50;
+        }
+
+        .topbar-title {
+            font-family: var(--font-serif);
+            font-size: 1.5rem;
+            font-weight: 500;
+        }
+
+        .topbar-actions {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .search-box {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            background: var(--bg-secondary);
+            padding: 0.5rem 1rem;
+            border-radius: 10px;
+            border: 1px solid transparent;
+            transition: all 0.2s ease;
+        }
+
+        .search-box:focus-within {
+            border-color: var(--accent-primary);
+            background: var(--bg-card);
+        }
+
+        .search-box input {
+            border: none;
+            background: none;
+            font-size: 0.9rem;
+            color: var(--text-primary);
+            width: 200px;
+            outline: none;
+        }
+
+        .search-box input::placeholder {
+            color: var(--text-muted);
+        }
+
+        .icon-btn {
+            width: 40px;
+            height: 40px;
+            border-radius: 10px;
+            border: 1px solid var(--border-color);
+            background: var(--bg-card);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            color: var(--text-secondary);
+            transition: all 0.2s ease;
+            position: relative;
+        }
+
+        .icon-btn:hover {
+            border-color: var(--accent-primary);
+            color: var(--accent-primary);
+        }
+
+        .icon-btn .notification-dot {
+            position: absolute;
+            top: 8px;
+            right: 8px;
+            width: 8px;
+            height: 8px;
+            background: var(--accent-primary);
+            border-radius: 50%;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; transform: scale(1); }
+            50% { opacity: 0.7; transform: scale(1.2); }
+        }
+
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.6rem 1.25rem;
+            border-radius: 10px;
+            font-weight: 600;
+            font-size: 0.9rem;
+            text-decoration: none;
+            transition: all 0.3s ease;
+            cursor: pointer;
+            border: none;
+        }
+
+        .btn-primary {
+            background: var(--gradient-earth);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 15px rgba(211, 84, 0, 0.3);
+        }
+
+        /* CONTENT AREA */
+        .content-area {
+            padding: 2rem;
+            flex: 1;
+        }
+
+        /* STATS GRID */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        .stat-card {
+            background: var(--bg-card);
+            border-radius: 16px;
+            padding: 1.5rem;
+            border: 1px solid var(--border-color);
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .stat-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 4px;
+            background: var(--gradient-earth);
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+
+        .stat-card:hover {
+            transform: translateY(-4px);
+            box-shadow: var(--shadow-medium);
+        }
+
+        .stat-card:hover::before {
+            opacity: 1;
+        }
+
+        .stat-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 1rem;
+        }
+
+        .stat-icon {
+            width: 40px;
+            height: 40px;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.25rem;
+        }
+
+        .stat-icon.orange { background: rgba(211, 84, 0, 0.1); }
+        .stat-icon.green { background: rgba(39, 174, 96, 0.1); }
+        .stat-icon.blue { background: rgba(52, 152, 219, 0.1); }
+        .stat-icon.purple { background: rgba(155, 89, 182, 0.1); }
+
+        .stat-trend {
+            display: flex;
+            align-items: center;
+            gap: 0.25rem;
+            font-size: 0.8rem;
+            font-weight: 600;
+        }
+
+        .stat-trend.up { color: var(--accent-green); }
+        .stat-trend.down { color: #e74c3c; }
+
+        .stat-value {
+            font-family: var(--font-serif);
+            font-size: 2rem;
+            font-weight: 600;
+            margin-bottom: 0.25rem;
+        }
+
+        .stat-label {
+            font-size: 0.85rem;
+            color: var(--text-muted);
+        }
+
+        /* MAIN GRID */
+        .main-grid {
+            display: grid;
+            grid-template-columns: 2fr 1fr;
+            gap: 1.5rem;
+        }
+
+        /* CARDS */
+        .card {
+            background: var(--bg-card);
+            border-radius: 20px;
+            border: 1px solid var(--border-color);
+            overflow: hidden;
+        }
+
+        .card-header {
+            padding: 1.5rem;
+            border-bottom: 1px solid var(--border-color);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .card-title {
+            font-family: var(--font-serif);
+            font-size: 1.25rem;
+            font-weight: 500;
+        }
+
+        .card-subtitle {
+            font-size: 0.85rem;
+            color: var(--text-muted);
+            margin-top: 0.25rem;
+        }
+
+        .card-actions {
+            display: flex;
+            gap: 0.5rem;
+        }
+
+        .card-body {
+            padding: 1.5rem;
+        }
+
+        /* SUMMARY SECTION */
+        .summary-card {
+            background: linear-gradient(135deg, var(--bg-dark) 0%, #2c3e50 100%);
+            color: white;
+            margin-bottom: 2rem;
+        }
+
+        .summary-card .card-header {
+            border-bottom-color: rgba(255,255,255,0.1);
+        }
+
+        .summary-card .card-title {
+            color: white;
+        }
+
+        .summary-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            background: rgba(211, 84, 0, 0.2);
+            padding: 0.4rem 0.8rem;
+            border-radius: 100px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            color: var(--accent-secondary);
+        }
+
+        .summary-badge-dot {
+            width: 6px;
+            height: 6px;
+            background: var(--accent-secondary);
+            border-radius: 50%;
+            animation: blink 2s infinite;
+        }
+
+        @keyframes blink {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.3; }
+        }
+
+        .summary-content {
+            font-size: 1rem;
+            line-height: 1.8;
+            color: rgba(255,255,255,0.9);
+        }
+
+        .summary-content p {
+            margin-bottom: 1rem;
+        }
+
+        .summary-highlights {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.75rem;
+            margin-top: 1.5rem;
+        }
+
+        .highlight-tag {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            background: rgba(255,255,255,0.1);
+            padding: 0.5rem 1rem;
+            border-radius: 8px;
+            font-size: 0.85rem;
+        }
+
+        /* ACTIVITY FEED */
+        .activity-feed {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .activity-item {
+            display: flex;
+            gap: 1rem;
+            padding: 1rem 0;
+            border-bottom: 1px solid var(--border-color);
+            transition: all 0.2s ease;
+        }
+
+        .activity-item:last-child {
+            border-bottom: none;
+        }
+
+        .activity-item:hover {
+            background: var(--bg-secondary);
+            margin: 0 -1.5rem;
+            padding: 1rem 1.5rem;
+        }
+
+        .activity-icon {
+            width: 40px;
+            height: 40px;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1rem;
+            flex-shrink: 0;
+        }
+
+        .activity-icon.pr { background: rgba(39, 174, 96, 0.1); }
+        .activity-icon.commit { background: rgba(52, 152, 219, 0.1); }
+        .activity-icon.release { background: rgba(155, 89, 182, 0.1); }
+        .activity-icon.issue { background: rgba(231, 76, 60, 0.1); }
+
+        .activity-content {
+            flex: 1;
+        }
+
+        .activity-title {
+            font-weight: 600;
+            font-size: 0.95rem;
+            margin-bottom: 0.25rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .activity-title a {
+            color: var(--text-primary);
+            text-decoration: none;
+        }
+
+        .activity-title a:hover {
+            color: var(--accent-primary);
+        }
+
+        .activity-meta {
+            font-size: 0.8rem;
+            color: var(--text-muted);
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .activity-repo {
+            color: var(--accent-primary);
+            font-weight: 500;
+        }
+
+        .activity-time {
+            color: var(--text-muted);
+            font-size: 0.8rem;
+            white-space: nowrap;
+        }
+
+        /* REPOS LIST */
+        .repos-list {
+            display: flex;
+            flex-direction: column;
+            gap: 0.75rem;
+        }
+
+        .repo-item {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            padding: 1rem;
+            background: var(--bg-secondary);
+            border-radius: 12px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .repo-item:hover {
+            background: var(--bg-primary);
+            transform: translateX(4px);
+        }
+
+        .repo-icon {
+            width: 36px;
+            height: 36px;
+            border-radius: 8px;
+            background: var(--bg-card);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .repo-info {
+            flex: 1;
+        }
+
+        .repo-name {
+            font-weight: 600;
+            font-size: 0.9rem;
+            margin-bottom: 0.2rem;
+        }
+
+        .repo-meta {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            display: flex;
+            gap: 0.75rem;
+        }
+
+        .repo-status {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: var(--accent-green);
+        }
+
+        .repo-status.inactive {
+            background: var(--text-muted);
+        }
+
+        /* CALENDAR WIDGET */
+        .calendar-grid {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            gap: 4px;
+        }
+
+        .calendar-day {
+            aspect-ratio: 1;
+            border-radius: 4px;
+            background: var(--bg-secondary);
+            transition: all 0.2s ease;
+        }
+
+        .calendar-day.active-1 { background: rgba(211, 84, 0, 0.2); }
+        .calendar-day.active-2 { background: rgba(211, 84, 0, 0.4); }
+        .calendar-day.active-3 { background: rgba(211, 84, 0, 0.6); }
+        .calendar-day.active-4 { background: var(--accent-primary); }
+
+        .calendar-day:hover {
+            transform: scale(1.2);
+        }
+
+        /* LOADING STATES */
+        .skeleton {
+            background: linear-gradient(90deg, var(--bg-secondary) 25%, var(--bg-primary) 50%, var(--bg-secondary) 75%);
+            background-size: 200% 100%;
+            animation: shimmer 1.5s infinite;
+            border-radius: 8px;
+        }
+
+        @keyframes shimmer {
+            0% { background-position: 200% 0; }
+            100% { background-position: -200% 0; }
+        }
+
+        /* EMPTY STATE */
+        .empty-state {
+            text-align: center;
+            padding: 3rem 2rem;
+        }
+
+        .empty-icon {
+            width: 80px;
+            height: 80px;
+            margin: 0 auto 1.5rem;
+            background: var(--bg-secondary);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 2rem;
+        }
+
+        .empty-title {
+            font-family: var(--font-serif);
+            font-size: 1.25rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .empty-text {
+            color: var(--text-muted);
+            font-size: 0.9rem;
+            margin-bottom: 1.5rem;
+        }
+
+        /* RESPONSIVE */
+        @media (max-width: 1200px) {
+            .stats-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+
+            .main-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .sidebar {
+                transform: translateX(-100%);
+            }
+
+            .sidebar.open {
+                transform: translateX(0);
+            }
+
+            .main-content {
+                margin-left: 0;
+            }
+
+            .stats-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .topbar-title {
+                font-size: 1.25rem;
+            }
+
+            .search-box {
+                display: none;
+            }
+        }
+
+        /* ANIMATIONS */
+        .fade-in {
+            animation: fadeIn 0.5s ease;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .slide-in {
+            animation: slideIn 0.5s ease;
+        }
+
+        @keyframes slideIn {
+            from { opacity: 0; transform: translateX(-20px); }
+            to { opacity: 1; transform: translateX(0); }
+        }
+
+        /* Stagger animations */
+        .stat-card:nth-child(1) { animation-delay: 0.1s; }
+        .stat-card:nth-child(2) { animation-delay: 0.2s; }
+        .stat-card:nth-child(3) { animation-delay: 0.3s; }
+        .stat-card:nth-child(4) { animation-delay: 0.4s; }
+
+        .activity-item:nth-child(1) { animation-delay: 0.1s; }
+        .activity-item:nth-child(2) { animation-delay: 0.15s; }
+        .activity-item:nth-child(3) { animation-delay: 0.2s; }
+        .activity-item:nth-child(4) { animation-delay: 0.25s; }
+        .activity-item:nth-child(5) { animation-delay: 0.3s; }
+    </style>
+</head>
+<body>
+    <!-- Sidebar -->
+    <aside class="sidebar" id="sidebar">
+        <div class="sidebar-header">
+            <a href="/" class="logo">
+                <div class="logo-icon">⚡</div>
+                <span class="logo-text">Dev Update</span>
+            </a>
+        </div>
+
+        <nav class="sidebar-nav">
+            <div class="nav-section">
+                <div class="nav-section-title">Main</div>
+                <a href="#" class="nav-item active">
+                    <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <rect x="3" y="3" width="7" height="7"/>
+                        <rect x="14" y="3" width="7" height="7"/>
+                        <rect x="14" y="14" width="7" height="7"/>
+                        <rect x="3" y="14" width="7" height="7"/>
+                    </svg>
+                    Dashboard
+                </a>
+                <a href="#" class="nav-item">
+                    <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                        <polyline points="14 2 14 8 20 8"/>
+                        <line x1="16" y1="13" x2="8" y2="13"/>
+                        <line x1="16" y1="17" x2="8" y2="17"/>
+                    </svg>
+                    Summaries
+                    <span class="nav-badge">3</span>
+                </a>
+                <a href="#" class="nav-item">
+                    <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/>
+                    </svg>
+                    Repositories
+                </a>
+                <a href="#" class="nav-item">
+                    <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>
+                    </svg>
+                    Activity
+                </a>
+            </div>
+
+            <div class="nav-section">
+                <div class="nav-section-title">Settings</div>
+                <a href="#" class="nav-item">
+                    <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>
+                        <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
+                    </svg>
+                    Notifications
+                </a>
+                <a href="#" class="nav-item">
+                    <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <circle cx="12" cy="12" r="3"/>
+                        <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+                    </svg>
+                    Settings
+                </a>
+                <a href="#" class="nav-item">
+                    <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <circle cx="12" cy="12" r="10"/>
+                        <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/>
+                        <line x1="12" y1="17" x2="12.01" y2="17"/>
+                    </svg>
+                    Help & Support
+                </a>
+            </div>
+        </nav>
+
+        <div class="sidebar-user" id="userSection">
+            <div class="user-avatar">
+                <img src="" alt="" id="userAvatar" style="display:none;">
+                <span id="userInitial" style="color: white; font-weight: 600; display: flex; align-items: center; justify-content: center; height: 100%;">?</span>
+            </div>
+            <div class="user-info">
+                <div class="user-name" id="userName">Loading...</div>
+                <div class="user-role">Developer</div>
+            </div>
+            <button class="user-menu-btn" onclick="logout()">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
+                    <polyline points="16 17 21 12 16 7"/>
+                    <line x1="21" y1="12" x2="9" y2="12"/>
+                </svg>
+            </button>
+        </div>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="main-content">
+        <!-- Top Bar -->
+        <header class="topbar">
+            <div>
+                <h1 class="topbar-title">Dashboard</h1>
+            </div>
+            <div class="topbar-actions">
+                <div class="search-box">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <circle cx="11" cy="11" r="8"/>
+                        <line x1="21" y1="21" x2="16.65" y2="16.65"/>
+                    </svg>
+                    <input type="text" placeholder="Search repos...">
+                </div>
+                <button class="icon-btn">
+                    <span class="notification-dot"></span>
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>
+                        <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
+                    </svg>
+                </button>
+                <button class="btn btn-primary" onclick="triggerSync()">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <polyline points="23 4 23 10 17 10"/>
+                        <polyline points="1 20 1 14 7 14"/>
+                        <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/>
+                    </svg>
+                    Sync Now
+                </button>
+            </div>
+        </header>
+
+        <!-- Content Area -->
+        <div class="content-area">
+            <!-- Stats Grid -->
+            <div class="stats-grid">
+                <div class="stat-card fade-in">
+                    <div class="stat-header">
+                        <div class="stat-icon orange">📦</div>
+                        <div class="stat-trend up">
+                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/>
+                            </svg>
+                            +12%
+                        </div>
+                    </div>
+                    <div class="stat-value" id="statPRs">47</div>
+                    <div class="stat-label">PRs Merged This Week</div>
+                </div>
+                <div class="stat-card fade-in">
+                    <div class="stat-header">
+                        <div class="stat-icon green">📝</div>
+                        <div class="stat-trend up">
+                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/>
+                            </svg>
+                            +8%
+                        </div>
+                    </div>
+                    <div class="stat-value" id="statCommits">312</div>
+                    <div class="stat-label">Commits This Week</div>
+                </div>
+                <div class="stat-card fade-in">
+                    <div class="stat-header">
+                        <div class="stat-icon blue">🚀</div>
+                        <div class="stat-trend up">
+                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/>
+                            </svg>
+                            +25%
+                        </div>
+                    </div>
+                    <div class="stat-value" id="statReleases">5</div>
+                    <div class="stat-label">Releases This Week</div>
+                </div>
+                <div class="stat-card fade-in">
+                    <div class="stat-header">
+                        <div class="stat-icon purple">📊</div>
+                        <div class="stat-trend up">
+                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/>
+                            </svg>
+                            Active
+                        </div>
+                    </div>
+                    <div class="stat-value" id="statRepos">8</div>
+                    <div class="stat-label">Active Repositories</div>
+                </div>
+            </div>
+
+            <!-- Weekly Summary Card -->
+            <div class="card summary-card fade-in">
+                <div class="card-header">
+                    <div>
+                        <h2 class="card-title">Weekly Summary</h2>
+                        <p class="card-subtitle" style="color: rgba(255,255,255,0.6);">AI-generated overview of this week's activity</p>
+                    </div>
+                    <div class="summary-badge">
+                        <span class="summary-badge-dot"></span>
+                        AI Generated
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div class="summary-content" id="weeklySummary">
+                        <p>This week saw significant progress across your repositories with a focus on <strong>authentication improvements</strong> and <strong>performance optimizations</strong>.</p>
+                        <p>The team merged 47 pull requests, with notable contributions to the user management system. Key highlights include the completion of the OAuth2 flow refactor and critical database connection fixes that improved response times by 40%.</p>
+                    </div>
+                    <div class="summary-highlights">
+                        <span class="highlight-tag">🔐 Auth System Revamp</span>
+                        <span class="highlight-tag">⚡ 40% Faster API</span>
+                        <span class="highlight-tag">🐛 12 Bugs Fixed</span>
+                        <span class="highlight-tag">📚 Updated Docs</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Main Grid -->
+            <div class="main-grid">
+                <!-- Activity Feed -->
+                <div class="card fade-in">
+                    <div class="card-header">
+                        <div>
+                            <h2 class="card-title">Recent Activity</h2>
+                            <p class="card-subtitle">Latest updates from your repositories</p>
+                        </div>
+                        <div class="card-actions">
+                            <button class="icon-btn">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/>
+                                </svg>
+                            </button>
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <div class="activity-feed" id="activityFeed">
+                            <div class="activity-item slide-in">
+                                <div class="activity-icon pr">🔀</div>
+                                <div class="activity-content">
+                                    <div class="activity-title">
+                                        <a href="#">feat: Add user authentication flow</a>
+                                    </div>
+                                    <div class="activity-meta">
+                                        <span class="activity-repo">street-client</span>
+                                        <span>•</span>
+                                        <span>Merged by @sarah</span>
+                                    </div>
+                                </div>
+                                <span class="activity-time">2h ago</span>
+                            </div>
+                            <div class="activity-item slide-in">
+                                <div class="activity-icon commit">📝</div>
+                                <div class="activity-content">
+                                    <div class="activity-title">
+                                        <a href="#">fix: Resolve database connection timeout</a>
+                                    </div>
+                                    <div class="activity-meta">
+                                        <span class="activity-repo">api-gateway</span>
+                                        <span>•</span>
+                                        <span>Committed by @alex</span>
+                                    </div>
+                                </div>
+                                <span class="activity-time">4h ago</span>
+                            </div>
+                            <div class="activity-item slide-in">
+                                <div class="activity-icon release">🚀</div>
+                                <div class="activity-content">
+                                    <div class="activity-title">
+                                        <a href="#">Release v2.1.0 - Performance Boost</a>
+                                    </div>
+                                    <div class="activity-meta">
+                                        <span class="activity-repo">core-platform</span>
+                                        <span>•</span>
+                                        <span>Released by @team</span>
+                                    </div>
+                                </div>
+                                <span class="activity-time">1d ago</span>
+                            </div>
+                            <div class="activity-item slide-in">
+                                <div class="activity-icon pr">🔀</div>
+                                <div class="activity-content">
+                                    <div class="activity-title">
+                                        <a href="#">refactor: Clean up API routes</a>
+                                    </div>
+                                    <div class="activity-meta">
+                                        <span class="activity-repo">street-client</span>
+                                        <span>•</span>
+                                        <span>Merged by @mike</span>
+                                    </div>
+                                </div>
+                                <span class="activity-time">1d ago</span>
+                            </div>
+                            <div class="activity-item slide-in">
+                                <div class="activity-icon issue">🐛</div>
+                                <div class="activity-content">
+                                    <div class="activity-title">
+                                        <a href="#">fix: Memory leak in websocket handler</a>
+                                    </div>
+                                    <div class="activity-meta">
+                                        <span class="activity-repo">realtime-service</span>
+                                        <span>•</span>
+                                        <span>Fixed by @jordan</span>
+                                    </div>
+                                </div>
+                                <span class="activity-time">2d ago</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Right Column -->
+                <div style="display: flex; flex-direction: column; gap: 1.5rem;">
+                    <!-- Repositories -->
+                    <div class="card fade-in">
+                        <div class="card-header">
+                            <div>
+                                <h2 class="card-title">Repositories</h2>
+                                <p class="card-subtitle">Your tracked repos</p>
+                            </div>
+                        </div>
+                        <div class="card-body">
+                            <div class="repos-list" id="reposList">
+                                <div class="repo-item">
+                                    <div class="repo-icon">📦</div>
+                                    <div class="repo-info">
+                                        <div class="repo-name">street-client</div>
+                                        <div class="repo-meta">
+                                            <span>12 PRs</span>
+                                            <span>•</span>
+                                            <span>Updated 2h ago</span>
+                                        </div>
+                                    </div>
+                                    <div class="repo-status"></div>
+                                </div>
+                                <div class="repo-item">
+                                    <div class="repo-icon">🔌</div>
+                                    <div class="repo-info">
+                                        <div class="repo-name">api-gateway</div>
+                                        <div class="repo-meta">
+                                            <span>8 PRs</span>
+                                            <span>•</span>
+                                            <span>Updated 4h ago</span>
+                                        </div>
+                                    </div>
+                                    <div class="repo-status"></div>
+                                </div>
+                                <div class="repo-item">
+                                    <div class="repo-icon">⚙️</div>
+                                    <div class="repo-info">
+                                        <div class="repo-name">core-platform</div>
+                                        <div class="repo-meta">
+                                            <span>15 PRs</span>
+                                            <span>•</span>
+                                            <span>Updated 1d ago</span>
+                                        </div>
+                                    </div>
+                                    <div class="repo-status"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Activity Calendar -->
+                    <div class="card fade-in">
+                        <div class="card-header">
+                            <div>
+                                <h2 class="card-title">Activity</h2>
+                                <p class="card-subtitle">Last 30 days</p>
+                            </div>
+                        </div>
+                        <div class="card-body">
+                            <div class="calendar-grid" id="activityCalendar">
+                                <!-- Generated by JS -->
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <script>
+        const API_BASE = window.location.origin + '/api';
+
+        // Check authentication
+        async function checkAuth() {
+            try {
+                const response = await fetch(`${API_BASE}/auth/me`);
+                if (!response.ok) {
+                    throw new Error('Not authenticated');
+                }
+                const user = await response.json();
+                updateUserUI(user);
+                loadDashboardData();
+            } catch (error) {
+                // Redirect to login
+                window.location.href = '/login.html';
+            }
+        }
+
+        function updateUserUI(user) {
+            const userName = document.getElementById('userName');
+            const userAvatar = document.getElementById('userAvatar');
+            const userInitial = document.getElementById('userInitial');
+
+            userName.textContent = user.name || user.githubLogin || 'User';
+
+            if (user.avatarUrl) {
+                userAvatar.src = user.avatarUrl;
+                userAvatar.style.display = 'block';
+                userInitial.style.display = 'none';
+            } else {
+                userInitial.textContent = (user.name || user.githubLogin || 'U')[0].toUpperCase();
+            }
+        }
+
+        async function logout() {
+            try {
+                await fetch(`${API_BASE}/auth/logout`, { method: 'POST', credentials: 'include' });
+            } catch (e) {}
+            window.location.href = '/login.html';
+        }
+
+        async function loadDashboardData() {
+            try {
+                // Load clients and repos
+                const clients = await fetch(`${API_BASE}/clients`).then(r => r.json());
+                
+                if (clients.length > 0) {
+                    // Load 7-day summary
+                    try {
+                        const summary = await fetch(`${API_BASE}/clients/${clients[0].id}/summary/7days`).then(r => r.json());
+                        if (summary.summary) {
+                            document.getElementById('weeklySummary').innerHTML = `<p>${summary.summary.replace(/\n/g, '</p><p>')}</p>`;
+                        }
+                        if (summary.stats) {
+                            if (summary.stats.mergedPRs) document.getElementById('statPRs').textContent = summary.stats.mergedPRs;
+                            if (summary.stats.repos) document.getElementById('statRepos').textContent = summary.stats.repos;
+                        }
+                    } catch (e) {
+                        console.log('No summary available');
+                    }
+
+                    // Load repos
+                    const repos = await fetch(`${API_BASE}/clients/${clients[0].id}/repos`).then(r => r.json());
+                    updateReposList(repos);
+                }
+            } catch (error) {
+                console.error('Error loading dashboard:', error);
+            }
+        }
+
+        function updateReposList(repos) {
+            const reposList = document.getElementById('reposList');
+            if (repos.length === 0) {
+                reposList.innerHTML = `
+                    <div class="empty-state">
+                        <div class="empty-icon">📦</div>
+                        <div class="empty-title">No repositories yet</div>
+                        <div class="empty-text">Install the GitHub App to get started</div>
+                        <a href="https://github.com/apps/dev-update-by-street-labs" target="_blank" class="btn btn-primary">Install GitHub App</a>
+                    </div>
+                `;
+                return;
+            }
+
+            reposList.innerHTML = repos.slice(0, 5).map(repo => `
+                <div class="repo-item">
+                    <div class="repo-icon">📦</div>
+                    <div class="repo-info">
+                        <div class="repo-name">${repo.fullName}</div>
+                        <div class="repo-meta">
+                            <span>${repo.installation?.accountLogin || 'Unknown'}</span>
+                        </div>
+                    </div>
+                    <div class="repo-status ${repo.isEnabled ? '' : 'inactive'}"></div>
+                </div>
+            `).join('');
+        }
+
+        async function triggerSync() {
+            const btn = event.target.closest('.btn');
+            btn.disabled = true;
+            btn.innerHTML = `
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="spinning">
+                    <polyline points="23 4 23 10 17 10"/>
+                    <polyline points="1 20 1 14 7 14"/>
+                    <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/>
+                </svg>
+                Syncing...
+            `;
+
+            try {
+                await fetch(`${API_BASE}/sync/trigger`, { method: 'POST', credentials: 'include' });
+                setTimeout(() => {
+                    location.reload();
+                }, 2000);
+            } catch (error) {
+                alert('Sync failed: ' + error.message);
+                btn.disabled = false;
+                btn.innerHTML = `
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <polyline points="23 4 23 10 17 10"/>
+                        <polyline points="1 20 1 14 7 14"/>
+                        <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/>
+                    </svg>
+                    Sync Now
+                `;
+            }
+        }
+
+        // Generate activity calendar
+        function generateCalendar() {
+            const calendar = document.getElementById('activityCalendar');
+            const days = 35; // 5 weeks
+            
+            for (let i = 0; i < days; i++) {
+                const day = document.createElement('div');
+                day.className = 'calendar-day';
+                
+                // Random activity level
+                const level = Math.random();
+                if (level > 0.8) day.classList.add('active-4');
+                else if (level > 0.6) day.classList.add('active-3');
+                else if (level > 0.4) day.classList.add('active-2');
+                else if (level > 0.2) day.classList.add('active-1');
+                
+                calendar.appendChild(day);
+            }
+        }
+
+        // Counter animation
+        function animateValue(element, start, end, duration) {
+            const startTime = performance.now();
+            
+            function update(currentTime) {
+                const elapsed = currentTime - startTime;
+                const progress = Math.min(elapsed / duration, 1);
+                const easeOut = 1 - Math.pow(1 - progress, 3);
+                const current = Math.floor(start + (end - start) * easeOut);
+                element.textContent = current;
+                
+                if (progress < 1) {
+                    requestAnimationFrame(update);
+                }
+            }
+            
+            requestAnimationFrame(update);
+        }
+
+        // Add spinning animation style
+        const style = document.createElement('style');
+        style.textContent = `
+            .spinning {
+                animation: spin 1s linear infinite;
+            }
+            @keyframes spin {
+                from { transform: rotate(0deg); }
+                to { transform: rotate(360deg); }
+            }
+        `;
+        document.head.appendChild(style);
+
+        // Initialize
+        checkAuth();
+        generateCalendar();
+
+        // Animate stats on load
+        setTimeout(() => {
+            animateValue(document.getElementById('statPRs'), 0, 47, 1500);
+            animateValue(document.getElementById('statCommits'), 0, 312, 1500);
+            animateValue(document.getElementById('statReleases'), 0, 5, 1500);
+            animateValue(document.getElementById('statRepos'), 0, 8, 1500);
+        }, 500);
+    </script>
+</body>
+</html>
