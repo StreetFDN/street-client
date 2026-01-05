@@ -1,559 +1,1849 @@
-
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Dev Update Engine - Activity Summaries</title>
+    <title>Dev Update Engine - Automated GitHub Activity Summaries</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500;600;700&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <style>
+        :root {
+            --bg-primary: #faf9f7;
+            --bg-secondary: #f5f3ef;
+            --bg-card: #ffffff;
+            --text-primary: #1a1a1a;
+            --text-secondary: #555555;
+            --text-muted: #888888;
+            --accent-primary: #d35400;
+            --accent-secondary: #e67e22;
+            --accent-tertiary: #2c3e50;
+            --border-color: #e8e4df;
+            --gradient-warm: linear-gradient(135deg, #ffecd2 0%, #fcb69f 100%);
+            --gradient-cool: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            --gradient-earth: linear-gradient(135deg, #d35400 0%, #e67e22 50%, #f39c12 100%);
+            --shadow-soft: 0 4px 20px rgba(0,0,0,0.06);
+            --shadow-medium: 0 8px 40px rgba(0,0,0,0.1);
+            --shadow-float: 0 20px 60px rgba(0,0,0,0.12);
+            --font-serif: 'Playfair Display', Georgia, serif;
+            --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+        }
+
         * {
             margin: 0;
             padding: 0;
             box-sizing: border-box;
         }
 
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            min-height: 100vh;
-            padding: 2rem;
-            color: #333;
+        html {
+            scroll-behavior: smooth;
         }
 
-        .container {
+        body {
+            font-family: var(--font-sans);
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            line-height: 1.6;
+            overflow-x: hidden;
+        }
+
+        /* ANIMATED BACKGROUND */
+        .bg-particles {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        /* FLOATING SHAPES */
+        .floating-shapes {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 1;
+            overflow: hidden;
+        }
+
+        .shape {
+            position: absolute;
+            border-radius: 50%;
+            opacity: 0.1;
+            animation: float-around 20s infinite ease-in-out;
+        }
+
+        .shape-1 {
+            width: 400px;
+            height: 400px;
+            background: var(--gradient-earth);
+            top: -100px;
+            right: -100px;
+            animation-delay: 0s;
+        }
+
+        .shape-2 {
+            width: 300px;
+            height: 300px;
+            background: var(--gradient-cool);
+            bottom: 20%;
+            left: -50px;
+            animation-delay: -5s;
+            animation-duration: 25s;
+        }
+
+        .shape-3 {
+            width: 200px;
+            height: 200px;
+            background: var(--gradient-warm);
+            top: 40%;
+            right: 10%;
+            animation-delay: -10s;
+            animation-duration: 18s;
+        }
+
+        .shape-4 {
+            width: 150px;
+            height: 150px;
+            background: var(--accent-tertiary);
+            bottom: 10%;
+            right: 30%;
+            animation-delay: -7s;
+            animation-duration: 22s;
+        }
+
+        @keyframes float-around {
+            0%, 100% { transform: translate(0, 0) rotate(0deg) scale(1); }
+            25% { transform: translate(30px, -30px) rotate(90deg) scale(1.05); }
+            50% { transform: translate(-20px, 20px) rotate(180deg) scale(0.95); }
+            75% { transform: translate(15px, 40px) rotate(270deg) scale(1.02); }
+        }
+
+        /* NAVIGATION */
+        nav {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            z-index: 1000;
+            padding: 1rem 2rem;
+            transition: all 0.3s ease;
+        }
+
+        nav.scrolled {
+            background: rgba(250, 249, 247, 0.95);
+            backdrop-filter: blur(20px);
+            box-shadow: var(--shadow-soft);
+        }
+
+        .nav-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            text-decoration: none;
+            color: var(--text-primary);
+        }
+
+        .logo-icon {
+            width: 40px;
+            height: 40px;
+            background: var(--gradient-earth);
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.25rem;
+            animation: pulse-glow 3s infinite ease-in-out;
+        }
+
+        @keyframes pulse-glow {
+            0%, 100% { box-shadow: 0 0 20px rgba(211, 84, 0, 0.3); }
+            50% { box-shadow: 0 0 40px rgba(211, 84, 0, 0.5); }
+        }
+
+        .logo-text {
+            font-family: var(--font-serif);
+            font-size: 1.25rem;
+            font-weight: 600;
+        }
+
+        .nav-links {
+            display: flex;
+            gap: 2rem;
+            align-items: center;
+        }
+
+        .nav-links a {
+            color: var(--text-secondary);
+            text-decoration: none;
+            font-size: 0.9rem;
+            font-weight: 500;
+            position: relative;
+            transition: color 0.3s ease;
+        }
+
+        .nav-links a::after {
+            content: '';
+            position: absolute;
+            bottom: -4px;
+            left: 0;
+            width: 0;
+            height: 2px;
+            background: var(--accent-primary);
+            transition: width 0.3s ease;
+        }
+
+        .nav-links a:hover {
+            color: var(--accent-primary);
+        }
+
+        .nav-links a:hover::after {
+            width: 100%;
+        }
+
+        .nav-cta {
+            background: var(--text-primary);
+            color: white !important;
+            padding: 0.6rem 1.25rem;
+            border-radius: 8px;
+            font-weight: 600;
+            transition: all 0.3s ease !important;
+        }
+
+        .nav-cta::after {
+            display: none !important;
+        }
+
+        .nav-cta:hover {
+            background: var(--accent-primary) !important;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(211, 84, 0, 0.3);
+        }
+
+        /* HERO SECTION */
+        .hero {
+            position: relative;
+            z-index: 10;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+            padding: 8rem 2rem 4rem;
+        }
+
+        .hero-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            background: rgba(211, 84, 0, 0.1);
+            padding: 0.5rem 1rem;
+            border-radius: 100px;
+            margin-bottom: 2rem;
+            animation: fade-in-up 0.8s ease;
+        }
+
+        .hero-badge-dot {
+            width: 8px;
+            height: 8px;
+            background: var(--accent-primary);
+            border-radius: 50%;
+            animation: blink 2s infinite;
+        }
+
+        @keyframes blink {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.3; }
+        }
+
+        .hero-badge span {
+            font-size: 0.85rem;
+            font-weight: 500;
+            color: var(--accent-primary);
+        }
+
+        .hero h1 {
+            font-family: var(--font-serif);
+            font-size: clamp(2.5rem, 6vw, 4.5rem);
+            font-weight: 500;
+            line-height: 1.1;
+            margin-bottom: 1.5rem;
+            max-width: 900px;
+            animation: fade-in-up 0.8s ease 0.1s both;
+        }
+
+        .hero h1 .highlight {
+            background: var(--gradient-earth);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .hero p {
+            font-size: 1.25rem;
+            color: var(--text-secondary);
+            max-width: 600px;
+            margin-bottom: 2.5rem;
+            animation: fade-in-up 0.8s ease 0.2s both;
+        }
+
+        .hero-cta {
+            display: flex;
+            gap: 1rem;
+            flex-wrap: wrap;
+            justify-content: center;
+            animation: fade-in-up 0.8s ease 0.3s both;
+        }
+
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 1rem 2rem;
+            border-radius: 12px;
+            font-weight: 600;
+            font-size: 1rem;
+            text-decoration: none;
+            transition: all 0.3s ease;
+            cursor: pointer;
+            border: none;
+        }
+
+        .btn-primary {
+            background: var(--gradient-earth);
+            color: white;
+            box-shadow: 0 4px 20px rgba(211, 84, 0, 0.3);
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 8px 30px rgba(211, 84, 0, 0.4);
+        }
+
+        .btn-secondary {
+            background: var(--bg-card);
+            color: var(--text-primary);
+            border: 2px solid var(--border-color);
+        }
+
+        .btn-secondary:hover {
+            border-color: var(--accent-primary);
+            color: var(--accent-primary);
+            transform: translateY(-2px);
+        }
+
+        .btn-icon {
+            width: 20px;
+            height: 20px;
+            transition: transform 0.3s ease;
+        }
+
+        .btn:hover .btn-icon {
+            transform: translateX(4px);
+        }
+
+        @keyframes fade-in-up {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        /* HERO VISUAL */
+        .hero-visual {
+            position: relative;
+            margin-top: 4rem;
+            width: 100%;
+            max-width: 1000px;
+            animation: fade-in-up 0.8s ease 0.4s both;
+        }
+
+        .hero-mockup {
+            position: relative;
+            background: var(--bg-card);
+            border-radius: 20px;
+            box-shadow: var(--shadow-float);
+            overflow: hidden;
+            border: 1px solid var(--border-color);
+        }
+
+        .mockup-header {
+            display: flex;
+            gap: 0.5rem;
+            padding: 1rem;
+            background: var(--bg-secondary);
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .mockup-dot {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background: #ff5f57;
+        }
+
+        .mockup-dot:nth-child(2) { background: #ffbd2e; }
+        .mockup-dot:nth-child(3) { background: #28c840; }
+
+        .mockup-content {
+            padding: 2rem;
+            min-height: 300px;
+        }
+
+        .mockup-activity {
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+        }
+
+        .activity-item {
+            display: flex;
+            align-items: flex-start;
+            gap: 1rem;
+            padding: 1rem;
+            background: var(--bg-secondary);
+            border-radius: 12px;
+            opacity: 0;
+            animation: slide-in 0.5s ease forwards;
+        }
+
+        .activity-item:nth-child(1) { animation-delay: 0.5s; }
+        .activity-item:nth-child(2) { animation-delay: 0.7s; }
+        .activity-item:nth-child(3) { animation-delay: 0.9s; }
+
+        @keyframes slide-in {
+            from {
+                opacity: 0;
+                transform: translateX(-20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateX(0);
+            }
+        }
+
+        .activity-icon {
+            width: 40px;
+            height: 40px;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.25rem;
+            flex-shrink: 0;
+        }
+
+        .activity-icon.pr { background: #e6f4ea; }
+        .activity-icon.commit { background: #fef3e2; }
+        .activity-icon.release { background: #e8eaf6; }
+
+        .activity-content h4 {
+            font-family: var(--font-serif);
+            font-size: 1rem;
+            margin-bottom: 0.25rem;
+        }
+
+        .activity-content p {
+            font-size: 0.85rem;
+            color: var(--text-muted);
+            margin-bottom: 0;
+        }
+
+        .activity-meta {
+            margin-left: auto;
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            white-space: nowrap;
+        }
+
+        /* FLOATING CARDS */
+        .floating-card {
+            position: absolute;
+            background: var(--bg-card);
+            border-radius: 16px;
+            padding: 1rem;
+            box-shadow: var(--shadow-medium);
+            animation: float 6s infinite ease-in-out;
+            border: 1px solid var(--border-color);
+        }
+
+        .floating-card-1 {
+            top: 20%;
+            left: -60px;
+            animation-delay: 0s;
+        }
+
+        .floating-card-2 {
+            top: 40%;
+            right: -80px;
+            animation-delay: -2s;
+        }
+
+        .floating-card-3 {
+            bottom: 10%;
+            left: -40px;
+            animation-delay: -4s;
+        }
+
+        @keyframes float {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-15px); }
+        }
+
+        .stat-card {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+
+        .stat-value {
+            font-family: var(--font-serif);
+            font-size: 1.5rem;
+            font-weight: 600;
+            color: var(--accent-primary);
+        }
+
+        .stat-label {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+        }
+
+        /* MARQUEE SECTION */
+        .marquee-section {
+            position: relative;
+            z-index: 10;
+            padding: 3rem 0;
+            background: var(--bg-secondary);
+            border-top: 1px solid var(--border-color);
+            border-bottom: 1px solid var(--border-color);
+            overflow: hidden;
+        }
+
+        .marquee {
+            display: flex;
+            animation: marquee 30s linear infinite;
+        }
+
+        .marquee-content {
+            display: flex;
+            align-items: center;
+            gap: 4rem;
+            padding: 0 2rem;
+        }
+
+        .marquee-item {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            font-size: 1.25rem;
+            font-weight: 500;
+            color: var(--text-muted);
+            white-space: nowrap;
+        }
+
+        .marquee-item svg {
+            width: 24px;
+            height: 24px;
+        }
+
+        @keyframes marquee {
+            0% { transform: translateX(0); }
+            100% { transform: translateX(-50%); }
+        }
+
+        /* FEATURES SECTION */
+        .features {
+            position: relative;
+            z-index: 10;
+            padding: 8rem 2rem;
             max-width: 1200px;
             margin: 0 auto;
         }
 
-        header {
-            background: white;
-            border-radius: 12px;
-            padding: 2rem;
-            margin-bottom: 2rem;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-        }
-
-        .sync-button {
-            background: #667eea;
-            color: white;
-            border: none;
-            padding: 0.5rem 1rem;
-            border-radius: 6px;
-            cursor: pointer;
-            font-size: 0.875rem;
-            margin-left: 1rem;
-            transition: background 0.2s;
-        }
-
-        .sync-button:hover {
-            background: #5568d3;
-        }
-
-        .sync-button:disabled {
-            background: #cbd5e0;
-            cursor: not-allowed;
-        }
-
-        h1 {
-            font-size: 2rem;
-            margin-bottom: 0.5rem;
-            color: #1a202c;
-        }
-
-        .subtitle {
-            color: #718096;
-            font-size: 1rem;
-        }
-
-        .loading {
+        .section-header {
             text-align: center;
-            padding: 3rem;
-            color: white;
-            font-size: 1.2rem;
+            margin-bottom: 4rem;
         }
 
-        .error {
-            background: #fee;
-            border: 1px solid #fcc;
-            border-radius: 8px;
-            padding: 1rem;
-            margin: 1rem 0;
-            color: #c33;
-        }
-
-        .summary-7days-card {
-            background: white;
-            border-radius: 12px;
-            padding: 1.5rem;
-            margin-bottom: 2rem;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-            border-left: 4px solid #667eea;
-        }
-
-        .summary-7days-text {
-            color: #2d3748;
-            line-height: 1.7;
-            font-size: 0.95rem;
-            white-space: pre-wrap;
-        }
-
-        .client-card {
-            background: white;
-            border-radius: 12px;
-            padding: 1.5rem;
-            margin-bottom: 1.5rem;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-        }
-
-        .client-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
+        .section-label {
+            display: inline-block;
+            font-size: 0.85rem;
+            font-weight: 600;
+            color: var(--accent-primary);
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
             margin-bottom: 1rem;
-            padding-bottom: 1rem;
-            border-bottom: 2px solid #e2e8f0;
         }
 
-        .client-name {
-            font-size: 1.5rem;
-            font-weight: 600;
-            color: #1a202c;
+        .section-header h2 {
+            font-family: var(--font-serif);
+            font-size: clamp(2rem, 4vw, 3rem);
+            font-weight: 500;
+            margin-bottom: 1rem;
         }
 
-        .repo-list {
+        .section-header p {
+            font-size: 1.1rem;
+            color: var(--text-secondary);
+            max-width: 600px;
+            margin: 0 auto;
+        }
+
+        /* FEATURE BAR */
+        .feature-bar {
             display: grid;
-            gap: 1rem;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 4rem;
         }
 
-        .repo-card {
-            background: #f7fafc;
-            border: 1px solid #e2e8f0;
-            border-radius: 8px;
-            padding: 1rem;
-            cursor: pointer;
-            transition: all 0.2s;
+        .feature-card {
+            position: relative;
+            background: var(--bg-card);
+            border-radius: 20px;
+            padding: 2rem;
+            border: 1px solid var(--border-color);
+            transition: all 0.4s ease;
+            overflow: hidden;
         }
 
-        .repo-card:hover {
-            border-color: #667eea;
-            transform: translateY(-2px);
-            box-shadow: 0 4px 8px rgba(102,126,234,0.2);
+        .feature-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: var(--gradient-earth);
+            transform: scaleX(0);
+            transform-origin: left;
+            transition: transform 0.4s ease;
         }
 
-        .repo-header {
+        .feature-card:hover {
+            transform: translateY(-8px);
+            box-shadow: var(--shadow-float);
+            border-color: transparent;
+        }
+
+        .feature-card:hover::before {
+            transform: scaleX(1);
+        }
+
+        .feature-icon {
+            width: 56px;
+            height: 56px;
+            border-radius: 14px;
             display: flex;
-            justify-content: space-between;
             align-items: center;
-            margin-bottom: 0.5rem;
+            justify-content: center;
+            font-size: 1.5rem;
+            margin-bottom: 1.5rem;
+            background: var(--bg-secondary);
+            transition: all 0.4s ease;
         }
 
-        .repo-name {
+        .feature-card:hover .feature-icon {
+            background: var(--gradient-earth);
+            transform: scale(1.1) rotate(-5deg);
+        }
+
+        .feature-card:hover .feature-icon svg {
+            color: white;
+        }
+
+        .feature-card h3 {
+            font-family: var(--font-serif);
+            font-size: 1.25rem;
+            margin-bottom: 0.75rem;
+        }
+
+        .feature-card p {
+            font-size: 0.95rem;
+            color: var(--text-secondary);
+            line-height: 1.6;
+        }
+
+        /* BENTO GRID */
+        .bento-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            grid-template-rows: repeat(2, auto);
+            gap: 1.5rem;
+        }
+
+        .bento-item {
+            background: var(--bg-card);
+            border-radius: 24px;
+            padding: 2rem;
+            border: 1px solid var(--border-color);
+            transition: all 0.4s ease;
+            overflow: hidden;
+        }
+
+        .bento-item:hover {
+            border-color: var(--accent-primary);
+            box-shadow: var(--shadow-medium);
+        }
+
+        .bento-item.large {
+            grid-column: span 2;
+        }
+
+        .bento-item.tall {
+            grid-row: span 2;
+        }
+
+        .bento-header {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .bento-icon {
+            width: 48px;
+            height: 48px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: var(--bg-secondary);
+        }
+
+        .bento-header h3 {
+            font-family: var(--font-serif);
+            font-size: 1.25rem;
+        }
+
+        /* CODE WINDOW */
+        .code-window {
+            background: #1e1e1e;
+            border-radius: 12px;
+            overflow: hidden;
+        }
+
+        .code-header {
+            display: flex;
+            gap: 0.5rem;
+            padding: 0.75rem;
+            background: #2d2d2d;
+        }
+
+        .code-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background: #ff5f57;
+        }
+
+        .code-dot:nth-child(2) { background: #ffbd2e; }
+        .code-dot:nth-child(3) { background: #28c840; }
+
+        .code-content {
+            padding: 1rem;
+            font-family: 'Monaco', 'Menlo', monospace;
+            font-size: 0.85rem;
+            color: #d4d4d4;
+            line-height: 1.6;
+        }
+
+        .code-content .keyword { color: #569cd6; }
+        .code-content .string { color: #ce9178; }
+        .code-content .function { color: #dcdcaa; }
+        .code-content .comment { color: #6a9955; }
+
+        /* LIVE FEED */
+        .live-feed {
+            display: flex;
+            flex-direction: column;
+            gap: 0.75rem;
+        }
+
+        .feed-item {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            padding: 0.75rem;
+            background: var(--bg-secondary);
+            border-radius: 10px;
+            animation: pulse-fade 3s infinite;
+        }
+
+        .feed-item:nth-child(2) { animation-delay: 1s; }
+        .feed-item:nth-child(3) { animation-delay: 2s; }
+
+        @keyframes pulse-fade {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.7; }
+        }
+
+        .feed-avatar {
+            width: 32px;
+            height: 32px;
+            border-radius: 8px;
+            background: var(--gradient-earth);
+        }
+
+        .feed-text {
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+        }
+
+        .feed-time {
+            margin-left: auto;
+            font-size: 0.75rem;
+            color: var(--text-muted);
+        }
+
+        /* HOW IT WORKS */
+        .how-it-works {
+            position: relative;
+            z-index: 10;
+            padding: 8rem 2rem;
+            background: var(--bg-secondary);
+        }
+
+        .steps-container {
+            max-width: 1000px;
+            margin: 0 auto;
+            display: flex;
+            flex-direction: column;
+            gap: 3rem;
+        }
+
+        .step {
+            display: flex;
+            align-items: center;
+            gap: 3rem;
+        }
+
+        .step:nth-child(even) {
+            flex-direction: row-reverse;
+        }
+
+        .step-number {
+            flex-shrink: 0;
+            width: 80px;
+            height: 80px;
+            border-radius: 50%;
+            background: var(--gradient-earth);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-family: var(--font-serif);
+            font-size: 2rem;
             font-weight: 600;
-            color: #2d3748;
+            color: white;
+            box-shadow: 0 8px 30px rgba(211, 84, 0, 0.3);
+        }
+
+        .step-content {
+            flex: 1;
+        }
+
+        .step-content h3 {
+            font-family: var(--font-serif);
+            font-size: 1.5rem;
+            margin-bottom: 0.75rem;
+        }
+
+        .step-content p {
+            color: var(--text-secondary);
             font-size: 1.1rem;
         }
 
-        .repo-meta {
-            font-size: 0.875rem;
-            color: #718096;
+        .step-visual {
+            flex: 1;
+            background: var(--bg-card);
+            border-radius: 20px;
+            padding: 1.5rem;
+            box-shadow: var(--shadow-soft);
         }
 
-        .summaries-list {
+        /* TESTIMONIALS */
+        .testimonials {
+            position: relative;
+            z-index: 10;
+            padding: 8rem 2rem;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .testimonials-grid {
             display: grid;
-            gap: 1rem;
-            margin-top: 1rem;
+            grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+            gap: 2rem;
         }
 
-        .summary-card {
-            background: white;
-            border-left: 4px solid #667eea;
-            border-radius: 8px;
-            padding: 1rem;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+        .testimonial-card {
+            background: var(--bg-card);
+            border-radius: 20px;
+            padding: 2rem;
+            border: 1px solid var(--border-color);
+            position: relative;
+            transition: all 0.3s ease;
         }
 
-        .summary-date {
-            font-size: 0.875rem;
-            color: #718096;
-            margin-bottom: 0.5rem;
-            font-weight: 500;
+        .testimonial-card:hover {
+            transform: translateY(-4px);
+            box-shadow: var(--shadow-medium);
         }
 
-        .summary-text {
-            color: #2d3748;
-            line-height: 1.6;
-            margin-bottom: 0.5rem;
+        .testimonial-card::before {
+            content: '"';
+            position: absolute;
+            top: 1rem;
+            right: 1.5rem;
+            font-family: var(--font-serif);
+            font-size: 4rem;
+            color: var(--accent-primary);
+            opacity: 0.2;
         }
 
-        .summary-text.no-changes {
-            font-style: italic;
-            color: #a0aec0;
+        .testimonial-content {
+            font-size: 1rem;
+            line-height: 1.7;
+            color: var(--text-secondary);
+            margin-bottom: 1.5rem;
         }
 
-        .summary-stats {
-            display: flex;
-            gap: 1rem;
-            font-size: 0.875rem;
-            color: #718096;
-            margin-top: 0.5rem;
-        }
-
-        .stat {
+        .testimonial-author {
             display: flex;
             align-items: center;
-            gap: 0.25rem;
+            gap: 1rem;
         }
 
-        .badge {
-            display: inline-block;
-            padding: 0.25rem 0.5rem;
-            border-radius: 4px;
-            font-size: 0.75rem;
+        .author-avatar {
+            width: 48px;
+            height: 48px;
+            border-radius: 12px;
+            background: var(--gradient-earth);
+        }
+
+        .author-info h4 {
+            font-family: var(--font-serif);
+            font-size: 1rem;
+        }
+
+        .author-info span {
+            font-size: 0.85rem;
+            color: var(--text-muted);
+        }
+
+        /* CTA SECTION */
+        .cta-section {
+            position: relative;
+            z-index: 10;
+            padding: 8rem 2rem;
+            text-align: center;
+            background: linear-gradient(180deg, var(--bg-primary) 0%, var(--bg-secondary) 100%);
+        }
+
+        .cta-card {
+            max-width: 800px;
+            margin: 0 auto;
+            background: var(--gradient-earth);
+            border-radius: 32px;
+            padding: 4rem 3rem;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .cta-card::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: radial-gradient(circle, rgba(255,255,255,0.1) 0%, transparent 70%);
+            animation: rotate-slow 20s linear infinite;
+        }
+
+        @keyframes rotate-slow {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+
+        .cta-content {
+            position: relative;
+            z-index: 1;
+        }
+
+        .cta-content h2 {
+            font-family: var(--font-serif);
+            font-size: clamp(1.75rem, 4vw, 2.5rem);
+            color: white;
+            margin-bottom: 1rem;
+        }
+
+        .cta-content p {
+            font-size: 1.1rem;
+            color: rgba(255,255,255,0.9);
+            margin-bottom: 2rem;
+        }
+
+        .btn-white {
+            background: white;
+            color: var(--accent-primary);
+            padding: 1rem 2.5rem;
             font-weight: 600;
         }
 
-        .badge-primary {
-            background: #667eea;
-            color: white;
+        .btn-white:hover {
+            background: #f0f0f0;
+            transform: translateY(-3px);
+            box-shadow: 0 8px 30px rgba(0,0,0,0.2);
         }
 
-        .badge-success {
-            background: #48bb78;
-            color: white;
+        /* FOOTER */
+        footer {
+            position: relative;
+            z-index: 10;
+            background: var(--bg-card);
+            border-top: 1px solid var(--border-color);
         }
 
-        .badge-gray {
-            background: #e2e8f0;
-            color: #4a5568;
+        .physics-footer {
+            padding: 3rem 2rem;
+            display: flex;
+            justify-content: center;
+            overflow: hidden;
         }
 
-        .empty-state {
-            text-align: center;
-            padding: 3rem;
-            color: #718096;
+        .physics-text {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 0.1em;
         }
 
-        .empty-state h3 {
+        .physics-letter {
+            font-family: var(--font-serif);
+            font-size: clamp(2rem, 5vw, 4rem);
+            color: var(--text-muted);
+            opacity: 0.4;
+            transition: all 0.3s ease;
+            cursor: default;
+            user-select: none;
+        }
+
+        .physics-letter:hover {
+            color: var(--accent-primary);
+            opacity: 1;
+            transform: translateY(-10px) rotate(5deg);
+        }
+
+        .footer-content {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 3rem 2rem;
+            display: grid;
+            grid-template-columns: 2fr 1fr 1fr 1fr;
+            gap: 3rem;
+        }
+
+        .footer-brand p {
+            color: var(--text-muted);
+            font-size: 0.9rem;
+            margin-top: 1rem;
+            max-width: 300px;
+        }
+
+        .footer-column h4 {
+            font-family: var(--font-serif);
+            font-size: 1rem;
+            margin-bottom: 1rem;
+        }
+
+        .footer-column ul {
+            list-style: none;
+        }
+
+        .footer-column li {
             margin-bottom: 0.5rem;
-            color: #4a5568;
         }
 
-        button {
-            background: #667eea;
+        .footer-column a {
+            color: var(--text-muted);
+            text-decoration: none;
+            font-size: 0.9rem;
+            transition: color 0.3s ease;
+        }
+
+        .footer-column a:hover {
+            color: var(--accent-primary);
+        }
+
+        .footer-bottom {
+            border-top: 1px solid var(--border-color);
+            padding: 1.5rem 2rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .footer-bottom span {
+            font-size: 0.85rem;
+            color: var(--text-muted);
+        }
+
+        .social-links {
+            display: flex;
+            gap: 1rem;
+        }
+
+        .social-links a {
+            width: 36px;
+            height: 36px;
+            border-radius: 8px;
+            background: var(--bg-secondary);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--text-muted);
+            transition: all 0.3s ease;
+        }
+
+        .social-links a:hover {
+            background: var(--accent-primary);
             color: white;
-            border: none;
-            padding: 0.5rem 1rem;
-            border-radius: 6px;
-            cursor: pointer;
-            font-weight: 500;
-            transition: background 0.2s;
+            transform: translateY(-2px);
         }
 
-        button:hover {
-            background: #5568d3;
+        /* RESPONSIVE */
+        @media (max-width: 768px) {
+            .nav-links {
+                display: none;
+            }
+
+            .bento-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .bento-item.large,
+            .bento-item.tall {
+                grid-column: span 1;
+                grid-row: span 1;
+            }
+
+            .step {
+                flex-direction: column !important;
+                text-align: center;
+            }
+
+            .footer-content {
+                grid-template-columns: 1fr;
+                text-align: center;
+            }
+
+            .footer-bottom {
+                flex-direction: column;
+                gap: 1rem;
+            }
+
+            .floating-card {
+                display: none;
+            }
         }
 
-        button:disabled {
-            background: #cbd5e0;
-            cursor: not-allowed;
+        /* SCROLL ANIMATIONS */
+        .reveal {
+            opacity: 0;
+            transform: translateY(40px);
+            transition: all 0.8s ease;
         }
 
-        .hidden {
-            display: none;
+        .reveal.active {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        /* CURSOR FOLLOWER */
+        .cursor-follower {
+            position: fixed;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: var(--accent-primary);
+            pointer-events: none;
+            z-index: 9999;
+            opacity: 0.3;
+            transition: transform 0.1s ease;
+            mix-blend-mode: difference;
         }
     </style>
 </head>
 <body>
-    <div class="container">
-        <header>
-            <div style="display: flex; justify-content: space-between; align-items: center;">
-                <div>
-                    <h1>🚀 Dev Update Engine</h1>
-                    <p class="subtitle">Automated GitHub activity summaries for your repositories</p>
+    <!-- Cursor Follower -->
+    <div class="cursor-follower" id="cursor"></div>
+
+    <!-- Animated Background -->
+    <canvas class="bg-particles" id="particles"></canvas>
+
+    <!-- Floating Shapes -->
+    <div class="floating-shapes">
+        <div class="shape shape-1"></div>
+        <div class="shape shape-2"></div>
+        <div class="shape shape-3"></div>
+        <div class="shape shape-4"></div>
+    </div>
+
+    <!-- Navigation -->
+    <nav id="navbar">
+        <div class="nav-container">
+            <a href="/" class="logo">
+                <div class="logo-icon">⚡</div>
+                <span class="logo-text">Dev Update Engine</span>
+            </a>
+            <div class="nav-links">
+                <a href="#features">Features</a>
+                <a href="#how-it-works">How It Works</a>
+                <a href="#testimonials">Testimonials</a>
+                <a href="/login.html" class="nav-cta">Get Started</a>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Hero Section -->
+    <section class="hero">
+        <div class="hero-badge">
+            <span class="hero-badge-dot"></span>
+            <span>Now with AI-powered summaries</span>
+        </div>
+        <h1>
+            Stop chasing updates.<br>
+            <span class="highlight">Let them come to you.</span>
+        </h1>
+        <p>
+            Automated GitHub activity summaries that keep your team informed without the noise. AI-generated, beautifully organized, delivered daily.
+        </p>
+        <div class="hero-cta">
+            <a href="/login.html" class="btn btn-primary">
+                Start Free Trial
+                <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M5 12h14M12 5l7 7-7 7"/>
+                </svg>
+            </a>
+            <a href="#features" class="btn btn-secondary">
+                Learn More
+            </a>
+        </div>
+
+        <!-- Hero Visual -->
+        <div class="hero-visual">
+            <!-- Floating Stats Cards -->
+            <div class="floating-card floating-card-1">
+                <div class="stat-card">
+                    <div class="stat-value" id="counter-prs">0</div>
+                    <div class="stat-label">PRs Summarized</div>
                 </div>
-                <div id="auth-section">
-                    <button id="login-btn" class="hidden" onclick="window.location.href='/api/auth/github'">Login with GitHub</button>
-                    <div id="user-info" class="hidden" style="display: flex; align-items: center; gap: 1rem;">
-                        <img id="user-avatar" src="" alt="" style="width: 40px; height: 40px; border-radius: 50%;">
-                        <div>
-                            <div style="font-weight: 600;" id="user-name"></div>
-                            <button onclick="logout()" style="background: #e53e3e; padding: 0.25rem 0.75rem; font-size: 0.875rem;">Logout</button>
+            </div>
+            <div class="floating-card floating-card-2">
+                <div class="stat-card">
+                    <div class="stat-value" id="counter-repos">0</div>
+                    <div class="stat-label">Active Repos</div>
+                </div>
+            </div>
+            <div class="floating-card floating-card-3">
+                <div class="stat-card">
+                    <div class="stat-value" id="counter-time">0</div>
+                    <div class="stat-label">Hours Saved</div>
+                </div>
+            </div>
+
+            <div class="hero-mockup">
+                <div class="mockup-header">
+                    <div class="mockup-dot"></div>
+                    <div class="mockup-dot"></div>
+                    <div class="mockup-dot"></div>
+                </div>
+                <div class="mockup-content">
+                    <div class="mockup-activity">
+                        <div class="activity-item">
+                            <div class="activity-icon pr">🔀</div>
+                            <div class="activity-content">
+                                <h4>feat: Add user authentication flow</h4>
+                                <p>Merged by @sarah • 3 files changed, +247 -12</p>
+                            </div>
+                            <span class="activity-meta">2h ago</span>
+                        </div>
+                        <div class="activity-item">
+                            <div class="activity-icon commit">📝</div>
+                            <div class="activity-content">
+                                <h4>fix: Resolve database connection timeout</h4>
+                                <p>Committed by @alex • Critical bug fix for production</p>
+                            </div>
+                            <span class="activity-meta">4h ago</span>
+                        </div>
+                        <div class="activity-item">
+                            <div class="activity-icon release">🚀</div>
+                            <div class="activity-content">
+                                <h4>Release v2.1.0 - Performance Boost</h4>
+                                <p>New release • 40% faster API responses</p>
+                            </div>
+                            <span class="activity-meta">1d ago</span>
                         </div>
                     </div>
                 </div>
             </div>
-        </header>
-
-        <div id="loading" class="loading">Loading...</div>
-        <div id="error" class="error hidden"></div>
-        <div id="login-prompt" class="hidden" style="background: white; border-radius: 12px; padding: 3rem; text-align: center; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
-            <h2 style="margin-bottom: 1rem;">Welcome to Dev Update Engine</h2>
-            <p style="color: #718096; margin-bottom: 2rem;">Please log in with GitHub to view your repository summaries</p>
-            <button onclick="window.location.href='/api/auth/github'" style="padding: 1rem 2rem; font-size: 1.1rem;">Login with GitHub</button>
         </div>
-        <div id="content"></div>
-    </div>
+    </section>
+
+    <!-- Marquee Section -->
+    <section class="marquee-section">
+        <div class="marquee">
+            <div class="marquee-content">
+                <span class="marquee-item">🔄 Real-time Sync</span>
+                <span class="marquee-item">🤖 AI Summaries</span>
+                <span class="marquee-item">📊 Daily Reports</span>
+                <span class="marquee-item">🔔 Smart Notifications</span>
+                <span class="marquee-item">🔒 Secure by Default</span>
+                <span class="marquee-item">⚡ Lightning Fast</span>
+                <span class="marquee-item">🎯 Zero Configuration</span>
+                <span class="marquee-item">💼 Team Ready</span>
+            </div>
+            <div class="marquee-content">
+                <span class="marquee-item">🔄 Real-time Sync</span>
+                <span class="marquee-item">🤖 AI Summaries</span>
+                <span class="marquee-item">📊 Daily Reports</span>
+                <span class="marquee-item">🔔 Smart Notifications</span>
+                <span class="marquee-item">🔒 Secure by Default</span>
+                <span class="marquee-item">⚡ Lightning Fast</span>
+                <span class="marquee-item">🎯 Zero Configuration</span>
+                <span class="marquee-item">💼 Team Ready</span>
+            </div>
+        </div>
+    </section>
+
+    <!-- Features Section -->
+    <section class="features" id="features">
+        <div class="section-header reveal">
+            <span class="section-label">Features</span>
+            <h2>Everything you need to stay informed</h2>
+            <p>Powerful features that transform how your team tracks development progress</p>
+        </div>
+
+        <!-- Feature Bar -->
+        <div class="feature-bar reveal">
+            <div class="feature-card">
+                <div class="feature-icon">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <circle cx="12" cy="12" r="10"/>
+                        <path d="M12 6v6l4 2"/>
+                    </svg>
+                </div>
+                <h3>Daily Summaries</h3>
+                <p>Wake up to comprehensive summaries of what happened in your repos overnight. No more scrolling through notifications.</p>
+            </div>
+            <div class="feature-card">
+                <div class="feature-icon">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M12 2a10 10 0 1 0 10 10H12V2z"/>
+                        <path d="M20 12a8 8 0 0 0-8-8v8h8z"/>
+                    </svg>
+                </div>
+                <h3>AI-Powered Insights</h3>
+                <p>Our AI understands code changes and generates human-readable summaries that actually make sense to stakeholders.</p>
+            </div>
+            <div class="feature-card">
+                <div class="feature-icon">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+                    </svg>
+                </div>
+                <h3>Secure & Private</h3>
+                <p>Your code stays your code. We only read commit messages and PR descriptions—never your actual source code.</p>
+            </div>
+            <div class="feature-card">
+                <div class="feature-icon">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
+                        <circle cx="9" cy="7" r="4"/>
+                        <path d="M23 21v-2a4 4 0 0 0-3-3.87"/>
+                        <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+                    </svg>
+                </div>
+                <h3>Team Collaboration</h3>
+                <p>Share summaries with your entire team, managers, and stakeholders. Keep everyone in the loop effortlessly.</p>
+            </div>
+        </div>
+
+        <!-- Bento Grid -->
+        <div class="bento-grid">
+            <div class="bento-item large reveal">
+                <div class="bento-header">
+                    <div class="bento-icon">📊</div>
+                    <h3>Weekly Rollup Reports</h3>
+                </div>
+                <p style="color: var(--text-secondary); margin-bottom: 1.5rem;">Get a bird's eye view of your entire week's development activity in one beautiful report.</p>
+                <div class="code-window">
+                    <div class="code-header">
+                        <div class="code-dot"></div>
+                        <div class="code-dot"></div>
+                        <div class="code-dot"></div>
+                    </div>
+                    <div class="code-content">
+                        <span class="comment">// Weekly Summary - Jan 1-7, 2026</span><br>
+                        <span class="keyword">const</span> summary = {<br>
+                        &nbsp;&nbsp;mergedPRs: <span class="string">47</span>,<br>
+                        &nbsp;&nbsp;releases: <span class="string">3</span>,<br>
+                        &nbsp;&nbsp;contributors: <span class="string">12</span>,<br>
+                        &nbsp;&nbsp;highlights: [<span class="string">"Auth system revamp"</span>]<br>
+                        };
+                    </div>
+                </div>
+            </div>
+            <div class="bento-item tall reveal">
+                <div class="bento-header">
+                    <div class="bento-icon">⚡</div>
+                    <h3>Live Activity Feed</h3>
+                </div>
+                <div class="live-feed">
+                    <div class="feed-item">
+                        <div class="feed-avatar"></div>
+                        <span class="feed-text">PR merged: auth-flow</span>
+                        <span class="feed-time">2m</span>
+                    </div>
+                    <div class="feed-item">
+                        <div class="feed-avatar"></div>
+                        <span class="feed-text">Release v2.1.0</span>
+                        <span class="feed-time">15m</span>
+                    </div>
+                    <div class="feed-item">
+                        <div class="feed-avatar"></div>
+                        <span class="feed-text">Fix: db timeout</span>
+                        <span class="feed-time">1h</span>
+                    </div>
+                    <div class="feed-item">
+                        <div class="feed-avatar"></div>
+                        <span class="feed-text">New branch: feature/api</span>
+                        <span class="feed-time">2h</span>
+                    </div>
+                    <div class="feed-item">
+                        <div class="feed-avatar"></div>
+                        <span class="feed-text">PR opened: new-dashboard</span>
+                        <span class="feed-time">3h</span>
+                    </div>
+                </div>
+            </div>
+            <div class="bento-item reveal">
+                <div class="bento-header">
+                    <div class="bento-icon">🔔</div>
+                    <h3>Smart Alerts</h3>
+                </div>
+                <p style="color: var(--text-secondary);">Get notified about what matters—breaking changes, security updates, and critical merges.</p>
+            </div>
+            <div class="bento-item reveal">
+                <div class="bento-header">
+                    <div class="bento-icon">🔗</div>
+                    <h3>Integrations</h3>
+                </div>
+                <p style="color: var(--text-secondary);">Connect with Slack, Discord, email, and more. Summaries go where your team already lives.</p>
+            </div>
+        </div>
+    </section>
+
+    <!-- How It Works -->
+    <section class="how-it-works" id="how-it-works">
+        <div class="section-header reveal">
+            <span class="section-label">How It Works</span>
+            <h2>Three steps to clarity</h2>
+            <p>Get started in under 5 minutes. No complex configuration required.</p>
+        </div>
+
+        <div class="steps-container">
+            <div class="step reveal">
+                <div class="step-number">1</div>
+                <div class="step-content">
+                    <h3>Connect Your Repositories</h3>
+                    <p>Install our GitHub App and select which repositories you want to track. We'll handle the rest.</p>
+                </div>
+                <div class="step-visual">
+                    <div style="display: flex; align-items: center; gap: 1rem;">
+                        <div style="width: 48px; height: 48px; background: var(--bg-secondary); border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 1.5rem;">🔌</div>
+                        <div>
+                            <div style="font-weight: 600;">GitHub App Installed</div>
+                            <div style="font-size: 0.875rem; color: var(--text-muted);">3 repositories connected</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="step reveal">
+                <div class="step-number">2</div>
+                <div class="step-content">
+                    <h3>AI Processes Activity</h3>
+                    <p>Our AI analyzes commits, PRs, and releases to generate clear, concise summaries of what changed and why.</p>
+                </div>
+                <div class="step-visual">
+                    <div style="display: flex; align-items: center; gap: 0.5rem;">
+                        <div style="width: 12px; height: 12px; background: var(--accent-primary); border-radius: 50%; animation: blink 1s infinite;"></div>
+                        <span style="font-size: 0.875rem; color: var(--text-muted);">Processing 47 events...</span>
+                    </div>
+                </div>
+            </div>
+            <div class="step reveal">
+                <div class="step-number">3</div>
+                <div class="step-content">
+                    <h3>Receive Your Summaries</h3>
+                    <p>Get beautiful daily and weekly summaries delivered to your dashboard, email, or team chat.</p>
+                </div>
+                <div class="step-visual">
+                    <div style="padding: 1rem; background: var(--bg-secondary); border-radius: 12px; border-left: 4px solid var(--accent-primary);">
+                        <div style="font-weight: 600; font-family: var(--font-serif); margin-bottom: 0.5rem;">Today's Summary</div>
+                        <div style="font-size: 0.875rem; color: var(--text-secondary);">Authentication system fully revamped with new OAuth2 flow...</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Testimonials -->
+    <section class="testimonials" id="testimonials">
+        <div class="section-header reveal">
+            <span class="section-label">Testimonials</span>
+            <h2>Loved by developers everywhere</h2>
+            <p>See what teams are saying about Dev Update Engine</p>
+        </div>
+
+        <div class="testimonials-grid">
+            <div class="testimonial-card reveal">
+                <p class="testimonial-content">
+                    "Finally, I can tell stakeholders what the engineering team accomplished without spending hours in GitHub. This tool is a game-changer for our standups."
+                </p>
+                <div class="testimonial-author">
+                    <div class="author-avatar"></div>
+                    <div class="author-info">
+                        <h4>Sarah Chen</h4>
+                        <span>Engineering Manager, TechCorp</span>
+                    </div>
+                </div>
+            </div>
+            <div class="testimonial-card reveal">
+                <p class="testimonial-content">
+                    "The AI summaries are surprisingly good. It understands context and generates reports that even our product team can understand. Highly recommend."
+                </p>
+                <div class="testimonial-author">
+                    <div class="author-avatar"></div>
+                    <div class="author-info">
+                        <h4>Marcus Johnson</h4>
+                        <span>CTO, StartupXYZ</span>
+                    </div>
+                </div>
+            </div>
+            <div class="testimonial-card reveal">
+                <p class="testimonial-content">
+                    "We went from spending 2 hours a week on status updates to 10 minutes. The weekly rollup feature is incredible for keeping leadership informed."
+                </p>
+                <div class="testimonial-author">
+                    <div class="author-avatar"></div>
+                    <div class="author-info">
+                        <h4>Emily Rodriguez</h4>
+                        <span>Lead Developer, AgencyPro</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- CTA Section -->
+    <section class="cta-section">
+        <div class="cta-card reveal">
+            <div class="cta-content">
+                <h2>Ready to transform your workflow?</h2>
+                <p>Join thousands of developers who've already simplified their GitHub tracking.</p>
+                <a href="/login.html" class="btn btn-white">
+                    Get Started Free
+                    <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M5 12h14M12 5l7 7-7 7"/>
+                    </svg>
+                </a>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer>
+        <div class="physics-footer">
+            <div class="physics-text" id="physics-text">
+                <!-- Letters will be added by JS -->
+            </div>
+        </div>
+
+        <div class="footer-content">
+            <div class="footer-brand">
+                <a href="/" class="logo">
+                    <div class="logo-icon">⚡</div>
+                    <span class="logo-text">Dev Update Engine</span>
+                </a>
+                <p>Automated GitHub activity summaries powered by AI. Built by Street Labs.</p>
+            </div>
+            <div class="footer-column">
+                <h4>Product</h4>
+                <ul>
+                    <li><a href="#features">Features</a></li>
+                    <li><a href="#how-it-works">How It Works</a></li>
+                    <li><a href="#">Pricing</a></li>
+                    <li><a href="#">Changelog</a></li>
+                </ul>
+            </div>
+            <div class="footer-column">
+                <h4>Resources</h4>
+                <ul>
+                    <li><a href="#">Documentation</a></li>
+                    <li><a href="#">API Reference</a></li>
+                    <li><a href="#">Blog</a></li>
+                    <li><a href="#">Support</a></li>
+                </ul>
+            </div>
+            <div class="footer-column">
+                <h4>Legal</h4>
+                <ul>
+                    <li><a href="#">Terms of Service</a></li>
+                    <li><a href="#">Privacy Policy</a></li>
+                    <li><a href="#">Cookie Policy</a></li>
+                </ul>
+            </div>
+        </div>
+
+        <div class="footer-bottom">
+            <span>© 2026 Street Labs. All rights reserved.</span>
+            <div class="social-links">
+                <a href="https://x.com/StreetFDN" target="_blank">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/>
+                    </svg>
+                </a>
+                <a href="https://github.com/StreetFDN" target="_blank">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/>
+                    </svg>
+                </a>
+                <a href="#">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <circle cx="12" cy="12" r="10"/>
+                        <path d="M2 12h20M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/>
+                    </svg>
+                </a>
+            </div>
+        </div>
+    </footer>
 
     <script>
-        const API_BASE = window.location.origin + '/api';
+        // Particle Background
+        const canvas = document.getElementById('particles');
+        const ctx = canvas.getContext('2d');
+        let particles = [];
 
-        async function fetchJSON(url) {
-            const response = await fetch(url);
-            if (!response.ok) {
-                throw new Error(`HTTP error! status: ${response.status}`);
+        function resizeCanvas() {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+        }
+
+        class Particle {
+            constructor() {
+                this.reset();
             }
-            return response.json();
-        }
 
-        function formatDate(dateString) {
-            const date = new Date(dateString);
-            return date.toLocaleDateString('en-US', { 
-                weekday: 'long',
-                year: 'numeric', 
-                month: 'long', 
-                day: 'numeric' 
-            });
-        }
+            reset() {
+                this.x = Math.random() * canvas.width;
+                this.y = Math.random() * canvas.height;
+                this.size = Math.random() * 3 + 1;
+                this.speedX = (Math.random() - 0.5) * 0.5;
+                this.speedY = (Math.random() - 0.5) * 0.5;
+                this.opacity = Math.random() * 0.5 + 0.1;
+            }
 
-        function showError(message) {
-            document.getElementById('loading').classList.add('hidden');
-            const errorDiv = document.getElementById('error');
-            errorDiv.textContent = message;
-            errorDiv.classList.remove('hidden');
-        }
+            update() {
+                this.x += this.speedX;
+                this.y += this.speedY;
 
-        let currentUser = null;
+                if (this.x < 0 || this.x > canvas.width) this.speedX *= -1;
+                if (this.y < 0 || this.y > canvas.height) this.speedY *= -1;
+            }
 
-        async function checkAuth() {
-            try {
-                const user = await fetchJSON(`${API_BASE}/auth/me`);
-                currentUser = user;
-                
-                // Show user info
-                if (user.avatarUrl) {
-                    document.getElementById('user-avatar').src = user.avatarUrl;
-                    document.getElementById('user-avatar').style.display = 'block';
-                }
-                document.getElementById('user-name').textContent = user.name || user.githubLogin || 'User';
-                document.getElementById('user-info').classList.remove('hidden');
-                document.getElementById('login-btn').classList.add('hidden');
-                
-                return true;
-            } catch (error) {
-                // Not authenticated
-                document.getElementById('login-btn').classList.remove('hidden');
-                document.getElementById('user-info').classList.add('hidden');
-                document.getElementById('login-prompt').classList.remove('hidden');
-                document.getElementById('content').classList.add('hidden');
-                document.getElementById('loading').classList.add('hidden');
-                return false;
+            draw() {
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+                ctx.fillStyle = `rgba(211, 84, 0, ${this.opacity})`;
+                ctx.fill();
             }
         }
 
-        async function logout() {
-            try {
-                await fetch(`${API_BASE}/auth/logout`, { method: 'POST', credentials: 'include' });
-                window.location.reload();
-            } catch (error) {
-                console.error('Logout error:', error);
-                window.location.reload();
+        function initParticles() {
+            particles = [];
+            const particleCount = Math.min(100, Math.floor((canvas.width * canvas.height) / 15000));
+            for (let i = 0; i < particleCount; i++) {
+                particles.push(new Particle());
             }
         }
 
-        async function triggerSync() {
-            const button = document.getElementById('sync-btn');
-            if (button) {
-                button.disabled = true;
-                button.textContent = 'Syncing...';
-            }
+        function connectParticles() {
+            for (let i = 0; i < particles.length; i++) {
+                for (let j = i + 1; j < particles.length; j++) {
+                    const dx = particles[i].x - particles[j].x;
+                    const dy = particles[i].y - particles[j].y;
+                    const distance = Math.sqrt(dx * dx + dy * dy);
 
-            try {
-                const response = await fetch(`${API_BASE}/sync/trigger`, {
-                    method: 'POST',
-                    credentials: 'include',
-                });
-
-                if (!response.ok) {
-                    throw new Error('Sync failed');
-                }
-
-                const data = await response.json();
-                alert('Sync started! Check back in a few moments to see updated summaries.');
-                
-                // Reload after a short delay
-                setTimeout(() => {
-                    window.location.reload();
-                }, 2000);
-            } catch (error) {
-                alert(`Error triggering sync: ${error.message}`);
-                if (button) {
-                    button.disabled = false;
-                    button.textContent = 'Sync Now';
-                }
-            }
-        }
-
-        async function loadClients() {
-            try {
-                const clients = await fetchJSON(`${API_BASE}/clients`);
-                
-                if (clients.length === 0) {
-                    document.getElementById('loading').classList.add('hidden');
-                    document.getElementById('content').innerHTML = `
-                        <div class="empty-state">
-                            <h3>No repositories found</h3>
-                            <p>Install the GitHub App on your repositories to get started.</p>
-                            <p style="margin-top: 1rem;"><a href="https://github.com/apps/dev-update-by-street-labs" target="_blank" style="color: #667eea;">Install GitHub App →</a></p>
-                        </div>
-                    `;
-                    return;
-                }
-
-                let html = '';
-                
-                // Add 7-day aggregate summary at the top
-                try {
-                    const summary7days = await fetchJSON(`${API_BASE}/clients/${clients[0].id}/summary/7days`);
-                    html += render7DaySummary(summary7days);
-                } catch (error) {
-                    console.error('Error loading 7-day summary:', error);
-                    // Continue without it
-                }
-                
-                for (const client of clients) {
-                    html += await renderClient(client);
-                }
-
-                document.getElementById('loading').classList.add('hidden');
-                document.getElementById('content').innerHTML = html;
-            } catch (error) {
-                showError(`Error loading clients: ${error.message}`);
-            }
-        }
-
-        function render7DaySummary(data) {
-            const summaryText = data.summary || 'No activity recorded in the last 7 days.';
-            const stats = data.stats || {};
-            
-            // Format summary with line breaks preserved
-            const formattedSummary = summaryText.split('\n').map(line => {
-                line = line.trim();
-                if (line.startsWith('-') || line.match(/^\d+\./)) {
-                    return `<div style="margin-top: 0.5rem;">${escapeHtml(line)}</div>`;
-                }
-                return `<div style="margin-top: 0.75rem;">${escapeHtml(line)}</div>`;
-            }).join('');
-
-            return `
-                <div class="summary-7days-card">
-                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
-                        <h2 style="font-size: 1.25rem; font-weight: 600; color: #1a202c; margin: 0;">Last 7 Days</h2>
-                        <div style="display: flex; gap: 1rem; align-items: center;">
-                            <div style="display: flex; gap: 1rem; font-size: 0.875rem; color: #718096;">
-                                ${stats.repos > 0 ? `<span>${stats.repos} repos</span>` : ''}
-                                ${stats.mergedPRs > 0 ? `<span>${stats.mergedPRs} PRs</span>` : ''}
-                                ${stats.releases > 0 ? `<span>${stats.releases} releases</span>` : ''}
-                            </div>
-                            <button id="sync-btn" class="sync-button" onclick="triggerSync()">Sync Now</button>
-                        </div>
-                    </div>
-                    <div class="summary-7days-text">${formattedSummary}</div>
-                </div>
-            `;
-        }
-
-        async function renderClient(client) {
-            const repos = await fetchJSON(`${API_BASE}/clients/${client.id}/repos`);
-            
-            let reposHtml = '';
-            if (repos.length === 0) {
-                reposHtml = '<div class="empty-state"><p>No repositories connected yet.</p></div>';
-            } else {
-                reposHtml = '<div class="repo-list">';
-                for (const repo of repos) {
-                    reposHtml += await renderRepo(client.id, repo);
-                }
-                reposHtml += '</div>';
-            }
-
-            return `
-                <div class="client-card">
-                    <div class="client-header">
-                        <div class="client-name">${escapeHtml(client.name)}</div>
-                        <span class="badge badge-primary">${client.counts.repos} repos</span>
-                    </div>
-                    ${reposHtml}
-                </div>
-            `;
-        }
-
-        async function renderRepo(clientId, repo) {
-            try {
-                const summaries = await fetchJSON(`${API_BASE}/clients/${clientId}/repos/${repo.id}/summaries?limit=10`);
-                
-                let summariesHtml = '';
-                if (summaries.length === 0) {
-                    summariesHtml = '<div class="empty-state"><p>No summaries yet. Backfill will run automatically.</p></div>';
-                } else {
-                    summariesHtml = '<div class="summaries-list">';
-                    for (const summary of summaries) {
-                        summariesHtml += `
-                            <div class="summary-card">
-                                <div class="summary-date">${formatDate(summary.date)}</div>
-                                <div class="summary-text ${summary.noChanges ? 'no-changes' : ''}">
-                                    ${escapeHtml(summary.summary)}
-                                </div>
-                                ${summary.stats ? `
-                                    <div class="summary-stats">
-                                        ${summary.stats.mergedPRs > 0 ? `<span class="stat">📦 ${summary.stats.mergedPRs} PRs</span>` : ''}
-                                        ${summary.stats.releases > 0 ? `<span class="stat">🚀 ${summary.stats.releases} Releases</span>` : ''}
-                                        ${summary.stats.commits > 0 ? `<span class="stat">💻 ${summary.stats.commits} Commits</span>` : ''}
-                                    </div>
-                                ` : ''}
-                            </div>
-                        `;
+                    if (distance < 150) {
+                        ctx.beginPath();
+                        ctx.strokeStyle = `rgba(211, 84, 0, ${0.1 * (1 - distance / 150)})`;
+                        ctx.lineWidth = 1;
+                        ctx.moveTo(particles[i].x, particles[i].y);
+                        ctx.lineTo(particles[j].x, particles[j].y);
+                        ctx.stroke();
                     }
-                    summariesHtml += '</div>';
                 }
-
-                return `
-                    <div class="repo-card">
-                        <div class="repo-header">
-                            <div>
-                                <div class="repo-name">${escapeHtml(repo.fullName)}</div>
-                                <div class="repo-meta">${repo.installation.accountLogin}</div>
-                            </div>
-                            ${repo.isEnabled ? '<span class="badge badge-success">Active</span>' : '<span class="badge badge-gray">Disabled</span>'}
-                        </div>
-                        ${summariesHtml}
-                    </div>
-                `;
-            } catch (error) {
-                return `
-                    <div class="repo-card">
-                        <div class="repo-header">
-                            <div class="repo-name">${escapeHtml(repo.fullName)}</div>
-                        </div>
-                        <div class="error">Error loading summaries: ${error.message}</div>
-                    </div>
-                `;
             }
         }
 
-        function escapeHtml(text) {
-            const div = document.createElement('div');
-            div.textContent = text;
-            return div.innerHTML;
+        function animateParticles() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            particles.forEach(p => {
+                p.update();
+                p.draw();
+            });
+            connectParticles();
+            requestAnimationFrame(animateParticles);
         }
 
-        // Check auth and load data on page load
-        checkAuth().then(authenticated => {
-            if (authenticated) {
-                loadClients();
-                // Auto-refresh every 5 minutes
-                setInterval(loadClients, 5 * 60 * 1000);
+        resizeCanvas();
+        initParticles();
+        animateParticles();
+
+        window.addEventListener('resize', () => {
+            resizeCanvas();
+            initParticles();
+        });
+
+        // Cursor Follower
+        const cursor = document.getElementById('cursor');
+        let mouseX = 0, mouseY = 0;
+
+        document.addEventListener('mousemove', (e) => {
+            mouseX = e.clientX;
+            mouseY = e.clientY;
+        });
+
+        function updateCursor() {
+            cursor.style.left = mouseX - 10 + 'px';
+            cursor.style.top = mouseY - 10 + 'px';
+            requestAnimationFrame(updateCursor);
+        }
+        updateCursor();
+
+        // Navbar Scroll Effect
+        const navbar = document.getElementById('navbar');
+        window.addEventListener('scroll', () => {
+            if (window.scrollY > 50) {
+                navbar.classList.add('scrolled');
+            } else {
+                navbar.classList.remove('scrolled');
             }
+        });
+
+        // Counter Animation
+        function animateCounter(elementId, target, duration = 2000) {
+            const element = document.getElementById(elementId);
+            const start = 0;
+            const startTime = performance.now();
+
+            function update(currentTime) {
+                const elapsed = currentTime - startTime;
+                const progress = Math.min(elapsed / duration, 1);
+                const easeOut = 1 - Math.pow(1 - progress, 3);
+                const current = Math.floor(start + (target - start) * easeOut);
+                element.textContent = current.toLocaleString();
+
+                if (progress < 1) {
+                    requestAnimationFrame(update);
+                }
+            }
+            requestAnimationFrame(update);
+        }
+
+        // Start counters when page loads
+        setTimeout(() => {
+            animateCounter('counter-prs', 12847);
+            animateCounter('counter-repos', 2341);
+            animateCounter('counter-time', 8760);
+        }, 500);
+
+        // Scroll Reveal
+        const reveals = document.querySelectorAll('.reveal');
+        const revealObserver = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    entry.target.classList.add('active');
+                }
+            });
+        }, { threshold: 0.1 });
+
+        reveals.forEach(el => revealObserver.observe(el));
+
+        // Physics Footer Text
+        const footerText = "Powered by Street Labs";
+        const physicsContainer = document.getElementById('physics-text');
+
+        footerText.split('').forEach((char, i) => {
+            const span = document.createElement('span');
+            span.className = 'physics-letter';
+            span.textContent = char === ' ' ? '\u00A0' : char;
+            span.style.animationDelay = `${i * 0.05}s`;
+            physicsContainer.appendChild(span);
+        });
+
+        // Interactive physics effect on footer letters
+        const letters = document.querySelectorAll('.physics-letter');
+        let mouseFooterX = 0, mouseFooterY = 0;
+
+        physicsContainer.addEventListener('mousemove', (e) => {
+            const rect = physicsContainer.getBoundingClientRect();
+            mouseFooterX = e.clientX;
+            mouseFooterY = e.clientY;
+
+            letters.forEach((letter, i) => {
+                const letterRect = letter.getBoundingClientRect();
+                const letterCenterX = letterRect.left + letterRect.width / 2;
+                const letterCenterY = letterRect.top + letterRect.height / 2;
+
+                const dx = mouseFooterX - letterCenterX;
+                const dy = mouseFooterY - letterCenterY;
+                const distance = Math.sqrt(dx * dx + dy * dy);
+
+                if (distance < 100) {
+                    const force = (1 - distance / 100) * 20;
+                    const moveX = -(dx / distance) * force;
+                    const moveY = -(dy / distance) * force;
+                    letter.style.transform = `translate(${moveX}px, ${moveY}px)`;
+                }
+            });
+        });
+
+        physicsContainer.addEventListener('mouseleave', () => {
+            letters.forEach(letter => {
+                letter.style.transform = 'translate(0, 0)';
+            });
         });
     </script>
 </body>
