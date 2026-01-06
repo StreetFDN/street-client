@@ -212,68 +212,23 @@ export async function generateAggregateSummary(summaries: any[], activityEvents:
       return 'Quiet shipping week. Focused on polish and reliability.';
     }
 
-    const prompt = `You are generating a public-facing founder update for Twitter.
+    const prompt = `Generate a concise, specific founder update from the GitHub activity below.
 
-GOAL:
-Signal momentum and direction to technical founders, operators, and early investors. Be SPECIFIC and CONCRETE about what was actually built or changed.
-
-TRANSLATION RULE:
-Never mention repository names.
-Always describe changes in terms of product surfaces or capabilities.
+REQUIREMENTS:
+- Be SPECIFIC: Include actual PR titles, feature names, or concrete changes
+- Never mention repository names - translate to product surfaces
+- Focus on what was built or changed, not generic counts
+- 1 headline + 3-5 bullet points
+- Each bullet: strong verb, ≤140 chars, includes concrete details
 
 EXAMPLES:
-- "landingsiteonly" → "public landing page / onboarding surface"
-- "street-client" → "Dev Update Engine backend"
+- Good: "Added Supabase JWT authentication support" or "Fixed TypeScript errors in auth routes"
+- Bad: "2 pull requests merged" or "Progress across repositories"
 
-FRAMING RULES:
-- Do not say "cosmetic", "mechanical", or "internal".
-- If changes are incremental, frame them as groundwork or polish.
-- Focus on what is now possible or more reliable.
-
-INCLUSION RULES (BE INCLUSIVE):
-
-INCLUDE all of the following:
-- All code changes (features, bug fixes, refactors)
-- All API changes (new endpoints, modified endpoints, removed endpoints)
-- All UI changes (new screens, updated flows, improved UX)
-- All data model changes (new tables, schema updates, migrations)
-- All infrastructure changes (deployment updates, config changes)
-- All automation changes (new scripts, improved workflows)
-- All documentation that affects functionality
-
-ONLY EXCLUDE:
-- Pure asset-only changes (ONLY if the entire change is just adding/updating images/icons with zero code changes)
-- Formatting-only changes (ONLY if it's purely whitespace/formatting with zero functional impact)
-
-SPECIFICITY REQUIREMENTS (CRITICAL):
-- ALWAYS include specific PR titles, commit messages, or feature names
-- Reference concrete actions: "Added user authentication flow", "Fixed database connection timeout", "Implemented OAuth integration"
-- List actual changes: "Merged 3 PRs including 'Add Supabase JWT auth' and 'Fix TypeScript errors'"
-- Translate repo names to product surfaces/capabilities
-- If there are multiple changes, list the most significant ones specifically
-
-STRUCTURE:
-1. 1-line headline (directional, confident, factual, SPECIFIC)
-2. 3–5 bullets, each:
-   - starts with a strong verb
-   - ≤ 140 chars
-   - describes capability, not implementation
-   - includes specific details (PR titles, feature names, or concrete changes)
-3. Optional closing line: "Next:" only if something concrete is coming.
-
-TONE:
-- Calm confidence
-- No hype words ("huge", "massive", "excited")
-- No emojis
-- No apologies
-- Be factual and specific
-
-CRITICAL: The summary must be SPECIFIC. Include actual PR titles, feature names, or concrete changes. Do not just say "2 pull requests merged" - say WHAT was merged. If you see PR titles like "Add Supabase JWT authentication support" or "Fix TypeScript errors", include those specifics.
-
-Activity across repositories (last 7 days):
+Activity (last 7 days):
 ${activityItems.join('\n\n')}
 
-Generate the summary now:`;
+Generate the summary:`;
 
     try {
       const completion = await openai.chat.completions.create({
@@ -281,7 +236,7 @@ Generate the summary now:`;
         messages: [
           {
             role: 'system',
-            content: 'You are generating a public-facing founder update for Twitter. Never mention repository names - translate to product surfaces/capabilities. Do not say "cosmetic", "mechanical", or "internal". Frame incremental changes as groundwork or polish. Focus on capabilities, not implementation. Calm confidence tone. No hype words, no emojis, no apologies. BE SPECIFIC AND CONCRETE - always include actual PR titles, feature names, or concrete changes. Do not just say "X pull requests merged" - say WHAT was merged. Include all code changes, UI improvements, API changes, bug fixes, and features. When in doubt, include it and be specific about what it is.',
+            content: 'You generate concise, specific founder updates. Always include actual PR titles, feature names, or concrete changes. Never say generic things like "X pull requests merged" - say WHAT was merged. Never mention repository names. Be factual and specific. No hype words, no emojis.',
           },
           {
             role: 'user',
