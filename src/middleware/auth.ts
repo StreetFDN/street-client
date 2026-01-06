@@ -1,4 +1,5 @@
 import { Request, Response, NextFunction } from 'express';
+import { trySupabaseAuth } from './supabaseAuth';
 
 // Extend Express Request type to include user
 declare global {
@@ -18,14 +19,27 @@ declare global {
 
 /**
  * Middleware to require authentication
+ * Tries Supabase JWT auth first, then falls back to session auth
  */
-export function requireAuth(req: Request, res: Response, next: NextFunction): void {
-  if (!req.session || !req.session.userId) {
-    res.status(401).json({ error: 'Authentication required' });
-    return;
+export async function requireAuth(req: Request, res: Response, next: NextFunction): Promise<void> {
+  // First try Supabase auth
+  const supabaseAuthSuccess = await trySupabaseAuth(req);
+  
+  if (supabaseAuthSuccess) {
+    return next();
   }
-  req.userId = req.session.userId;
-  next();
+
+  // Otherwise, try session auth
+  if (req.session && req.session.userId) {
+    req.userId = req.session.userId;
+    if (req.session.user) {
+      req.user = req.session.user;
+    }
+    return next();
+  }
+
+  // No authentication found
+  res.status(401).json({ error: 'Authentication required' });
 }
 
 /**
@@ -37,3 +51,6 @@ export function optionalAuth(req: Request, res: Response, next: NextFunction): v
   }
   next();
 }
+
+
+
