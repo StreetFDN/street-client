@@ -215,7 +215,7 @@ export async function generateAggregateSummary(summaries: any[], activityEvents:
     const prompt = `You are generating a public-facing founder update for Twitter.
 
 GOAL:
-Signal momentum and direction to technical founders, operators, and early investors.
+Signal momentum and direction to technical founders, operators, and early investors. Be SPECIFIC and CONCRETE about what was actually built or changed.
 
 TRANSLATION RULE:
 Never mention repository names.
@@ -230,44 +230,35 @@ FRAMING RULES:
 - If changes are incremental, frame them as groundwork or polish.
 - Focus on what is now possible or more reliable.
 
-RELEVANCE FILTER (MANDATORY):
+INCLUSION RULES (BE INCLUSIVE):
 
-Before writing the update, classify each change as one of:
-- Core product logic
-- Data model / persistence
-- API / integration surface
-- Automation / scheduling
-- Infra / deployment
-- UI / cosmetic
-- Asset / static files
-- Tooling / refactor
+INCLUDE all of the following:
+- All code changes (features, bug fixes, refactors)
+- All API changes (new endpoints, modified endpoints, removed endpoints)
+- All UI changes (new screens, updated flows, improved UX)
+- All data model changes (new tables, schema updates, migrations)
+- All infrastructure changes (deployment updates, config changes)
+- All automation changes (new scripts, improved workflows)
+- All documentation that affects functionality
 
-EXCLUDE from the final output:
-- Pure asset changes (images, icons, favicons, SVGs)
-- Cosmetic-only UI tweaks unless they affect user flows
-- Repeated or mechanically similar changes
-- Metadata-only updates (titles, descriptions, formatting)
+ONLY EXCLUDE:
+- Pure asset-only changes (ONLY if the entire change is just adding/updating images/icons with zero code changes)
+- Formatting-only changes (ONLY if it's purely whitespace/formatting with zero functional impact)
 
-ONLY include UI changes if they:
-- unlock new functionality
-- change user navigation or flows
-- affect onboarding, auth, or permissions
-
-If the majority of changes are excluded, say:
-"Quiet shipping week. Focused on polish and reliability."
-
-SPECIFICITY REQUIREMENTS:
-- Reference concrete actions (e.g. "added X", "removed Y", "changed Z").
-- Prefer file names, functions, endpoints, or PR titles when available.
-- If multiple small commits exist, list representative ones instead of summarizing them.
-- Translate repo names to product surfaces/capabilities.
+SPECIFICITY REQUIREMENTS (CRITICAL):
+- ALWAYS include specific PR titles, commit messages, or feature names
+- Reference concrete actions: "Added user authentication flow", "Fixed database connection timeout", "Implemented OAuth integration"
+- List actual changes: "Merged 3 PRs including 'Add Supabase JWT auth' and 'Fix TypeScript errors'"
+- Translate repo names to product surfaces/capabilities
+- If there are multiple changes, list the most significant ones specifically
 
 STRUCTURE:
-1. 1-line headline (directional, confident, factual)
+1. 1-line headline (directional, confident, factual, SPECIFIC)
 2. 3–5 bullets, each:
    - starts with a strong verb
    - ≤ 140 chars
    - describes capability, not implementation
+   - includes specific details (PR titles, feature names, or concrete changes)
 3. Optional closing line: "Next:" only if something concrete is coming.
 
 TONE:
@@ -275,11 +266,9 @@ TONE:
 - No hype words ("huge", "massive", "excited")
 - No emojis
 - No apologies
+- Be factual and specific
 
-If there is truly nothing worth sharing, output:
-"Quiet shipping week. Focused on polish and reliability."
-
-IMPORTANT: Even if some changes seem cosmetic or mechanical, if there are multiple changes across multiple repos, focus on the substantive ones. Only say "Quiet shipping week" if there truly is nothing meaningful to report (e.g., only formatting, assets, or metadata changes with no functional impact).
+CRITICAL: The summary must be SPECIFIC. Include actual PR titles, feature names, or concrete changes. Do not just say "2 pull requests merged" - say WHAT was merged. If you see PR titles like "Add Supabase JWT authentication support" or "Fix TypeScript errors", include those specifics.
 
 Activity across repositories (last 7 days):
 ${activityItems.join('\n\n')}
@@ -292,7 +281,7 @@ Generate the summary now:`;
         messages: [
           {
             role: 'system',
-            content: 'You are generating a public-facing founder update for Twitter. Never mention repository names - translate to product surfaces/capabilities. Do not say "cosmetic", "mechanical", or "internal". Frame incremental changes as groundwork or polish. Focus on capabilities, not implementation. Calm confidence tone. No hype words, no emojis, no apologies. DEFAULT TO INCLUDING changes - only exclude pure assets/images/icons or formatting-only changes with zero functional impact. Include all code changes, UI improvements, API changes, bug fixes, and features. When in doubt, include it.',
+            content: 'You are generating a public-facing founder update for Twitter. Never mention repository names - translate to product surfaces/capabilities. Do not say "cosmetic", "mechanical", or "internal". Frame incremental changes as groundwork or polish. Focus on capabilities, not implementation. Calm confidence tone. No hype words, no emojis, no apologies. BE SPECIFIC AND CONCRETE - always include actual PR titles, feature names, or concrete changes. Do not just say "X pull requests merged" - say WHAT was merged. Include all code changes, UI improvements, API changes, bug fixes, and features. When in doubt, include it and be specific about what it is.',
           },
           {
             role: 'user',
