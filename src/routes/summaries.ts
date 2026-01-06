@@ -277,6 +277,132 @@ router.get('/clients/:clientId/summary/7days', requireAuth, async (req: Request,
 });
 
 /**
+ * GET /api/clients/:clientId/summary/repos
+ * Get repo-by-repo summaries for the last 7 days
+ */
+router.get('/clients/:clientId/summary/repos', requireAuth, async (req: Request, res: Response) => {
+  try {
+    const { clientId } = req.params;
+
+    // Verify client belongs to user
+    const client = await prisma.client.findFirst({
+      where: { id: clientId, userId: req.userId || undefined },
+      include: {
+        repos: {
+          where: { isEnabled: true },
+        },
+      },
+    });
+
+    if (!client) {
+      return res.status(404).json({ error: 'Client not found' });
+    }
+
+    // Get date range (last 7 days)
+    const to = new Date();
+    to.setUTCHours(23, 59, 59, 999);
+    const from = new Date(to);
+    from.setUTCDate(from.getUTCDate() - 6);
+    from.setUTCHours(0, 0, 0, 0);
+
+    // Get all repos with their activity
+    const repos = await prisma.gitHubRepo.findMany({
+      where: {
+        clientId,
+        isEnabled: true,
+      },
+      orderBy: {
+        name: 'asc',
+      },
+    });
+
+    const repoSummaries = await Promise.all(
+      repos.map(async (repo) => {
+        // Get summaries for this repo
+        const summaries = await prisma.repoDailySummary.findMany({
+          where: {
+            repoId: repo.id,
+            date: {
+              gte: from,
+              lte: to,
+            },
+          },
+          orderBy: {
+            date: 'desc',
+          },
+        });
+
+        // Get activity events for this repo
+        const activityEvents = await prisma.repoActivityEvent.findMany({
+          where: {
+            repoId: repo.id,
+            occurredAt: {
+              gte: from,
+              lte: to,
+            },
+          },
+          orderBy: {
+            occurredAt: 'desc',
+          },
+          take: 50, // Limit per repo
+        });
+
+        // Filter out repos with no activity
+        const activeSummaries = summaries.filter(s => !s.noChanges);
+        if (activeSummaries.length === 0 && activityEvents.length === 0) {
+          return null;
+        }
+
+        // Generate summary for this repo using the aggregate function
+        // but with only this repo's data
+        const repoSummary = await generateAggregateSummary(activeSummaries, activityEvents);
+
+        // Calculate stats
+        const stats = summaries.reduce((acc, summary) => {
+          if (summary.stats) {
+            const s = summary.stats as any;
+            acc.mergedPRs += s.mergedPRs || 0;
+            acc.releases += s.releases || 0;
+            acc.commits += s.commits || 0;
+          }
+          return acc;
+        }, { mergedPRs: 0, releases: 0, commits: 0 });
+
+        return {
+          repo: {
+            id: repo.id,
+            owner: repo.owner,
+            name: repo.name,
+            fullName: `${repo.owner}/${repo.name}`,
+          },
+          summary: repoSummary,
+          stats: {
+            mergedPRs: stats.mergedPRs,
+            releases: stats.releases,
+            commits: stats.commits,
+            days: activeSummaries.length,
+          },
+        };
+      })
+    );
+
+    // Filter out null entries (repos with no activity)
+    const activeRepos = repoSummaries.filter((r): r is NonNullable<typeof r> => r !== null);
+
+    res.json({
+      repos: activeRepos,
+      period: {
+        from: from.toISOString(),
+        to: to.toISOString(),
+      },
+    });
+  } catch (error) {
+    console.error('Error generating repo-by-repo summaries:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+/**
  * POST /api/repos/:repoId/backfill
  * Manually trigger a backfill for a repo
  */

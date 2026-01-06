@@ -1034,6 +1034,21 @@
                 </div>
             </div>
 
+            <!-- Repo-by-Repo Summaries -->
+            <div class="card fade-in" id="repoSummariesCard" style="display: none;">
+                <div class="card-header">
+                    <div>
+                        <h2 class="card-title">Repository Breakdown</h2>
+                        <p class="card-subtitle">AI-generated summaries for each repository (last 7 days)</p>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div id="repoSummariesList">
+                        <p>Loading repository summaries...</p>
+                    </div>
+                </div>
+            </div>
+
             <!-- Main Grid -->
             <div class="main-grid">
                 <!-- Activity Feed -->
@@ -1255,6 +1270,36 @@
                         if (summary.stats) {
                             if (summary.stats.mergedPRs) document.getElementById('statPRs').textContent = summary.stats.mergedPRs;
                             if (summary.stats.repos) document.getElementById('statRepos').textContent = summary.stats.repos;
+                        }
+
+                        // Load repo-by-repo summaries
+                        try {
+                            const repoSummaries = await fetch(`${API_BASE}/clients/${clients[0].id}/summary/repos`).then(r => r.json());
+                            if (repoSummaries.repos && repoSummaries.repos.length > 0) {
+                                const repoList = document.getElementById('repoSummariesList');
+                                repoList.innerHTML = repoSummaries.repos.map(repo => `
+                                    <div class="repo-summary-item" style="margin-bottom: 2rem; padding-bottom: 2rem; border-bottom: 1px solid var(--border-color);">
+                                        <div style="display: flex; align-items: center; gap: 0.75rem; margin-bottom: 1rem;">
+                                            <div style="width: 8px; height: 8px; background: var(--accent-green); border-radius: 50%;"></div>
+                                            <h3 style="font-size: 1.1rem; font-weight: 600; color: var(--text-primary); margin: 0;">
+                                                ${repo.repo.fullName}
+                                            </h3>
+                                            <span style="font-size: 0.875rem; color: var(--text-muted);">
+                                                ${repo.stats.mergedPRs} PRs • ${repo.stats.commits} commits
+                                            </span>
+                                        </div>
+                                        <div style="color: var(--text-secondary); line-height: 1.6;">
+                                            ${repo.summary.split('\n').map(line => `<p style="margin: 0.5rem 0;">${line}</p>`).join('')}
+                                        </div>
+                                    </div>
+                                `).join('');
+                                document.getElementById('repoSummariesCard').style.display = 'block';
+                            } else {
+                                document.getElementById('repoSummariesCard').style.display = 'none';
+                            }
+                        } catch (error) {
+                            console.error('Error loading repo summaries:', error);
+                            document.getElementById('repoSummariesCard').style.display = 'none';
                         }
                     } catch (e) {
                         console.log('No summary available');
