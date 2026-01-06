@@ -200,17 +200,39 @@ export async function generateAggregateSummary(summaries: any[], activityEvents:
       }
     }
 
-    // If no activity events found, try using summary texts as fallback
-    if (activityItems.length === 0) {
-      console.log(`[Aggregate Summary] No activity events found (${activityEvents.length} events passed), checking summaries...`);
-      // Fall back to using summary texts if events aren't available yet
-      for (const summary of activeSummaries.slice(0, 10)) {
-        if (summary.repo && summary.summaryText && !summary.noChanges) {
-          const repoName = `${summary.repo.owner}/${summary.repo.name}`;
-          activityItems.push(`[${repoName}] ${summary.summaryText.substring(0, 200)}`);
+    // Always include summary texts for more context (even if we have events)
+    // This gives the LLM more information about what was actually done
+    const summaryTexts: string[] = [];
+    const repoSummaryMap = new Map<string, string[]>();
+    
+    for (const summary of activeSummaries) {
+      if (summary.repo && summary.summaryText && !summary.noChanges) {
+        const repoName = `${summary.repo.owner}/${summary.repo.name}`;
+        if (!repoSummaryMap.has(repoName)) {
+          repoSummaryMap.set(repoName, []);
         }
+        repoSummaryMap.get(repoName)!.push(summary.summaryText);
       }
+    }
+    
+    // Add summary texts grouped by repo
+    for (const [repoName, texts] of repoSummaryMap.entries()) {
+      // Combine all daily summaries for this repo into one entry
+      const combinedText = texts.join(' ');
+      if (combinedText.length > 0) {
+        summaryTexts.push(`[${repoName}] Daily summaries: ${combinedText.substring(0, 300)}`);
+      }
+    }
+    
+    // If no activity events, use summaries as primary source
+    if (activityItems.length === 0) {
+      console.log(`[Aggregate Summary] No activity events found (${activityEvents.length} events passed), using summary texts...`);
+      activityItems.push(...summaryTexts);
       console.log(`[Aggregate Summary] Using ${activityItems.length} summary texts as fallback`);
+    } else {
+      // Add summary texts as additional context even when we have events
+      console.log(`[Aggregate Summary] Adding ${summaryTexts.length} repo summary texts as additional context`);
+      activityItems.push(...summaryTexts);
     }
 
     if (activityItems.length === 0) {
@@ -228,23 +250,25 @@ REQUIREMENTS:
 - Focus on what was BUILT or ACCOMPLISHED, not just what was merged
 - Recognize scope: "landing page" = entire new page built, "authentication" = full auth system, etc.
 - Use impactful language that reflects the actual work done
-- 1 headline + 3-5 bullet points
+- Include MORE bullet points if there's substantial content (up to 7-8 if warranted)
 - Each bullet: strong verb, ≤140 chars, includes concrete details
+- Use the daily summaries to understand the full context of what was done
 
 LANGUAGE GUIDELINES:
 - Say "Built new landing page" not "Merged landing page PR"
 - Say "Implemented authentication system" not "Merged auth PR"
 - Say "Added feature X" not "Merged PR for X"
 - Recognize when substantial work was done and describe it accordingly
+- If daily summaries provide more detail than activity events, use that detail
 
 EXAMPLES:
 - Good: "Built new landing page with modern SaaS design" or "Implemented Supabase JWT authentication system"
 - Bad: "Merged landing page PR" or "2 pull requests merged"
 
-Activity (last 7 days):
+Activity and summaries (last 7 days):
 ${activityItems.join('\n\n')}
 
-Generate the summary:`;
+Generate the summary (include more bullets if there's substantial content):`;
 
     try {
       const completion = await openai.chat.completions.create({
@@ -260,7 +284,7 @@ Generate the summary:`;
           },
         ],
         temperature: 0.3, // Lower temperature for more factual output
-        max_tokens: 500,
+        max_tokens: 700, // Increased to allow for more bullet points
       });
 
       const llmResult = completion.choices[0]?.message?.content?.trim();
