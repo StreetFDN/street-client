@@ -37,7 +37,7 @@ async function generateSummaryWithLLM(activity: ActivityPacket): Promise<string>
     return 'No relevant GitHub changes in the last 24h.';
   }
 
-  const prompt = `Summarize the following GitHub activity in a brief, factual paragraph. Be concise, technical, and slightly dry. No hype, no marketing language, no emojis. Focus on concrete changes. INCLUDE all meaningful changes - don't filter out unless it's truly only assets/images/icons or formatting. Format as plain text, no markdown:
+  const prompt = `Summarize the following GitHub activity in a brief, factual paragraph. Be concise, technical, and slightly dry. No hype, no marketing language, no emojis. Focus on concrete changes and what was BUILT or ACCOMPLISHED, not just what was merged. Recognize scope: a "landing page" means an entire page was built, "authentication" means a full system was implemented. Use language that reflects the work: "Built", "Implemented", "Added", "Created" - not just "Merged". INCLUDE all meaningful changes - don't filter out unless it's truly only assets/images/icons or formatting. Format as plain text, no markdown:
 
 ${items.join('\n')}`;
 
@@ -47,7 +47,7 @@ ${items.join('\n')}`;
       messages: [
         {
           role: 'system',
-          content: 'You are writing a founder-level technical update. Be concise, factual, and slightly dry. Assume the reader is technical and time-constrained. No hype, no marketing language, no emojis. Do not narrate emotions or intent. Prefer concrete changes over explanations. INCLUDE all meaningful changes including UI improvements, API changes, bug fixes, and features. Only exclude pure assets/images/icons or formatting-only changes. Goal is to show activity, not filter it out.',
+          content: 'You are writing a founder-level technical update. Be concise, factual, and slightly dry. Assume the reader is technical and time-constrained. No hype, no marketing language, no emojis. Do not narrate emotions or intent. Prefer concrete changes over explanations. Describe what was BUILT or ACCOMPLISHED, not just what was merged. Recognize scope: a "landing page" means an entire page was built, "authentication" means a full system was implemented. Use language that reflects the work: "Built", "Implemented", "Added", "Created" - not just "Merged". INCLUDE all meaningful changes including UI improvements, API changes, bug fixes, and features. Only exclude pure assets/images/icons or formatting-only changes. Goal is to show activity, not filter it out.',
         },
         {
           role: 'user',
@@ -225,13 +225,21 @@ export async function generateAggregateSummary(summaries: any[], activityEvents:
 REQUIREMENTS:
 - Be SPECIFIC: Include actual PR titles, feature names, or concrete changes
 - Never mention repository names - translate to product surfaces
-- Focus on what was built or changed, not generic counts
+- Focus on what was BUILT or ACCOMPLISHED, not just what was merged
+- Recognize scope: "landing page" = entire new page built, "authentication" = full auth system, etc.
+- Use impactful language that reflects the actual work done
 - 1 headline + 3-5 bullet points
 - Each bullet: strong verb, ≤140 chars, includes concrete details
 
+LANGUAGE GUIDELINES:
+- Say "Built new landing page" not "Merged landing page PR"
+- Say "Implemented authentication system" not "Merged auth PR"
+- Say "Added feature X" not "Merged PR for X"
+- Recognize when substantial work was done and describe it accordingly
+
 EXAMPLES:
-- Good: "Added Supabase JWT authentication support" or "Fixed TypeScript errors in auth routes"
-- Bad: "2 pull requests merged" or "Progress across repositories"
+- Good: "Built new landing page with modern SaaS design" or "Implemented Supabase JWT authentication system"
+- Bad: "Merged landing page PR" or "2 pull requests merged"
 
 Activity (last 7 days):
 ${activityItems.join('\n\n')}
@@ -244,7 +252,7 @@ Generate the summary:`;
         messages: [
           {
             role: 'system',
-            content: 'You generate concise, specific founder updates. Always include actual PR titles, feature names, or concrete changes. Never say generic things like "X pull requests merged" - say WHAT was merged. Never mention repository names. Be factual and specific. No hype words, no emojis.',
+            content: 'You generate concise, specific founder updates. Always include actual PR titles, feature names, or concrete changes. Never say generic things like "X pull requests merged" or "Merged PR" - describe what was BUILT or ACCOMPLISHED. Recognize scope: a "landing page" PR means an entire page was built, "authentication" means a full system was implemented. Use language that reflects the actual work: "Built", "Implemented", "Added", "Created" - not just "Merged". Never mention repository names. Be factual and specific. No hype words, no emojis.',
           },
           {
             role: 'user',
