@@ -96,19 +96,21 @@ router.get('/github/callback', async (req: Request, res: Response) => {
 
     // Link any existing clients that match this user's GitHub login but don't have a userId
     // This handles the case where GitHub App was installed before OAuth login
-    await prisma.client.updateMany({
-      where: {
-        userId: null,
-        installations: {
-          some: {
-            accountLogin: user.githubLogin,
+    if (user.githubLogin) {
+      await prisma.client.updateMany({
+        where: {
+          userId: null,
+          installations: {
+            some: {
+              accountLogin: user.githubLogin,
+            },
           },
         },
-      },
-      data: {
-        userId: user.id,
-      },
-    });
+        data: {
+          userId: user.id,
+        },
+      });
+    }
 
     // Set session
     if (!req.session) {
@@ -117,7 +119,7 @@ router.get('/github/callback', async (req: Request, res: Response) => {
     req.session.userId = user.id;
     req.session.user = {
       id: user.id,
-      githubLogin: user.githubLogin,
+      githubLogin: user.githubLogin || '', // GitHub OAuth always provides login, but handle null for type safety
       name: user.name || undefined,
       email: user.email || undefined,
       avatarUrl: user.avatarUrl || undefined,
