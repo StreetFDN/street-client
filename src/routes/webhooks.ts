@@ -51,10 +51,18 @@ async function handleInstallationCreated(payload: any): Promise<void> {
   const installation = payload.installation;
   const account = payload.installation.account;
 
-  // Try to find user by GitHub login
-  const user = await prisma.user.findUnique({
+  // Try to find user by GitHub login first
+  let user = await prisma.user.findUnique({
     where: { githubLogin: account.login },
   });
+
+  // If not found, try to find by email (from GitHub account)
+  // This helps link Supabase users who haven't logged in via GitHub OAuth yet
+  if (!user && account.email) {
+    user = await prisma.user.findFirst({
+      where: { email: account.email },
+    });
+  }
 
   // Find or create client
   let client = await prisma.client.findFirst({
@@ -71,11 +79,11 @@ async function handleInstallationCreated(payload: any): Promise<void> {
     client = await prisma.client.create({
       data: {
         name: `${account.login} (GitHub)`,
-        userId: user?.id || null, // Link to user if exists
+        userId: user?.id || null, // Link to user if found by login or email
       },
     });
   } else if (user && !client.userId) {
-    // Link existing client to user if user just logged in
+    // Link existing client to user if user found (by login or email)
     const updatedClient = await prisma.client.update({
       where: { id: client.id },
       data: { userId: user.id },
