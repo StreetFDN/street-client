@@ -140,6 +140,8 @@ export async function generateAggregateSummary(summaries: any[], activityEvents:
 
   // If we have OpenAI, generate a summary
   if (config.openai.apiKey) {
+    console.log(`[Aggregate Summary] OpenAI key found, generating LLM summary. Activity events: ${activityEvents.length}, Summaries: ${activeSummaries.length}`);
+    
     // Build concrete activity list from actual events
     const activityItems: string[] = [];
     const repoNames = new Set<string>();
@@ -175,6 +177,8 @@ export async function generateAggregateSummary(summaries: any[], activityEvents:
       }
     }
 
+    console.log(`[Aggregate Summary] Grouped events - PRs: ${prs.length}, Releases: ${releases.length}, Commits: ${commits.length}`);
+
     // Build concrete activity list
     for (const pr of prs.slice(0, 15)) {
       activityItems.push(`[${pr.repo}] Merged PR: "${pr.title}"`);
@@ -198,19 +202,23 @@ export async function generateAggregateSummary(summaries: any[], activityEvents:
 
     // If no activity events found, try using summary texts as fallback
     if (activityItems.length === 0) {
-      console.log(`No activity events found, checking summaries...`);
+      console.log(`[Aggregate Summary] No activity events found (${activityEvents.length} events passed), checking summaries...`);
       // Fall back to using summary texts if events aren't available yet
       for (const summary of activeSummaries.slice(0, 10)) {
-        if (summary.repo && summary.summary && !summary.noChanges) {
+        if (summary.repo && summary.summaryText && !summary.noChanges) {
           const repoName = `${summary.repo.owner}/${summary.repo.name}`;
-          activityItems.push(`[${repoName}] ${summary.summary.substring(0, 200)}`);
+          activityItems.push(`[${repoName}] ${summary.summaryText.substring(0, 200)}`);
         }
       }
+      console.log(`[Aggregate Summary] Using ${activityItems.length} summary texts as fallback`);
     }
 
     if (activityItems.length === 0) {
+      console.log(`[Aggregate Summary] No activity items found, returning quiet week message`);
       return 'Quiet shipping week. Focused on polish and reliability.';
     }
+
+    console.log(`[Aggregate Summary] Sending ${activityItems.length} activity items to LLM`);
 
     const prompt = `Generate a concise, specific founder update from the GitHub activity below.
 
@@ -247,14 +255,22 @@ Generate the summary:`;
         max_tokens: 500,
       });
 
-      return completion.choices[0]?.message?.content?.trim() || generateAggregateSummaryFallback(stats);
+      const llmResult = completion.choices[0]?.message?.content?.trim();
+      if (llmResult) {
+        console.log(`[Aggregate Summary] LLM generated summary (${llmResult.length} chars)`);
+        return llmResult;
+      } else {
+        console.log(`[Aggregate Summary] LLM returned empty, using fallback`);
+        return generateAggregateSummaryFallback(stats);
+      }
     } catch (error) {
-      console.error('Error generating aggregate LLM summary:', error);
+      console.error('[Aggregate Summary] Error generating LLM summary:', error);
       return generateAggregateSummaryFallback(stats);
     }
   }
 
-  // Fallback to template
+  // Fallback to template (no OpenAI key)
+  console.log(`[Aggregate Summary] No OpenAI key, using template fallback`);
   return generateAggregateSummaryFallback(stats);
 }
 
