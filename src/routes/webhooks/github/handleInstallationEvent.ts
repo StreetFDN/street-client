@@ -157,8 +157,30 @@ async function handleDeletedInstallationAction(payload: DeletedInstallationEvent
     },
     data: {
       revokedAt: new Date(),
-    },
+    }
   });
 
-  console.log(`Installation revoked: ${installationId}`);
+  const revokedInstallations = (await prisma.gitHubInstallation.findMany({
+    select: {
+      id: true,
+    },
+    where: {
+      installationId
+    }
+  })).map(({id}) => id);
+
+// Disable all repositories associated with this installation.
+// TODO (mlacko): Think about adding cleaner to delete stale disabled repos.
+  const disabledRepos = await prisma.gitHubRepo.updateMany({
+    where: {
+      installationId: {
+        in: revokedInstallations,
+      }
+    },
+    data: {
+      isEnabled: false,
+    }
+  });
+
+  console.log(`Installation revoked: ${installationId}; ${disabledRepos.count} associated repos disabled.`);
 }
