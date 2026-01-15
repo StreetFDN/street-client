@@ -2,7 +2,7 @@ import express from 'express';
 import session from 'express-session';
 import path from 'path';
 import { config } from './config';
-import webhookRoutes from './routes/webhooks';
+import githubWebhookRoutes from './routes/webhooks/github';
 import authRoutes from './routes/auth';
 import clientRoutes from './routes/clients';
 import installationRoutes from './routes/installations';
@@ -26,7 +26,7 @@ app.use(session({
 }));
 
 // Webhook endpoint needs raw body for signature verification
-app.use('/webhooks/github', express.raw({ type: 'application/json' }), webhookRoutes);
+app.use('/webhooks/github', express.raw({ type: 'application/json' }), githubWebhookRoutes);
 
 // Other API routes use JSON
 app.use(express.json());
