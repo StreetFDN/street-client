@@ -5,13 +5,18 @@ import {EventHeader, EventHeaderSchema, EventType} from "utils/validation/github
 import handlePushEvent from "./handlePushEvent";
 import handleInstallationEvent from "./handleInstallationEvent";
 import handleInstallationRepositoriesEvent from "./handleInstallationRepositoriesEvent";
+import handlePullRequestEvent from "./handlePullRequestEvent";
+import handleRelease from "./handleRelease";
 
 const router = Router();
 
-const eventToHandler: Record<EventType, (payload: any) => Promise<void>> = {
+type EventHandler = (_: any) => Promise<void>;
+const eventHandlers: Record<EventType, EventHandler> = {
   'push': handlePushEvent,
   'installation': handleInstallationEvent,
   'installation_repositories': handleInstallationRepositoriesEvent,
+  'pull_request': handlePullRequestEvent,
+  'release': handleRelease,
 };
 
 /**
@@ -19,6 +24,7 @@ const eventToHandler: Record<EventType, (payload: any) => Promise<void>> = {
  * Note: This route expects raw body (handled by middleware in app.ts)
  */
 router.post('/', async (req: Request, res: Response) => {
+  const handlers: Record<string, EventHandler | undefined> = eventHandlers;
   try {
     const headers = EventHeaderSchema.parse(req.headers) as EventHeader;
     const signature = headers['x-hub-signature-256'];
@@ -33,7 +39,13 @@ router.post('/', async (req: Request, res: Response) => {
 
     console.log(`Received GitHub webhook: ${eventType}`);
 
-    await eventToHandler[eventType](payload_data);
+    const handler = handlers[eventType];
+
+    if (handler != null) {
+      await handler(payload_data);
+    } else {
+      console.warn(`Got event "${eventType}" without implemented handler.`)
+    }
 
     res.status(200).json({ received: true });
   } catch (error) {

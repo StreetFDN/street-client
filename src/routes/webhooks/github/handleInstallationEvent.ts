@@ -32,8 +32,6 @@ async function handleCreateInstallationAction(payload: CreatedInstallationEvent)
 
   // If not found, try to find by email (from GitHub account)
   // This helps link Supabase users who haven't logged in via GitHub OAuth yet
-  // TODO(mlacko): Check if these two queries can be made into.
-  //               REQUIRED: Special Supabase setup to simulate this scenario.
   if (!user && account.email) {
     user = await prisma.user.findFirst({
       where: {email: account.email},
