@@ -9,6 +9,7 @@ import installationRoutes from './routes/installations';
 import repoRoutes from './routes/repos';
 import summaryRoutes from './routes/summaries';
 import syncRoutes from './routes/sync';
+import tokenRoutes from './routes/token'
 import { startScheduler } from './worker/scheduler';
 
 const app = express();
@@ -39,6 +40,7 @@ app.use('/api', clientRoutes);
 app.use('/api', installationRoutes);
 app.use('/api', repoRoutes);
 app.use('/api', summaryRoutes);
+app.use('/api', tokenRoutes);
 app.use('/api/sync', syncRoutes);
 
 // Serve static files (frontend) - before API routes to allow /api/auth routes
