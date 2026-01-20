@@ -33,12 +33,14 @@ export default async function handleRelease(payload_data: any): Promise<void> {
   }
 }
 
-async function deleteRelease(payload: ReleaseEvent, _: GitHubRepo): Promise<void> {
+async function deleteRelease(payload: ReleaseEvent, repo: GitHubRepo): Promise<void> {
   // NOTE: Deleting this mimics current implementation. As deleted releases are just not shown in the activity feed
   // at all. This can be changed if necessary, but IMO not worth rn.
   const deleted = await prisma.repoActivityEvent.deleteMany({
     where: {
-      url: payload.release.url,
+      repoId: repo.id,
+      type: 'release',
+      githubId: payload.release.id.toString()
     }
   });
 
@@ -51,17 +53,13 @@ async function createRelease(payload: ReleaseEvent, repo: GitHubRepo): Promise<v
 
   await prisma.repoActivityEvent.create({
     data: {
+      githubId: payload.release.id.toString(),
       repoId: repo.id,
       occurredAt: release.published_at ?? release.updated_at ?? release.created_at ?? new Date(),
       type: 'release',
       title: release.name,
       url: release.url,
       author: author.login,
-      metadata: {
-        tag: release.tag_name,
-        draft: release.draft,
-        prerelease: release.prerelease,
-      }
     }
   });
 }

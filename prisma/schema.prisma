@@ -11,16 +11,16 @@ datasource db {
 }
 
 model User {
-  id            String   @id @default(uuid())
-  githubId      Int?     @unique
-  supabaseId    String?  @unique
-  githubLogin   String?  @unique
-  name          String?
-  email         String?  @unique
-  avatarUrl     String?
-  accessToken   String?  // GitHub OAuth token (encrypted in production)
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
+  id          String   @id @default(uuid())
+  githubId    Int?     @unique
+  supabaseId  String?  @unique
+  githubLogin String?  @unique
+  name        String?
+  email       String?  @unique
+  avatarUrl   String?
+  accessToken String? // GitHub OAuth token (encrypted in production)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 
   clients Client[]
 }
@@ -40,87 +40,92 @@ model Client {
 }
 
 model GitHubInstallation {
-  id            String   @id @default(uuid())
-  clientId      String
-  client        Client   @relation(fields: [clientId], references: [id], onDelete: Cascade)
-  installationId Int     @unique // GitHub's installation ID
-  accountLogin  String
-  createdAt     DateTime @default(now())
-  revokedAt     DateTime?
+  id             String    @id @default(uuid())
+  clientId       String
+  client         Client    @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  installationId Int       @unique // GitHub's installation ID
+  accountLogin   String
+  createdAt      DateTime  @default(now())
+  revokedAt      DateTime?
 
   repos GitHubRepo[]
+
+  @@index([clientId, revokedAt])
+  @@index([accountLogin])
+  @@index([clientId])
 }
 
 model GitHubRepo {
-  id             String   @id @default(uuid())
+  id             String             @id @default(uuid())
   clientId       String
-  client         Client   @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  client         Client             @relation(fields: [clientId], references: [id], onDelete: Cascade)
   installationId String
   installation   GitHubInstallation @relation(fields: [installationId], references: [id], onDelete: Cascade)
   owner          String
   name           String
-  repoId         Int      @unique // GitHub's numeric repo ID
-  isPrivate      Boolean  @default(false)
-  isEnabled      Boolean  @default(true)
-  createdAt      DateTime @default(now())
-  updatedAt      DateTime @updatedAt
+  repoId         Int                @unique // GitHub's numeric repo ID
+  isPrivate      Boolean            @default(false)
+  isEnabled      Boolean            @default(true)
+  createdAt      DateTime           @default(now())
+  updatedAt      DateTime           @updatedAt
 
-  syncRuns        RepoSyncRun[]
-  activityEvents  RepoActivityEvent[]
-  dailySummaries  RepoDailySummary[]
+  syncRuns       RepoSyncRun[]
+  activityEvents RepoActivityEvent[]
+  dailySummaries RepoDailySummary[]
 
   @@unique([clientId, owner, name])
+  @@index([clientId])
   @@index([clientId, isEnabled])
+  @@index([installationId])
 }
 
 model RepoSyncRun {
-  id           String   @id @default(uuid())
+  id           String     @id @default(uuid())
   repoId       String
   repo         GitHubRepo @relation(fields: [repoId], references: [id], onDelete: Cascade)
-  runType      String   // "daily" | "backfill"
+  runType      String // "daily" | "backfill"
   windowStart  DateTime
   windowEnd    DateTime
-  status       String   @default("queued") // "queued" | "running" | "success" | "error"
+  status       String     @default("queued") // "queued" | "running" | "success" | "error"
   errorMessage String?
   startedAt    DateTime?
   finishedAt   DateTime?
-  createdAt    DateTime @default(now())
+  createdAt    DateTime   @default(now())
 
-  @@index([repoId, status])
-  @@index([status, runType])
+  @@index([status])
 }
 
 model RepoActivityEvent {
-  id           String   @id @default(uuid())
-  repoId       String
-  repo         GitHubRepo @relation(fields: [repoId], references: [id], onDelete: Cascade)
-  occurredAt   DateTime
-  type         String   // "commit" | "pr_merged" | "pr_opened" | "issue_closed" | "release" | "tag" | "ci"
-  title        String
-  url          String
-  author       String?
-  additions    Int?
-  deletions    Int?
-  metadata     Json?    // Additional flexible data
-  createdAt    DateTime @default(now())
+  id         String     @id @default(uuid())
+  githubId   String
+  repoId     String
+  repo       GitHubRepo @relation(fields: [repoId], references: [id], onDelete: Cascade)
+  occurredAt DateTime
+  type       String // "commit" | "pr_merged" | "pr_opened" | "issue_closed" | "release" | "tag" | "ci"
+  title      String
+  url        String
+  author     String?
+  additions  Int?
+  deletions  Int?
+  createdAt  DateTime   @default(now())
 
+  @@unique([repoId, type, githubId])
   @@index([repoId, occurredAt])
-  @@index([repoId, type, occurredAt])
 }
 
 model RepoDailySummary {
-  id          String   @id @default(uuid())
+  id          String     @id @default(uuid())
   repoId      String
   repo        GitHubRepo @relation(fields: [repoId], references: [id], onDelete: Cascade)
-  date        DateTime @db.Date
+  date        DateTime   @db.Date
   windowStart DateTime
   windowEnd   DateTime
   summaryText String
-  stats       Json?    // Counts and metrics
-  noChanges   Boolean  @default(false)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  stats       Json? // Counts and metrics
+  noChanges   Boolean    @default(false)
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
 
+  // Used
   @@unique([repoId, date])
-  @@index([repoId, date])
 }
