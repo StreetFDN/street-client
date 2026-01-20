@@ -38,7 +38,7 @@ export const getTokenPrice = async (tokenAddress: string) => {
 
 export const getTokenHistoricalCharts = async (
   tokenAddress: string,
-  period: ValidPeriodTokenHistoricalCharts,
+  period: ValidPeriodTokenHistoricalCharts
 ) => {
   const queryParams = new URLSearchParams({
     contract_addresses: tokenAddress,
@@ -80,42 +80,76 @@ export const periodToDaysMap = {
   max: "max",
 };
 
-// export const getTokenVolume = async (
-//   tokenAddress: string,
-//   period: Exclude<ValidPeriodTokenHistoricalCharts, "max">
-// ) => {
-//   const tokenHistoricalVolumeForPeriod = await getTokenHistoricalCharts(
-//     tokenAddress,
-//     period
-//   );
+export const getTokenVolume = async (
+  tokenAddress: string,
+  period: Exclude<ValidPeriodTokenHistoricalCharts, "max">
+) => {
+  const tokenHistoricalVolumeForPeriod = await getTokenHistoricalCharts(
+    tokenAddress,
+    period
+  );
+  const [volumes, length] = [
+    tokenHistoricalVolumeForPeriod.total_volumes,
+    tokenHistoricalVolumeForPeriod.total_volumes.length,
+  ];
 
-//   const total_volume =
-//     period === "24h"
-//       ? tokenHistoricalVolumeForPeriod.total_volumes[
-//           tokenHistoricalVolumeForPeriod.total_volumes.length - 1
-//         ][1]
-//       : tokenHistoricalVolumeForPeriod.total_volumes.reduce(
-//           (acc, item) => acc + item[1],
-//           0
-//         );
+  // 24 hour volume is on 5 minutes interval each, so we only need the last item which would have the volume of the entire day
 
-//   const volume_change_percentage = (() => {
-//     const [start_volume, end_volume] = [
-//       tokenHistoricalVolumeForPeriod.total_volumes[0][1],
-//       tokenHistoricalVolumeForPeriod.total_volumes[
-//         tokenHistoricalVolumeForPeriod.total_volumes.length - 1
-//       ][1],
-//     ];
-//     return ((end_volume - start_volume) / start_volume) * 100;
-//   })();
-//   return {
-//     total_volume: total_volume,
-//     volume_change_percentage: volume_change_percentage,
-//     period,
-//   };
-// };
+  const total_volume = (() => {
+    if (period === "24h") {
+      return volumes[length - 1][1];
+    }
 
-// export const getTokenHoldersCurrent = async (tokenAddress: string) => {};
+    if (period === "7d" || period === "30d") {
+      // Under 90 days, volumes are hour apart. So we'll take the index 0, 24, 48 etc
+      let totalVolume = 0;
+
+      // Sample at intervals to get non-overlapping 24-hour periods
+      for (let day = 0; day < length; day+=24) {
+        totalVolume += volumes[day][1];
+      }
+      return totalVolume
+    }
+
+    return volumes.reduce((totalVol, item) => totalVol + item[1], 0)
+  })();
+
+  // const volume_change_percentage = (volumes[length - 1][1] - volumes[0][1])/volumes[0][1] * 100
+  return {
+    total_volume,
+    // volume_change_percentage,
+    period,
+  };
+};
+
+export const getTokenHoldersCurrent = async (tokenAddress: string) => {
+  const response = await coingeckoFetch(
+    COINGECKO_TOP_TOKEN_HOLDERS("eth", tokenAddress)
+  ).then(
+    async (data) =>
+      (await data.json()) as {
+        data: {
+          attributes: {
+            holders: {
+              count: number;
+              distribution_percentage: {
+                top_10: string;
+                "11_30": string;
+                "31_50": string;
+                rest: string;
+              };
+              last_updated: string;
+            };
+          };
+        };
+      }
+  );
+  return {
+    total_holders: response.data.attributes.holders.count,
+    distribution: response.data.attributes.holders.distribution_percentage,
+    last_updated: new Date(response.data.attributes.holders.last_updated).getTime(),
+  };
+};
 
 export const getTokenHoldersCountHistorical = async (
   tokenAddress: string,
@@ -167,4 +201,4 @@ export const COINGECKO_TOP_TOKEN_HOLDERS = (
   network: string = "eth",
   tokenAddress: string
 ) =>
-  `https://pro-api.coingecko.com/api/v3/onchain/networks/${network}/tokens/${tokenAddress}/top_holders`;
+  `https://pro-api.coingecko.com/api/v3/onchain/networks/${network}/tokens/${tokenAddress}/info`;
