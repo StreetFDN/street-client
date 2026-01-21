@@ -11,6 +11,7 @@ import summaryRoutes from './routes/summaries';
 import syncRoutes from './routes/sync';
 import tokenRoutes from './routes/token'
 import { startScheduler } from './worker/scheduler';
+import { initRedis } from './utils/redis';
 
 const app = express();
 
@@ -53,6 +54,7 @@ app.get('/health', (req, res) => {
 
 // Start scheduler
 startScheduler();
+initRedis()
 
 export default app;
 
