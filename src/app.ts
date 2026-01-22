@@ -2,13 +2,14 @@ import express from 'express';
 import session from 'express-session';
 import path from 'path';
 import { config } from './config';
-import githubWebhookRoutes from './routes/webhooks/github';
+import activityRoutes from './routes/activity';
 import authRoutes from './routes/auth';
 import clientRoutes from './routes/clients';
 import installationRoutes from './routes/installations';
 import repoRoutes from './routes/repos';
 import summaryRoutes from './routes/summaries';
 import syncRoutes from './routes/sync';
+import githubWebhookRoutes from './routes/webhooks/github';
 import { startScheduler } from './worker/scheduler';
 
 const app = express();
@@ -35,6 +36,7 @@ app.use(express.json());
 app.use('/api/auth', authRoutes);
 
 // API routes
+app.use('/api', activityRoutes);
 app.use('/api', clientRoutes);
 app.use('/api', installationRoutes);
 app.use('/api', repoRoutes);
