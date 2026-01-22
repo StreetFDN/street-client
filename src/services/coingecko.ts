@@ -45,7 +45,7 @@ export const getTokenPrice = async (tokenAddress: string) => {
     price_change_24h: response.market_data.price_change_24h_in_currency.usd,
     price_change_percentage_24h:
       response.market_data.price_change_percentage_24h,
-    last_updated: response.market_data.last_updated,
+    last_updated: new Date(response.market_data.last_updated).getTime(),
   };
   // 5 minute expiry
   await redis.setEx(cacheKey, 300, JSON.stringify(priceObject));
@@ -115,7 +115,7 @@ export const getTokenVolume = async (
   period: Exclude<ValidPeriodTokenHistoricalCharts, "max">
 ) => {
   const redis = getRedisClient();
-  const cacheKey = `tokenVolume_eth:${tokenAddress}_period`;
+  const cacheKey = `tokenVolume_eth:${tokenAddress}_${period}`;
   const cachedValue = await redis.get(cacheKey);
   if (cachedValue) {
     return JSON.parse(cachedValue) as {
@@ -216,7 +216,7 @@ export const getTokenHoldersCountHistorical = async (
   period: ValidPeriodTokenHoldersCount
 ) => {
   const redis = getRedisClient();
-  const cacheKey = `tokenHolders_eth:${tokenAddress}_period`;
+  const cacheKey = `tokenHolders_eth:${tokenAddress}_${period}`;
   const cachedValue = await redis.get(cacheKey);
   if (cachedValue) {
     return JSON.parse(cachedValue) as {
