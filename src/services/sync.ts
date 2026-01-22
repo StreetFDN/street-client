@@ -99,7 +99,7 @@ export async function syncRepo(
         stats: {
           prMerged: activity['pr_merged'].length,
           releases: activity['release'].length,
-          commits: activity['release'].length,
+          commits: activity['commit'].length,
         },
         noChanges,
       },
@@ -110,7 +110,7 @@ export async function syncRepo(
         stats: {
           prMerged: activity['pr_merged'].length,
           releases: activity['release'].length,
-          commits: activity['release'].length,
+          commits: activity['commit'].length,
         },
         noChanges,
         updatedAt: new Date(),

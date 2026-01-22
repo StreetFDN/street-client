@@ -12,7 +12,7 @@ export default async function handlePushEvent(payload_data: any): Promise<void> 
   });
 
   if (repo == null) {
-    console.warn(`Received push event for non-existent/disable repository ${payload.repository.id}`);
+    console.warn(`Received push event for non-existent/disabled repository ${payload.repository.id}`);
     return;
   }
 
@@ -32,7 +32,8 @@ export default async function handlePushEvent(payload_data: any): Promise<void> 
       const existingCommit = await prisma.repoActivityEvent.findFirst({
         where: {
           repoId: repo.id,
-          url: commit.url,
+          type: 'commit',
+          githubId: commit.id,
         }
       });
 
@@ -40,12 +41,12 @@ export default async function handlePushEvent(payload_data: any): Promise<void> 
         await prisma.repoActivityEvent.create({
           data: {
             repoId: repo.id,
+            githubId: commit.id,
             occurredAt: commit.timestamp,
             type: 'commit',
             title: commit.message,
             url: commit.url,
             author: commit.author.username,
-            metadata: {'sha': commit.id},
           }
         });
       }

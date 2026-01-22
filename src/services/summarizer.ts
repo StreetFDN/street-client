@@ -77,16 +77,12 @@ function generateSummaryFallback(activities: Record<'pr_merged' | 'commit' | 're
 
   if (mergedPRs.length > 0) {
     parts.push(`${mergedPRs.length} pull request${mergedPRs.length > 1 ? 's' : ''} merged`);
-    if (mergedPRs.length > 0) {
-      parts.push(`including "${mergedPRs[0].title}"`);
-    }
+    parts.push(`including "${mergedPRs[0].title}"`);
   }
 
   if (releases.length > 0) {
     parts.push(`${releases.length} release${releases.length > 1 ? 's' : ''} published`);
-    if (releases.length > 0) {
-      parts.push(`including "${releases[0].title}"`);
-    }
+    parts.push(`including "${releases[0].title}"`);
   }
 
   // Always include commits if they exist - shows activity even if PRs aren't merged yet
@@ -94,9 +90,7 @@ function generateSummaryFallback(activities: Record<'pr_merged' | 'commit' | 're
     if (mergedPRs.length === 0) {
       // If no PRs, show commit details
       parts.push(`${commits.length} commit${commits.length > 1 ? 's' : ''}`);
-      if (commits.length > 0) {
-        parts.push(`including "${commits[0].title.substring(0, 60)}"`);
-      }
+      parts.push(`including "${commits[0].title.substring(0, 60)}"`);
     } else {
       // If PRs exist, still mention commits to show activity
       parts.push(`${commits.length} additional commit${commits.length > 1 ? 's' : ''}`);
