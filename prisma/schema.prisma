@@ -126,6 +126,5 @@ model RepoDailySummary {
   createdAt   DateTime   @default(now())
   updatedAt   DateTime   @updatedAt
 
-  // Used
   @@unique([repoId, date])
 }
