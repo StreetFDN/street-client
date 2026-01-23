@@ -36,7 +36,7 @@ export const getTokenPrice = async (tokenAddress: string) => {
           price_change_24h_in_currency: {
             usd: number;
           };
-          last_updated: number;
+          last_updated: string;
         };
       }
   );

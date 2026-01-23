@@ -17,7 +17,7 @@ router.get("/", async (req: Request, res: Response) => {
     if (periodValue.error) {
       console.log("Bad value for period", periodValue.error);
       return res.status(400).json({
-        error: "Invalid data for period",
+        error: "Invalid data for period. Expected Value: 24h | 7d | 30d | 1y",
       });
     }
 
@@ -42,7 +42,7 @@ router.get("/history", async (req: Request, res: Response) => {
     if (periodValue.error) {
       console.log("Bad value for period", periodValue.error);
       return res.status(400).json({
-        error: "Invalid data for period",
+        error: "Invalid data for period. Expected Value: 24h | 7d | 30d | 1y | max",
       });
     }
 
