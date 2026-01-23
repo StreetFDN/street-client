@@ -2,8 +2,8 @@ import { Router, Request, Response } from "express";
 import {
   getTokenHistoricalCharts,
   getTokenPrice,
-  ValidPeriodTokenHistoricalCharts,
 } from "../../services/coingecko";
+import { ValidPeriodTokenHistoricalCharts } from "../../types/routes/token";
 
 const router = Router({ mergeParams: true });
 
@@ -12,7 +12,7 @@ router.get("/", async (req: Request, res: Response) => {
     const { tokenAddress } = req.params;
     const tokenPriceObject = await getTokenPrice(tokenAddress);
 
-    return res.json({data: tokenPriceObject});
+    return res.json({ data: tokenPriceObject });
   } catch (error) {
     console.error("Error fetching token price:", error);
     res.status(500).json({ error: "Internal server error" });
@@ -29,7 +29,8 @@ router.get("/history", async (req: Request, res: Response) => {
     if (periodValue.error) {
       console.log("Bad value for period", periodValue.error);
       return res.status(400).json({
-        error: "Invalid data for period. Expected Value: 24h | 7d | 30d | 1y | max",
+        error:
+          "Invalid data for period. Expected Value: 24h | 7d | 30d | 1y | max",
       });
     }
 
@@ -38,7 +39,7 @@ router.get("/history", async (req: Request, res: Response) => {
       periodValue.data
     );
 
-    return res.json({data: tokenHistoricalCharts});
+    return res.json({ data: tokenHistoricalCharts });
   } catch (error) {
     console.error("Error fetching historical token price:", error);
     res.status(500).json({ error: "Internal server error" });

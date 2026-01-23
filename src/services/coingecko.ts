@@ -1,5 +1,14 @@
-import z from "zod";
-import { getRedisClient } from "../utils/redis";
+import { getRedisClient, TTL_1_HOUR, TTL_5_MIN } from "../utils/redis";
+import {
+  periodToDaysMap,
+  TokenHistoricalChartsObject,
+  TokenHoldersCountHistorical,
+  TokenHoldersCurrent,
+  TokenPriceObject,
+  ValidPeriodTokenHistoricalCharts,
+  validPeriodTokenHolderDayMap,
+  ValidPeriodTokenHoldersCount,
+} from "../types/routes/token";
 
 // Wrapper for fetch() with Coingecko API Key as Header
 export const coingeckoFetch = (input: string | URL, init?: RequestInit) =>
@@ -10,36 +19,32 @@ export const coingeckoFetch = (input: string | URL, init?: RequestInit) =>
     },
   });
 
-export const getTokenPrice = async (tokenAddress: string) => {
+export const getTokenPrice = async (
+  tokenAddress: string
+): Promise<TokenPriceObject> => {
   const redis = getRedisClient();
   const cacheKey = `tokenPrice_eth:${tokenAddress}`;
   const cachedValue = await redis.get(cacheKey);
 
   if (cachedValue) {
-    return JSON.parse(cachedValue) as {
-      current_price: number;
-      price_change_24h: number;
-      price_change_percentage_24h: number;
-      last_updated: number;
-    };
+    return JSON.parse(cachedValue) as TokenPriceObject;
   }
-  const response = await coingeckoFetch(
+
+  const fetchResponse = await coingeckoFetch(
     COINGECKO_TOKEN_DATA_BASE_URL(tokenAddress)
-  ).then(
-    async (data) =>
-      (await data.json()) as {
-        market_data: {
-          current_price: {
-            usd: number;
-          };
-          price_change_percentage_24h: number;
-          price_change_24h_in_currency: {
-            usd: number;
-          };
-          last_updated: string;
-        };
-      }
   );
+  const response = (await fetchResponse.json()) as {
+    market_data: {
+      current_price: {
+        usd: number;
+      };
+      price_change_percentage_24h: number;
+      price_change_24h_in_currency: {
+        usd: number;
+      };
+      last_updated: string;
+    };
+  };
   const priceObject = {
     current_price: response.market_data.current_price.usd,
     price_change_24h: response.market_data.price_change_24h_in_currency.usd,
@@ -48,24 +53,20 @@ export const getTokenPrice = async (tokenAddress: string) => {
     last_updated: new Date(response.market_data.last_updated).getTime(),
   };
   // 5 minute expiry
-  await redis.setEx(cacheKey, 300, JSON.stringify(priceObject));
+  await redis.setEx(cacheKey, TTL_5_MIN, JSON.stringify(priceObject));
   return priceObject;
 };
 
 export const getTokenHistoricalCharts = async (
   tokenAddress: string,
   period: ValidPeriodTokenHistoricalCharts
-) => {
+): Promise<TokenHistoricalChartsObject> => {
   const redis = getRedisClient();
   const cacheKey = `tokenChart_eth:${tokenAddress}_${period}`;
   const cachedValue = await redis.get(cacheKey);
 
   if (cachedValue) {
-    return JSON.parse(cachedValue) as {
-      prices: [number, number][];
-      market_caps: [number, number][];
-      total_volumes: [number, number][];
-    };
+    return JSON.parse(cachedValue) as TokenHistoricalChartsObject;
   }
   const queryParams = new URLSearchParams({
     contract_addresses: tokenAddress,
@@ -77,37 +78,12 @@ export const getTokenHistoricalCharts = async (
     tokenAddress
   )}?${queryParams.toString()}`;
 
-  const response = await coingeckoFetch(requestURL).then(
-    async (data) =>
-      (await data.json()) as {
-        prices: [number, number][];
-        market_caps: [number, number][];
-        total_volumes: [number, number][];
-      }
-  );
+  const fetchResponse = await coingeckoFetch(requestURL);
+  const response = (await fetchResponse.json()) as TokenHistoricalChartsObject;
 
   // 1 hour expiration for historical charts
-  await redis.setEx(cacheKey, 3600, JSON.stringify(response));
+  await redis.setEx(cacheKey, TTL_1_HOUR, JSON.stringify(response));
   return response;
-};
-
-export const ValidPeriodTokenHistoricalCharts = z.enum([
-  "24h",
-  "7d",
-  "30d",
-  "1y",
-  "max",
-]);
-export type ValidPeriodTokenHistoricalCharts = z.infer<
-  typeof ValidPeriodTokenHistoricalCharts
->;
-
-export const periodToDaysMap = {
-  "24h": "1",
-  "7d": "7",
-  "30d": "30",
-  "1y": "365",
-  max: "max",
 };
 
 export const getTokenVolume = async (
@@ -154,51 +130,47 @@ export const getTokenVolume = async (
   })();
 
   // 1 hour expiration for total volume
-  await redis.setEx(cacheKey, 3600, JSON.stringify({ total_volume, period }));
+  await redis.setEx(
+    cacheKey,
+    TTL_1_HOUR,
+    JSON.stringify({ total_volume, period })
+  );
   return {
     total_volume,
     period,
   };
 };
 
-export const getTokenHoldersCurrent = async (tokenAddress: string) => {
+export const getTokenHoldersCurrent = async (
+  tokenAddress: string
+): Promise<TokenHoldersCurrent> => {
   const redis = getRedisClient();
   const cacheKey = `tokenHolders_eth:${tokenAddress}_current`;
   const cachedValue = await redis.get(cacheKey);
   if (cachedValue) {
-    return JSON.parse(cachedValue) as {
-      total_holders: number;
-      distribution: {
-        top_10: string;
-        "11_30": string;
-        "31_50": string;
-        rest: string;
-      };
-      last_updated: number;
-    };
+    return JSON.parse(cachedValue) as TokenHoldersCurrent;
   }
-  const response = await coingeckoFetch(
+  const fetchResponse = await coingeckoFetch(
     COINGECKO_TOP_TOKEN_HOLDERS("eth", tokenAddress)
-  ).then(
-    async (data) =>
-      (await data.json()) as {
-        data: {
-          attributes: {
-            holders: {
-              count: number;
-              // Top 10% holders hold x% of total supply, top 11-30% hold y% of total supply...
-              distribution_percentage: {
-                top_10: string;
-                "11_30": string;
-                "31_50": string;
-                rest: string;
-              };
-              last_updated: string;
-            };
-          };
-        };
-      }
   );
+
+  const response = (await fetchResponse.json()) as {
+    data: {
+      attributes: {
+        holders: {
+          count: number;
+          // Top 10% holders hold x% of total supply, top 11-30% hold y% of total supply...
+          distribution_percentage: {
+            top_10: string;
+            "11_30": string;
+            "31_50": string;
+            rest: string;
+          };
+          last_updated: string;
+        };
+      };
+    };
+  };
 
   const tokenHoldersObject = {
     total_holders: response.data.attributes.holders.count,
@@ -209,21 +181,19 @@ export const getTokenHoldersCurrent = async (tokenAddress: string) => {
   };
 
   // 1 hour expiration
-  await redis.setEx(cacheKey, 3600, JSON.stringify(tokenHoldersObject));
+  await redis.setEx(cacheKey, TTL_1_HOUR, JSON.stringify(tokenHoldersObject));
   return tokenHoldersObject;
 };
 
 export const getTokenHoldersCountHistorical = async (
   tokenAddress: string,
   period: ValidPeriodTokenHoldersCount
-) => {
+): Promise<TokenHoldersCountHistorical> => {
   const redis = getRedisClient();
   const cacheKey = `tokenHolders_eth:${tokenAddress}_${period}`;
   const cachedValue = await redis.get(cacheKey);
   if (cachedValue) {
-    return JSON.parse(cachedValue) as {
-      holders: [date: string, holders: number][];
-    };
+    return JSON.parse(cachedValue) as TokenHoldersCountHistorical;
   }
 
   const periodValue = validPeriodTokenHolderDayMap[period];
@@ -234,32 +204,23 @@ export const getTokenHoldersCountHistorical = async (
     "eth",
     tokenAddress
   )}?${searchParams.toString()}`;
-  const response = await coingeckoFetch(requestUrl).then(
-    async (data) =>
-      (await data.json()) as {
-        data: {
-          attributes: {
-            token_holders_list: [date: string, holders: number][];
-          };
-        };
-      }
-  );
+  const fetchResponse = await coingeckoFetch(requestUrl);
+  const response = (await fetchResponse.json()) as {
+    data: {
+      attributes: {
+        token_holders_list: [date: string, holders: number][];
+      };
+    };
+  };
 
   const holdersObject = {
     holders: response.data.attributes.token_holders_list,
   };
 
   // 1 hour expiration for holders
-  await redis.setEx(cacheKey, 3600, JSON.stringify(holdersObject));
+  await redis.setEx(cacheKey, TTL_1_HOUR, JSON.stringify(holdersObject));
   return holdersObject;
 };
-
-export const ValidPeriodTokenHoldersCount = z.enum(["7d", "30d", "max"]);
-export type ValidPeriodTokenHoldersCount = z.infer<
-  typeof ValidPeriodTokenHoldersCount
->;
-
-const validPeriodTokenHolderDayMap = { "7d": "7", "30d": "30", max: "max" };
 
 export const COINGECKO_TOKEN_DATA_BASE_URL = (tokenAddress: string) =>
   `https://pro-api.coingecko.com/api/v3/coins/ethereum/contract/${tokenAddress}`;

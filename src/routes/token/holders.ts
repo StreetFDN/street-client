@@ -2,8 +2,8 @@ import { Router, Request, Response } from "express";
 import {
   getTokenHoldersCountHistorical,
   getTokenHoldersCurrent,
-  ValidPeriodTokenHoldersCount,
 } from "../../services/coingecko";
+import { ValidPeriodTokenHoldersCount } from "../../types/routes/token";
 
 const router = Router({ mergeParams: true });
 
@@ -37,7 +37,7 @@ router.get("/history", async (req: Request, res: Response) => {
       periodValue.data
     );
 
-    return res.json({data: tokenHoldersList});
+    return res.json({ data: tokenHoldersList });
   } catch (error) {
     console.error("Error fetching historical token holders:", error);
     res.status(500).json({ error: "Internal server error" });

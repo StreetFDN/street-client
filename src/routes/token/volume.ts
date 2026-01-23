@@ -2,9 +2,9 @@ import { Router, Request, Response } from "express";
 import {
   getTokenHistoricalCharts,
   getTokenVolume,
-  ValidPeriodTokenHistoricalCharts,
 } from "../../services/coingecko";
 import z from "zod";
+import { ValidPeriodTokenHistoricalCharts } from "../../types/routes/token";
 
 const router = Router({ mergeParams: true });
 
@@ -42,7 +42,8 @@ router.get("/history", async (req: Request, res: Response) => {
     if (periodValue.error) {
       console.log("Bad value for period", periodValue.error);
       return res.status(400).json({
-        error: "Invalid data for period. Expected Value: 24h | 7d | 30d | 1y | max",
+        error:
+          "Invalid data for period. Expected Value: 24h | 7d | 30d | 1y | max",
       });
     }
 
