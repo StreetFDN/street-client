@@ -1,14 +1,32 @@
-import { getRedisClient, TTL_1_HOUR, TTL_5_MIN } from "../utils/redis";
+import { RedisAdapter, TTL_1_HOUR, TTL_5_MIN } from "../utils/redis";
 import {
   periodToDaysMap,
   TokenHistoricalChartsObject,
   TokenHoldersCountHistorical,
   TokenHoldersCurrent,
   TokenPriceObject,
+  TokenVolumeObject,
   ValidPeriodTokenHistoricalCharts,
   validPeriodTokenHolderDayMap,
   ValidPeriodTokenHoldersCount,
 } from "../types/routes/token";
+
+export const TokenPriceCache = new RedisAdapter<TokenPriceObject>(
+  "tokenPrice_eth:"
+);
+
+export const TokenHistoricalChartsCache =
+  new RedisAdapter<TokenHistoricalChartsObject>("tokenChart_eth:");
+
+export const TokenVolumeCache = new RedisAdapter<TokenVolumeObject>(
+  "tokenVolume_eth:"
+);
+export const TokenHoldersCache = new RedisAdapter<TokenHoldersCurrent>(
+  "tokenHolders_eth:"
+);
+
+export const TokenHoldersCountHistoricalCache =
+  new RedisAdapter<TokenHoldersCountHistorical>("tokenHoldersHistorical_eth:");
 
 // Wrapper for fetch() with Coingecko API Key as Header
 export const coingeckoFetch = (input: string | URL, init?: RequestInit) =>
@@ -22,12 +40,9 @@ export const coingeckoFetch = (input: string | URL, init?: RequestInit) =>
 export const getTokenPrice = async (
   tokenAddress: string
 ): Promise<TokenPriceObject> => {
-  const redis = getRedisClient();
-  const cacheKey = `tokenPrice_eth:${tokenAddress}`;
-  const cachedValue = await redis.get(cacheKey);
-
+  const cachedValue = await TokenPriceCache.get(tokenAddress);
   if (cachedValue) {
-    return JSON.parse(cachedValue) as TokenPriceObject;
+    return cachedValue;
   }
 
   const fetchResponse = await coingeckoFetch(
@@ -53,7 +68,7 @@ export const getTokenPrice = async (
     last_updated: new Date(response.market_data.last_updated).getTime(),
   };
   // 5 minute expiry
-  await redis.setEx(cacheKey, TTL_5_MIN, JSON.stringify(priceObject));
+  await TokenPriceCache.setEx(tokenAddress, TTL_5_MIN, priceObject);
   return priceObject;
 };
 
@@ -61,12 +76,11 @@ export const getTokenHistoricalCharts = async (
   tokenAddress: string,
   period: ValidPeriodTokenHistoricalCharts
 ): Promise<TokenHistoricalChartsObject> => {
-  const redis = getRedisClient();
-  const cacheKey = `tokenChart_eth:${tokenAddress}_${period}`;
-  const cachedValue = await redis.get(cacheKey);
+  const cacheKey = `${tokenAddress}_${period}`;
+  const cachedValue = await TokenHistoricalChartsCache.get(cacheKey);
 
   if (cachedValue) {
-    return JSON.parse(cachedValue) as TokenHistoricalChartsObject;
+    return cachedValue;
   }
   const queryParams = new URLSearchParams({
     contract_addresses: tokenAddress,
@@ -82,22 +96,18 @@ export const getTokenHistoricalCharts = async (
   const response = (await fetchResponse.json()) as TokenHistoricalChartsObject;
 
   // 1 hour expiration for historical charts
-  await redis.setEx(cacheKey, TTL_1_HOUR, JSON.stringify(response));
+  await TokenHistoricalChartsCache.setEx(cacheKey, TTL_1_HOUR, response);
   return response;
 };
 
 export const getTokenVolume = async (
   tokenAddress: string,
   period: Exclude<ValidPeriodTokenHistoricalCharts, "max">
-) => {
-  const redis = getRedisClient();
-  const cacheKey = `tokenVolume_eth:${tokenAddress}_${period}`;
-  const cachedValue = await redis.get(cacheKey);
+): Promise<TokenVolumeObject> => {
+  const cacheKey = `${tokenAddress}_${period}`;
+  const cachedValue = await TokenVolumeCache.get(cacheKey);
   if (cachedValue) {
-    return JSON.parse(cachedValue) as {
-      total_volume: number;
-      period: Exclude<ValidPeriodTokenHistoricalCharts, "max">;
-    };
+    cachedValue;
   }
   const tokenHistoricalVolumeForPeriod = await getTokenHistoricalCharts(
     tokenAddress,
@@ -130,11 +140,7 @@ export const getTokenVolume = async (
   })();
 
   // 1 hour expiration for total volume
-  await redis.setEx(
-    cacheKey,
-    TTL_1_HOUR,
-    JSON.stringify({ total_volume, period })
-  );
+  await TokenVolumeCache.setEx(cacheKey, TTL_1_HOUR, { total_volume, period });
   return {
     total_volume,
     period,
@@ -144,11 +150,9 @@ export const getTokenVolume = async (
 export const getTokenHoldersCurrent = async (
   tokenAddress: string
 ): Promise<TokenHoldersCurrent> => {
-  const redis = getRedisClient();
-  const cacheKey = `tokenHolders_eth:${tokenAddress}_current`;
-  const cachedValue = await redis.get(cacheKey);
+  const cachedValue = await TokenHoldersCache.get(tokenAddress);
   if (cachedValue) {
-    return JSON.parse(cachedValue) as TokenHoldersCurrent;
+    return cachedValue;
   }
   const fetchResponse = await coingeckoFetch(
     COINGECKO_TOP_TOKEN_HOLDERS("eth", tokenAddress)
@@ -181,7 +185,7 @@ export const getTokenHoldersCurrent = async (
   };
 
   // 1 hour expiration
-  await redis.setEx(cacheKey, TTL_1_HOUR, JSON.stringify(tokenHoldersObject));
+  await TokenHoldersCache.setEx(tokenAddress, TTL_1_HOUR, tokenHoldersObject);
   return tokenHoldersObject;
 };
 
@@ -189,11 +193,10 @@ export const getTokenHoldersCountHistorical = async (
   tokenAddress: string,
   period: ValidPeriodTokenHoldersCount
 ): Promise<TokenHoldersCountHistorical> => {
-  const redis = getRedisClient();
-  const cacheKey = `tokenHolders_eth:${tokenAddress}_${period}`;
-  const cachedValue = await redis.get(cacheKey);
+  const cacheKey = `${tokenAddress}_${period}`;
+  const cachedValue = await TokenHoldersCountHistoricalCache.get(cacheKey);
   if (cachedValue) {
-    return JSON.parse(cachedValue) as TokenHoldersCountHistorical;
+    return cachedValue;
   }
 
   const periodValue = validPeriodTokenHolderDayMap[period];
@@ -218,7 +221,11 @@ export const getTokenHoldersCountHistorical = async (
   };
 
   // 1 hour expiration for holders
-  await redis.setEx(cacheKey, TTL_1_HOUR, JSON.stringify(holdersObject));
+  await TokenHoldersCountHistoricalCache.setEx(
+    cacheKey,
+    TTL_1_HOUR,
+    holdersObject
+  );
   return holdersObject;
 };
 

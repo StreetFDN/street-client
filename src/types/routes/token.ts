@@ -21,6 +21,12 @@ export const ValidPeriodTokenHistoricalCharts = z.enum([
   "max",
 ]);
 
+export const TokenVolumeObject = z.object({
+  total_volume: z.number(),
+  period: z.enum(["24h", "7d", "30d", "1y"]),
+});
+export type TokenVolumeObject = z.infer<typeof TokenVolumeObject>;
+
 export type ValidPeriodTokenHistoricalCharts = z.infer<
   typeof ValidPeriodTokenHistoricalCharts
 >;
