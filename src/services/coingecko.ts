@@ -153,11 +153,10 @@ export const getTokenVolume = async (
     return volumes.reduce((totalVol, item) => totalVol + item[1], 0);
   })();
 
+  // 1 hour expiration for total volume
   await redis.setEx(cacheKey, 3600, JSON.stringify({ total_volume, period }));
-  // const volume_change_percentage = (volumes[length - 1][1] - volumes[0][1])/volumes[0][1] * 100
   return {
     total_volume,
-    // volume_change_percentage,
     period,
   };
 };
@@ -187,6 +186,7 @@ export const getTokenHoldersCurrent = async (tokenAddress: string) => {
           attributes: {
             holders: {
               count: number;
+              // Top 10% holders hold x% of total supply, top 11-30% hold y% of total supply...
               distribution_percentage: {
                 top_10: string;
                 "11_30": string;
@@ -207,6 +207,8 @@ export const getTokenHoldersCurrent = async (tokenAddress: string) => {
       response.data.attributes.holders.last_updated
     ).getTime(),
   };
+
+  // 1 hour expiration
   await redis.setEx(cacheKey, 3600, JSON.stringify(tokenHoldersObject));
   return tokenHoldersObject;
 };
@@ -246,6 +248,8 @@ export const getTokenHoldersCountHistorical = async (
   const holdersObject = {
     holders: response.data.attributes.token_holders_list,
   };
+
+  // 1 hour expiration for holders
   await redis.setEx(cacheKey, 3600, JSON.stringify(holdersObject));
   return holdersObject;
 };

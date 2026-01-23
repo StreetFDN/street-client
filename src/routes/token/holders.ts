@@ -12,11 +12,7 @@ router.get("/", async (req: Request, res: Response) => {
     const { tokenAddress } = req.params;
 
     const tokenHolders = await getTokenHoldersCurrent(tokenAddress);
-    // TODO: Add distribution % of token holders. ie Whales (>1% holders)
-    // 'https://pro-api.coingecko.com/api/v3/onchain/networks/eth/tokens/0xdac17f958d2ee523a2206206994597c13d831ec7/info'
-    // This endpoint has details of holders and distribution too
-
-    return res.json(tokenHolders);
+    return res.json({ data: tokenHolders });
   } catch (error) {
     console.error("Error fetching token holders:", error);
     res.status(500).json({ error: "Internal server error" });
@@ -41,7 +37,7 @@ router.get("/history", async (req: Request, res: Response) => {
       periodValue.data
     );
 
-    return res.json(tokenHoldersList);
+    return res.json({data: tokenHoldersList});
   } catch (error) {
     console.error("Error fetching historical token holders:", error);
     res.status(500).json({ error: "Internal server error" });

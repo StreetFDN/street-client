@@ -10,10 +10,9 @@ const router = Router({ mergeParams: true });
 router.get("/", async (req: Request, res: Response) => {
   try {
     const { tokenAddress } = req.params;
-    // TODO: Cache it with a TTL of 5 minutes
     const tokenPriceObject = await getTokenPrice(tokenAddress);
 
-    return res.json(tokenPriceObject);
+    return res.json({data: tokenPriceObject});
   } catch (error) {
     console.error("Error fetching token price:", error);
     res.status(500).json({ error: "Internal server error" });
@@ -24,7 +23,6 @@ router.get("/history", async (req: Request, res: Response) => {
   try {
     const { tokenAddress } = req.params;
 
-    // TODO: Cache it with a TTL of 5 minutes
     const { period } = req.query;
 
     const periodValue = ValidPeriodTokenHistoricalCharts.safeParse(period);
@@ -40,7 +38,7 @@ router.get("/history", async (req: Request, res: Response) => {
       periodValue.data
     );
 
-    return res.json(tokenHistoricalCharts);
+    return res.json({data: tokenHistoricalCharts});
   } catch (error) {
     console.error("Error fetching historical token price:", error);
     res.status(500).json({ error: "Internal server error" });

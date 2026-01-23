@@ -20,13 +20,13 @@ router.get("/", async (req: Request, res: Response) => {
         error: "Invalid data for period",
       });
     }
-    // TODO: Cache it with a TTL of 5 minutes
+
     const tokenVolumeObject = await getTokenVolume(
       tokenAddress,
       periodValue.data
     );
 
-    return res.json(tokenVolumeObject);
+    return res.json({ data: tokenVolumeObject });
   } catch (error) {
     console.error("Error fetching token Volume:", error);
     res.status(500).json({ error: "Internal server error" });
@@ -36,8 +36,6 @@ router.get("/", async (req: Request, res: Response) => {
 router.get("/history", async (req: Request, res: Response) => {
   try {
     const { tokenAddress } = req.params;
-
-    // TODO: Cache it with a TTL of 5 minutes
     const { period } = req.query;
 
     const periodValue = ValidPeriodTokenHistoricalCharts.safeParse(period);
@@ -54,7 +52,7 @@ router.get("/history", async (req: Request, res: Response) => {
     );
 
     return res.json({
-      volume: tokenPriceObjectHistorical.total_volumes,
+      data: { volume: tokenPriceObjectHistorical.total_volumes },
     });
   } catch (error) {
     console.error("Error fetching token Volume:", error);
