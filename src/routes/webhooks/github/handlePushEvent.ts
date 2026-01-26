@@ -40,8 +40,8 @@ export default async function handlePushEvent(payload_data: any): Promise<void> 
       if (existingCommit == null) {
         await prisma.repoActivityEvent.create({
           data: {
-            repoId: repo.id,
             githubId: commit.id,
+            repoId: repo.id,
             occurredAt: commit.timestamp,
             type: 'commit',
             title: commit.message,

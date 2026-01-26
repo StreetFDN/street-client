@@ -24,16 +24,13 @@ export default async function handlePullRequestEvent(payload_data: any): Promise
   try {
     await prisma.repoActivityEvent.create({
       data: {
+        githubId: pullRequest.id.toString(),
         repoId: repo.id,
         occurredAt: pullRequest.merged_at,
         type: 'pull_request',
         title: pullRequest.title,
         url: pullRequest.url,
         author: pullRequest.user.login,
-        metadata: {
-          number: pullRequest.number,
-          labels: pullRequest.labels?.map((label) => label.name) || null,
-        }
       }
     });
   } catch (error) {
