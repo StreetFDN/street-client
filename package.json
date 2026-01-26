@@ -28,7 +28,7 @@
     "express": "^4.19.2",
     "express-session": "^1.18.0",
     "node-cron": "^3.0.3",
-    "openai": "^4.52.7",
+    "openai": "^6.16.0",
     "prisma": "^5.19.1",
     "redis": "^5.10.0",
     "zod": "^4.3.5"
