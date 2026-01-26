@@ -1,6 +1,7 @@
-import { prisma } from '../db';
-import { fetchRepoActivity } from './github/fetcher';
-import { generateSummary } from './summarizer';
+import {prisma} from '../db';
+import {ActivityEvent, fetchRepoActivity} from './github/fetcher';
+import {generateSummary} from './summarizer';
+import {RepoActivityEvent} from "@prisma/client";
 
 /**
  * Syncs a single repo for a specific time window
@@ -12,8 +13,8 @@ export async function syncRepo(
   runType: 'daily' | 'backfill'
 ): Promise<void> {
   const repo = await prisma.gitHubRepo.findUnique({
-    where: { id: repoId },
-    include: { installation: true },
+    where: {id: repoId},
+    include: {installation: true},
   });
 
   if (!repo || !repo.isEnabled) {
@@ -34,57 +35,38 @@ export async function syncRepo(
 
   try {
     console.log(`Fetching activity for ${repo.owner}/${repo.name} (${windowStart.toISOString()} to ${windowEnd.toISOString()})`);
-    
-    // Fetch activity
-    const activity = await fetchRepoActivity(
-      repo.installation.installationId,
-      repo.owner,
-      repo.name,
-      windowStart,
-      windowEnd
-    );
 
-    console.log(`Found: ${activity.counts.mergedPRs} PRs, ${activity.counts.releases} releases, ${activity.counts.commits} commits for ${repo.owner}/${repo.name}`);
-
-    // Store activity events (optional but useful for debugging)
-    const allEvents = [...activity.mergedPRs, ...activity.releases, ...activity.commits];
-    console.log(`Storing ${allEvents.length} activity events for ${repo.owner}/${repo.name}`);
-    
-    for (const event of allEvents) {
-      try {
-        // Check if event already exists by URL (to avoid duplicates)
-        const existing = await prisma.repoActivityEvent.findFirst({
-          where: {
-            repoId,
-            url: event.url,
-          },
-        });
-
-        if (!existing) {
-          await prisma.repoActivityEvent.create({
-            data: {
-              repoId,
-              occurredAt: event.occurredAt,
-              type: event.type,
-              title: event.title,
-              url: event.url,
-              author: event.author || undefined,
-              additions: event.additions,
-              deletions: event.deletions,
-              metadata: event.metadata || undefined,
-            },
-          });
+    const activityEvents = await prisma.repoActivityEvent.findMany({
+      where: {
+        repoId,
+        occurredAt: {
+          gte: windowStart,
+          lte: windowEnd,
         }
-      } catch (error) {
-        // Log error but continue - don't fail sync if event storage fails
-        console.error(`Error storing event ${event.url}:`, error);
       }
-    }
+    });
+
+    const activity = activityEvents.reduce<Record<'pr_merged' | 'commit' | 'release', RepoActivityEvent[]>>((acc, event) => {
+      if (event.type == 'pr_merged') {
+        acc['pr_merged'].push(event);
+      } else if (event.type == 'release') {
+        acc['release'].push(event);
+      } else if (event.type == 'commit') {
+        acc['commit'].push(event);
+      } else {
+        console.warn(`Unhandled repo event: ${event.type}`);
+      }
+
+      return acc;
+    }, {
+      'pr_merged': [],
+      'release': [],
+      'commit': []
+    });
 
     // Generate summary
-    console.log(`Generating summary for ${repo.owner}/${repo.name} - Activity: ${activity.counts.mergedPRs} PRs, ${activity.counts.releases} releases, ${activity.counts.commits} commits`);
     const summaryText = await generateSummary(activity);
-    const noChanges = activity.counts.mergedPRs === 0 && activity.counts.releases === 0 && activity.counts.commits === 0;
+    const noChanges = activity['pr_merged'].length === 0 && activity['release'].length === 0 && activity['commit'].length === 0;
     console.log(`Summary for ${repo.owner}/${repo.name}: ${noChanges ? 'NO CHANGES' : 'HAS CHANGES'} - "${summaryText.substring(0, 100)}..."`);
 
     // Get date for the summary
@@ -114,14 +96,22 @@ export async function syncRepo(
         windowStart,
         windowEnd,
         summaryText,
-        stats: activity.counts,
+        stats: {
+          prMerged: activity['pr_merged'].length,
+          releases: activity['release'].length,
+          commits: activity['commit'].length,
+        },
         noChanges,
       },
       update: {
         windowStart,
         windowEnd,
         summaryText,
-        stats: activity.counts,
+        stats: {
+          prMerged: activity['pr_merged'].length,
+          releases: activity['release'].length,
+          commits: activity['commit'].length,
+        },
         noChanges,
         updatedAt: new Date(),
       },
@@ -129,7 +119,7 @@ export async function syncRepo(
 
     // Mark sync run as successful
     await prisma.repoSyncRun.update({
-      where: { id: syncRun.id },
+      where: {id: syncRun.id},
       data: {
         status: 'success',
         finishedAt: new Date(),
@@ -138,7 +128,7 @@ export async function syncRepo(
   } catch (error) {
     console.error(`Error syncing repo ${repoId}:`, error);
     await prisma.repoSyncRun.update({
-      where: { id: syncRun.id },
+      where: {id: syncRun.id},
       data: {
         status: 'error',
         errorMessage: error instanceof Error ? error.message : String(error),
@@ -158,7 +148,7 @@ export async function syncAllReposDaily(): Promise<void> {
   const windowStart = new Date(windowEnd.getTime() - 48 * 60 * 60 * 1000); // 48 hours ago
 
   const enabledRepos = await prisma.gitHubRepo.findMany({
-    where: { isEnabled: true },
+    where: {isEnabled: true},
   });
 
   console.log(`Starting daily sync for ${enabledRepos.length} repos (window: ${windowStart.toISOString()} to ${windowEnd.toISOString()})`);
@@ -180,7 +170,7 @@ export async function syncAllReposDaily(): Promise<void> {
  */
 export async function backfillRepo(repoId: string): Promise<void> {
   const repo = await prisma.gitHubRepo.findUnique({
-    where: { id: repoId },
+    where: {id: repoId},
   });
 
   if (!repo) {

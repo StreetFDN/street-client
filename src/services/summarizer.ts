@@ -1,6 +1,7 @@
 import OpenAI from 'openai';
 import { config } from '../config';
 import { ActivityPacket } from './github/fetcher';
+import {RepoActivityEvent} from "@prisma/client";
 
 const openai = new OpenAI({
   apiKey: config.openai.apiKey,
@@ -9,26 +10,26 @@ const openai = new OpenAI({
 /**
  * Generates a short summary of GitHub activity using LLM
  */
-export async function generateSummary(activity: ActivityPacket): Promise<string> {
+export async function generateSummary(activities: Record<'pr_merged' | 'commit' | 'release', RepoActivityEvent[]>): Promise<string> {
   if (config.openai.apiKey) {
-    return generateSummaryWithLLM(activity);
+    return generateSummaryWithLLM(activities);
   } else {
-    return generateSummaryFallback(activity);
+    return generateSummaryFallback(activities);
   }
 }
 
-async function generateSummaryWithLLM(activity: ActivityPacket): Promise<string> {
+async function generateSummaryWithLLM(activities: Record<'pr_merged' | 'commit' | 'release', RepoActivityEvent[]>): Promise<string> {
   const items: string[] = [];
 
-  for (const pr of activity.mergedPRs) {
+  for (const pr of activities['pr_merged']) {
     items.push(`- Merged PR: "${pr.title}" by ${pr.author || 'unknown'} (${pr.url})`);
   }
 
-  for (const release of activity.releases) {
+  for (const release of activities['release']) {
     items.push(`- Release: "${release.title}" by ${release.author || 'unknown'} (${release.url})`);
   }
 
-  for (const commit of activity.commits.slice(0, 10)) {
+  for (const commit of (activities['commit']).slice(0, 10)) {
     // Limit commits in prompt
     items.push(`- Commit: "${commit.title}" by ${commit.author || 'unknown'} (${commit.url})`);
   }
@@ -55,48 +56,44 @@ ${items.join('\n')}`;
         },
       ],
       temperature: 0.7,
-      max_tokens: 200,
+      max_completion_tokens: 200,
     });
 
-    return completion.choices[0]?.message?.content?.trim() || generateSummaryFallback(activity);
+    return completion.choices[0]?.message?.content?.trim() || generateSummaryFallback(activities);
   } catch (error) {
     console.error('Error generating LLM summary:', error);
-    return generateSummaryFallback(activity);
+    return generateSummaryFallback(activities);
   }
 }
 
-function generateSummaryFallback(activity: ActivityPacket): string {
-  if (activity.counts.mergedPRs === 0 && activity.counts.releases === 0 && activity.counts.commits === 0) {
+function generateSummaryFallback(activities: Record<'pr_merged' | 'commit' | 'release', RepoActivityEvent[]>): string {
+  const mergedPRs = activities['pr_merged'];
+  const releases = activities['release'];
+  const commits = activities['commit'];
+  if (mergedPRs.length == 0 && releases.length == 0 && commits.length == 0) {
     return 'No relevant GitHub changes in the last 24h.';
   }
-
   const parts: string[] = [];
 
-  if (activity.counts.mergedPRs > 0) {
-    parts.push(`${activity.counts.mergedPRs} pull request${activity.counts.mergedPRs > 1 ? 's' : ''} merged`);
-    if (activity.mergedPRs.length > 0) {
-      parts.push(`including "${activity.mergedPRs[0].title}"`);
-    }
+  if (mergedPRs.length > 0) {
+    parts.push(`${mergedPRs.length} pull request${mergedPRs.length > 1 ? 's' : ''} merged`);
+    parts.push(`including "${mergedPRs[0].title}"`);
   }
 
-  if (activity.counts.releases > 0) {
-    parts.push(`${activity.counts.releases} release${activity.counts.releases > 1 ? 's' : ''} published`);
-    if (activity.releases.length > 0) {
-      parts.push(`including "${activity.releases[0].title}"`);
-    }
+  if (releases.length > 0) {
+    parts.push(`${releases.length} release${releases.length > 1 ? 's' : ''} published`);
+    parts.push(`including "${releases[0].title}"`);
   }
 
   // Always include commits if they exist - shows activity even if PRs aren't merged yet
-  if (activity.counts.commits > 0) {
-    if (activity.counts.mergedPRs === 0) {
+  if (commits.length > 0) {
+    if (mergedPRs.length === 0) {
       // If no PRs, show commit details
-      parts.push(`${activity.counts.commits} commit${activity.counts.commits > 1 ? 's' : ''}`);
-      if (activity.commits.length > 0) {
-        parts.push(`including "${activity.commits[0].title.substring(0, 60)}"`);
-      }
+      parts.push(`${commits.length} commit${commits.length > 1 ? 's' : ''}`);
+      parts.push(`including "${commits[0].title.substring(0, 60)}"`);
     } else {
       // If PRs exist, still mention commits to show activity
-      parts.push(`${activity.counts.commits} additional commit${activity.counts.commits > 1 ? 's' : ''}`);
+      parts.push(`${commits.length} additional commit${commits.length > 1 ? 's' : ''}`);
     }
   }
 
@@ -284,7 +281,7 @@ Generate the summary (include more bullets if there's substantial content):`;
           },
         ],
         temperature: 0.3, // Lower temperature for more factual output
-        max_tokens: 700, // Increased to allow for more bullet points
+        max_completion_tokens: 700, // Increased to allow for more bullet points
       });
 
       const llmResult = completion.choices[0]?.message?.content?.trim();
