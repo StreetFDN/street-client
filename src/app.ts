@@ -2,7 +2,7 @@ import express from 'express';
 import session from 'express-session';
 import path from 'path';
 import { config } from './config';
-import webhookRoutes from './routes/webhooks';
+import activityRoutes from './routes/activity';
 import authRoutes from './routes/auth';
 import clientRoutes from './routes/clients';
 import installationRoutes from './routes/installations';
@@ -10,6 +10,7 @@ import repoRoutes from './routes/repos';
 import summaryRoutes from './routes/summaries';
 import syncRoutes from './routes/sync';
 import tokenRoutes from './routes/token'
+import githubWebhookRoutes from './routes/webhooks/github';
 import { startScheduler } from './worker/scheduler';
 import { initRedis } from './utils/redis';
 
@@ -28,7 +29,7 @@ app.use(session({
 }));
 
 // Webhook endpoint needs raw body for signature verification
-app.use('/webhooks/github', express.raw({ type: 'application/json' }), webhookRoutes);
+app.use('/webhooks/github', express.raw({ type: 'application/json' }), githubWebhookRoutes);
 
 // Other API routes use JSON
 app.use(express.json());
@@ -37,6 +38,7 @@ app.use(express.json());
 app.use('/api/auth', authRoutes);
 
 // API routes
+app.use('/api', activityRoutes);
 app.use('/api', clientRoutes);
 app.use('/api', installationRoutes);
 app.use('/api', repoRoutes);

@@ -4,7 +4,7 @@ import { config } from '../config';
 /**
  * Verifies GitHub webhook signature using HMAC SHA256
  */
-export function verifyWebhookSignature(payload: string | Buffer, signature: string): boolean {
+export function verifyWebhookSignature(payload: string | Buffer, signature: string | undefined): boolean {
   if (!config.github.webhookSecret) {
     console.warn('GITHUB_APP_WEBHOOK_SECRET not set, skipping signature verification');
     return true;
