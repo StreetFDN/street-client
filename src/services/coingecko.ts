@@ -48,6 +48,12 @@ export const getTokenPrice = async (
   const fetchResponse = await coingeckoFetch(
     COINGECKO_TOKEN_DATA_BASE_URL(tokenAddress)
   );
+
+  if (!fetchResponse.ok) {
+    throw new Error(
+      `Failed to fetch token price: ${fetchResponse.status}: ${fetchResponse.statusText}`,
+    );
+  }
   const response = (await fetchResponse.json()) as {
     market_data: {
       current_price: {
@@ -93,6 +99,12 @@ export const getTokenHistoricalCharts = async (
   )}?${queryParams.toString()}`;
 
   const fetchResponse = await coingeckoFetch(requestURL);
+
+  if (!fetchResponse.ok) {
+    throw new Error(
+      `Failed to fetch token charts: ${fetchResponse.status}: ${fetchResponse.statusText}`,
+    );
+  }
   const response = (await fetchResponse.json()) as TokenHistoricalChartsObject;
 
   // 1 hour expiration for historical charts
@@ -158,6 +170,11 @@ export const getTokenHoldersCurrent = async (
     COINGECKO_TOP_TOKEN_HOLDERS("eth", tokenAddress)
   );
 
+  if (!fetchResponse.ok) {
+    throw new Error(
+      `Failed to fetch token holders: ${fetchResponse.status}: ${fetchResponse.statusText}`,
+    );
+  }
   const response = (await fetchResponse.json()) as {
     data: {
       attributes: {
@@ -208,6 +225,12 @@ export const getTokenHoldersCountHistorical = async (
     tokenAddress
   )}?${searchParams.toString()}`;
   const fetchResponse = await coingeckoFetch(requestUrl);
+
+  if (!fetchResponse.ok) {
+    throw new Error(
+      `Failed to fetch token holders count: ${fetchResponse.status}: ${fetchResponse.statusText}`,
+    );
+  }
   const response = (await fetchResponse.json()) as {
     data: {
       attributes: {
