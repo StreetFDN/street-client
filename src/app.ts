@@ -9,8 +9,10 @@ import installationRoutes from './routes/installations';
 import repoRoutes from './routes/repos';
 import summaryRoutes from './routes/summaries';
 import syncRoutes from './routes/sync';
+import tokenRoutes from './routes/token'
 import githubWebhookRoutes from './routes/webhooks/github';
 import { startScheduler } from './worker/scheduler';
+import { initRedis } from './utils/redis';
 
 const app = express();
 
@@ -41,6 +43,7 @@ app.use('/api', clientRoutes);
 app.use('/api', installationRoutes);
 app.use('/api', repoRoutes);
 app.use('/api', summaryRoutes);
+app.use('/api', tokenRoutes);
 app.use('/api/sync', syncRoutes);
 
 // Serve static files (frontend) - before API routes to allow /api/auth routes
@@ -53,6 +56,7 @@ app.get('/health', (req, res) => {
 
 // Start scheduler
 startScheduler();
+initRedis()
 
 export default app;
 
