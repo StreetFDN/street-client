@@ -14,7 +14,11 @@
     "generate": "prisma generate",
     "migrate:dev": "prisma migrate dev",
     "migrate:deploy": "prisma migrate deploy",
+    "prepare": "husky",
     "studio": "prisma studio"
+  },
+  "lint-staged": {
+    "**/*": "npm run lint:fix && npm run format"
   },
   "keywords": [
     "github",
@@ -45,6 +49,8 @@
     "@types/node-cron": "^3.0.11",
     "eslint": "^9.39.2",
     "eslint-config-prettier": "^10.1.8",
+    "husky": "^9.1.7",
+    "lint-staged": "^16.2.7",
     "prettier": "^3.8.1",
     "tsc-alias": "^1.8.16",
     "tsx": "^4.16.2",
