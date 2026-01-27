@@ -1,0 +1,70 @@
+name: CI
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+
+jobs:
+  build-and-healthcheck:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install deps
+        run: npm ci
+
+      # 1) TSC check (typecheck only)
+      - name: Typecheck (tsc)
+        run: npx tsc -p tsconfig.json --noEmit
+
+      # 2) Build check (your "CI build")
+      - name: Build
+        run: npm run build
+
+      # 3) Bring up required docker services (db/redis/etc.)
+      - name: Start docker dependencies
+        run: |
+         docker compose -f docker-compose.dev.yml up -d
+         docker compose -f docker-compose.dev.yml ps
+
+      # 4) Run built app and check /health
+      - name: Start app (from dist)
+        env:
+          NODE_ENV: production
+          DATABASE_URL: "postgresql://postgres:postgres@localhost:5432/mydb?schema=public"
+        run: |
+          node dist/index.js > app.log 2>&1 &
+          echo $! > app.pid
+
+      - name: Wait for /health
+        run: |
+          set -e
+          for i in {1..30}; do
+            if curl -fsS "http://127.0.0.1:8080/health" >/dev/null; then
+              echo "Health OK"
+              exit 0
+            fi
+            echo "Waiting for app... ($i/30)"
+            sleep 1
+          done
+
+          echo "Health check failed. App log:"
+          cat app.log
+          exit 1
+
+      - name: Teardown
+        if: always()
+        run: |
+          if [ -f app.pid ]; then kill "$(cat app.pid)" || true; fi
+          docker compose -f docker-compose.yml logs --no-color || true
+          docker compose -f docker-compose.yml down -v || true
