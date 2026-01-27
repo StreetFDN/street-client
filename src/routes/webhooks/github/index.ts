@@ -14,6 +14,7 @@ import handleRelease from './handleRelease';
 
 const router = Router();
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 type EventHandler = (_: any) => Promise<void>;
 const eventHandlers: Record<EventType, EventHandler> = {
   push: handlePushEvent,

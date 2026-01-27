@@ -44,6 +44,7 @@ router.get(
       });
 
       res.json(
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         installations.map((inst: any) => ({
           id: inst.id,
           installationId: inst.installationId,
@@ -185,6 +186,7 @@ router.get(
       });
 
       res.json(
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         installations.map((inst: any) => ({
           id: inst.id,
           installationId: inst.installationId,

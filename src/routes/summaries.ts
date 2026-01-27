@@ -34,6 +34,7 @@ router.get(
         return res.status(404).json({ error: 'Repo not found' });
       }
 
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const where: any = {
         repoId,
       };
@@ -110,6 +111,7 @@ router.get(
         return res.status(404).json({ error: 'Client not found' });
       }
 
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const where: any = {
         repo: {
           clientId,
@@ -262,6 +264,7 @@ router.get(
       const stats = summaries.reduce(
         (acc, summary) => {
           if (summary.stats) {
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             const s = summary.stats as any;
             acc.mergedPRs += s.mergedPRs || 0;
             acc.releases += s.releases || 0;
@@ -385,6 +388,7 @@ router.get(
           const stats = summaries.reduce(
             (acc, summary) => {
               if (summary.stats) {
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
                 const s = summary.stats as any;
                 acc.mergedPRs += s.mergedPRs || 0;
                 acc.releases += s.releases || 0;
@@ -500,6 +504,7 @@ router.get(
         return res.status(403).json({ error: 'Access denied' });
       }
 
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const where: any = {
         repoId,
       };

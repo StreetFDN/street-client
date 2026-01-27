@@ -13,6 +13,7 @@ import { Octokit } from '@octokit/rest';
 
 const actionHandlers: Record<
   SupportedInstallationAction,
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   (payload: any) => Promise<void>
 > = {
   created: handleCreateInstallationAction,
@@ -20,6 +21,7 @@ const actionHandlers: Record<
 };
 
 export default async function handleInstallationEvent(
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   payload_data: any,
 ): Promise<void> {
   const payload = InstallationEventSchema.parse(

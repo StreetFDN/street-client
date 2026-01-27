@@ -18,6 +18,7 @@ router.get('/github', (req: Request, res: Response) => {
   const state = Math.random().toString(36).substring(7); // Simple state for CSRF protection
 
   if (!req.session) {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     req.session = {} as any;
   }
   req.session.oauthState = state;
@@ -123,6 +124,7 @@ router.get('/github/callback', async (req: Request, res: Response) => {
 
     // Set session
     if (!req.session) {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       req.session = {} as any;
     }
     req.session.userId = user.id;

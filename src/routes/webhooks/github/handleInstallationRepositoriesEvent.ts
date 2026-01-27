@@ -13,6 +13,7 @@ import { Octokit } from '@octokit/rest';
 
 const actionHandlers: Record<
   SupportedInstallationRepositoriesAction,
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   (_: any) => Promise<void>
 > = {
   added: handleAddedInstallationRepositoriesEvent,
@@ -20,6 +21,7 @@ const actionHandlers: Record<
 };
 
 export default async function handleInstallationRepositoriesEvent(
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   payload_data: any,
 ): Promise<void> {
   const payload = InstallationRepositoriesEventSchema.parse(
@@ -62,6 +64,7 @@ async function handleAddedInstallationRepositoriesEvent(
   for (const repo of repositories_added) {
     try {
       const fullRepo = await octokit.rest.repos.get({
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         owner: (repo as any).owner.login,
         repo: repo.name,
       });
@@ -93,6 +96,7 @@ async function handleAddedInstallationRepositoriesEvent(
       await backfillRepo(githubRepo.id);
     } catch (error) {
       console.error(
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         `Error processing repo ${(repo as any).owner.login}/${repo.name}:`,
         error,
       );

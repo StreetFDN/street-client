@@ -1,4 +1,3 @@
-import { Octokit } from '@octokit/rest';
 import { getInstallationOctokit } from './auth';
 
 export interface ActivityEvent {
@@ -16,6 +15,7 @@ export interface ActivityEvent {
   occurredAt: Date;
   additions?: number;
   deletions?: number;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   metadata?: Record<string, any>;
 }
 
@@ -70,10 +70,13 @@ export async function fetchRepoActivity(
             url: pr.html_url,
             author: pr.user?.login || null,
             occurredAt: mergedAt,
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             additions: (pr as any).additions || 0,
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             deletions: (pr as any).deletions || 0,
             metadata: {
               number: pr.number,
+              // eslint-disable-next-line @typescript-eslint/no-explicit-any
               labels: pr.labels?.map((l: any) => l.name) || [],
             },
           });

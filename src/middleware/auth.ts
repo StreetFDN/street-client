@@ -1,22 +1,6 @@
 import { Request, Response, NextFunction } from 'express';
 import { trySupabaseAuth } from './supabaseAuth';
 
-// Extend Express Request type to include user
-declare global {
-  namespace Express {
-    interface Request {
-      userId?: string;
-      user?: {
-        id: string;
-        githubLogin: string;
-        name?: string;
-        email?: string;
-        avatarUrl?: string;
-      };
-    }
-  }
-}
-
 /**
  * Middleware to require authentication
  * Tries Supabase JWT auth first, then falls back to session auth

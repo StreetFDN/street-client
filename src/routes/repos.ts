@@ -36,6 +36,7 @@ router.get(
       });
 
       res.json(
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         repos.map((repo: any) => ({
           id: repo.id,
           owner: repo.owner,

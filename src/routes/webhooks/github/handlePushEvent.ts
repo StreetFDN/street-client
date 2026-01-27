@@ -2,6 +2,7 @@ import { PushEvent, PushEventSchema } from 'utils/validation/github';
 import { prisma } from 'db';
 
 export default async function handlePushEvent(
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   payload_data: any,
 ): Promise<void> {
   const payload = PushEventSchema.parse(payload_data) as PushEvent;

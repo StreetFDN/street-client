@@ -1,5 +1,4 @@
 import { prisma } from '../db';
-import { ActivityEvent, fetchRepoActivity } from './github/fetcher';
 import { generateSummary } from './summarizer';
 import { RepoActivityEvent } from '@prisma/client';
 

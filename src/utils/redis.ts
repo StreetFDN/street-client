@@ -1,8 +1,4 @@
 import { createClient } from 'redis';
-import {
-  TokenHistoricalChartsObject,
-  TokenPriceObject,
-} from '../types/routes/token';
 
 type RedisClient = ReturnType<typeof createClient>;
 

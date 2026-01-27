@@ -1,6 +1,5 @@
 import OpenAI from 'openai';
 import { config } from '../config';
-import { ActivityPacket } from './github/fetcher';
 import { RepoActivityEvent } from '@prisma/client';
 
 const openai = new OpenAI({
@@ -127,7 +126,9 @@ function generateSummaryFallback(
  * Uses founder-level, non-cringe tone with concrete activity events
  */
 export async function generateAggregateSummary(
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   summaries: any[],
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   activityEvents: any[] = [],
 ): Promise<string> {
   if (summaries.length === 0) {
@@ -145,6 +146,7 @@ export async function generateAggregateSummary(
   const stats = activeSummaries.reduce(
     (acc, summary) => {
       if (summary.stats) {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const s = summary.stats as any;
         acc.mergedPRs += s.mergedPRs || 0;
         acc.releases += s.releases || 0;
@@ -174,8 +176,11 @@ export async function generateAggregateSummary(
     const repoNames = new Set<string>();
 
     // Group events by type and repo
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const prs: any[] = [];
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const releases: any[] = [];
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const commits: any[] = [];
 
     for (const event of activityEvents) {
@@ -356,6 +361,7 @@ Generate the summary (include more bullets if there's substantial content):`;
   return generateAggregateSummaryFallback(stats);
 }
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 function generateAggregateSummaryFallback(stats: any): string {
   const parts: string[] = [];
 

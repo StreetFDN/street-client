@@ -2,6 +2,7 @@ import { PullRequestEventSchema } from 'utils/validation/github';
 import { prisma } from 'db';
 
 export default async function handlePullRequestEvent(
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   payload_data: any,
 ): Promise<void> {
   const payload = PullRequestEventSchema.parse(payload_data);

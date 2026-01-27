@@ -6,12 +6,14 @@ import {
 import { prisma } from 'db';
 import { GitHubRepo } from '@prisma/client';
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 type ActionHandler = (_: any, repo: GitHubRepo) => Promise<void>;
 const actionHandlers: Record<SupportedReleaseAction, ActionHandler> = {
   released: createRelease,
   deleted: deleteRelease,
 };
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export default async function handleRelease(payload_data: any): Promise<void> {
   const payload = ReleaseEventSchema.parse(payload_data) as ReleaseEvent;
   const handlers = actionHandlers as Record<string, ActionHandler | undefined>;

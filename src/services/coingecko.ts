@@ -119,7 +119,7 @@ export const getTokenVolume = async (
   const cacheKey = `${tokenAddress}_${period}`;
   const cachedValue = await TokenVolumeCache.get(cacheKey);
   if (cachedValue) {
-    cachedValue;
+    return cachedValue;
   }
   const tokenHistoricalVolumeForPeriod = await getTokenHistoricalCharts(
     tokenAddress,
