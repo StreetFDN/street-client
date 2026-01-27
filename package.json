@@ -14,7 +14,7 @@
     "studio": "prisma studio"
   },
   "lint-staged": {
-    "**/*": "npx prettier --write --ignore-unknown"
+    "**/*": "prettier --write --ignore-unknown"
   },
   "keywords": [
     "github",
