@@ -11,6 +11,7 @@ This means **migrations haven't run**. The database is empty.
 ### Step 1: Run Migrations in Railway
 
 **Option A: Railway Dashboard**
+
 1. Railway → **street-client** service
 2. **Deployments** tab
 3. Click latest deployment
@@ -18,6 +19,7 @@ This means **migrations haven't run**. The database is empty.
 5. Run: `npm run migrate:deploy`
 
 **Option B: Railway CLI**
+
 ```bash
 railway run npm run migrate:deploy
 ```
@@ -25,12 +27,14 @@ railway run npm run migrate:deploy
 ### Step 2: Verify It Worked
 
 After migrations run, you should see output like:
+
 ```
 ✔ Applied migration...
 ✔ Generated Prisma Client...
 ```
 
 Then test:
+
 - Visit: `https://street-client-production.up.railway.app`
 - Should show frontend (not error)
 
@@ -39,6 +43,7 @@ Then test:
 ## Why This Happened
 
 The Dockerfile CMD runs `npm run migrate:deploy && npm start`, but:
+
 - Prisma CLI might not be in production dependencies
 - Or migrations failed silently during startup
 
@@ -49,8 +54,9 @@ I've added `prisma` to dependencies - but you still need to run migrations manua
 ## After Migrations
 
 Once tables are created:
+
 - ✅ Frontend will work
-- ✅ API will work  
+- ✅ API will work
 - ✅ Webhooks will work
 - ✅ Everything will function normally
 

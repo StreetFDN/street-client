@@ -10,7 +10,7 @@
 4. You'll see deployment details with tabs/buttons
 5. Look for a button that says:
    - **"Run Command"** or
-   - **"Terminal"** or  
+   - **"Terminal"** or
    - **"Shell"** or
    - An icon that looks like a terminal/command prompt
 6. Click it - a terminal/command interface will open
@@ -53,6 +53,7 @@ Prisma schema loaded from prisma/schema.prisma
 ```
 
 If you see errors, check:
+
 - DATABASE_URL is correct
 - Database is accessible
 - Network connectivity
@@ -62,10 +63,11 @@ If you see errors, check:
 ## Quick Visual Guide
 
 **Railway Dashboard Path:**
+
 ```
-street-client service 
-  → Deployments tab 
-    → Click latest deployment 
+street-client service
+  → Deployments tab
+    → Click latest deployment
       → Look for "Run Command" / "Terminal" button
         → Type: npm run migrate
 ```

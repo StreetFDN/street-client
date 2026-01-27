@@ -37,16 +37,19 @@ Wait a few minutes for the project to be ready.
 3. Replace it with your Supabase connection string
 
 **Before:**
+
 ```env
 DATABASE_URL="postgresql://user:password@localhost:5432/street_client?schema=public"
 ```
 
 **After (example):**
+
 ```env
 DATABASE_URL="postgresql://postgres.xxxxx:yourpassword@aws-0-us-east-1.pooler.supabase.com:6543/postgres?schema=public"
 ```
 
 **Important Notes:**
+
 - Make sure to replace `[YOUR-PASSWORD]` with your actual password
 - Add `?schema=public` at the end if it's not already there (Prisma needs this)
 - Use the **Transaction** mode connection string (port 6543), not Session mode (port 5432)
@@ -84,18 +87,22 @@ You can verify your tables were created:
 ## Troubleshooting
 
 ### "Connection refused" or "timeout"
+
 - Check if your connection string has the correct password (no `[YOUR-PASSWORD]` placeholder)
 - Make sure you're using the **Transaction** mode connection string (port 6543)
 
 ### "schema 'public' does not exist"
+
 - Make sure `?schema=public` is at the end of your DATABASE_URL
 - Supabase uses the `public` schema by default
 
 ### "password authentication failed"
+
 - Double-check your password (it's the one you set when creating the project)
 - You can reset it in Supabase: Settings → Database → Database password
 
 ### "database does not exist"
+
 - You don't need to create a database in Supabase - use the default `postgres` database
 - The connection string should end with `/postgres` (not `/street_client`)
 
@@ -112,6 +119,7 @@ If connection pooling doesn't work, you can use the direct connection:
 5. Update your `.env` file
 
 Example:
+
 ```env
 DATABASE_URL="postgresql://postgres:yourpassword@db.xxxxx.supabase.co:5432/postgres?schema=public"
 ```
@@ -121,6 +129,7 @@ DATABASE_URL="postgresql://postgres:yourpassword@db.xxxxx.supabase.co:5432/postg
 ## Security Note
 
 Your `.env` file contains sensitive credentials - make sure:
+
 - ✅ It's in `.gitignore` (already is)
 - ✅ Never commit it to git
 - ✅ Don't share it publicly

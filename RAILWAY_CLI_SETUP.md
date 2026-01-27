@@ -15,6 +15,7 @@ npm install -g @railway/cli
 ```
 
 Or using Homebrew (macOS):
+
 ```bash
 brew install railway
 ```
@@ -45,6 +46,7 @@ railway connect postgres
 ```
 
 This creates a local tunnel. You'll see output like:
+
 ```
 Connected to postgres via localhost:5432
 ```
@@ -66,9 +68,11 @@ Keep the `railway connect postgres` command running in a separate terminal, and 
 ## Alternative: Use Proxied Connection
 
 From your Railway Networking settings, you can also use the proxied connection:
+
 - `tramway.proxy.rlwy.net:45858`
 
 Update .env:
+
 ```env
 DATABASE_URL="postgresql://postgres:ZxnOjKmXLNKWpBUlTeUZIeZCCAgqOmLo@tramway.proxy.rlwy.net:45858/railway?schema=public"
 ```

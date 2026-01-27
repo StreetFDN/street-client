@@ -1,22 +1,27 @@
 import { Router, Request, Response } from 'express';
 import { verifyWebhookSignature } from 'utils/webhook';
-import {EventHeader, EventHeaderSchema, EventType} from "utils/validation/github";
+import {
+  EventHeader,
+  EventHeaderSchema,
+  EventType,
+} from 'utils/validation/github';
 
-import handlePushEvent from "./handlePushEvent";
-import handleInstallationEvent from "./handleInstallationEvent";
-import handleInstallationRepositoriesEvent from "./handleInstallationRepositoriesEvent";
-import handlePullRequestEvent from "./handlePullRequestEvent";
-import handleRelease from "./handleRelease";
+import handlePushEvent from './handlePushEvent';
+import handleInstallationEvent from './handleInstallationEvent';
+import handleInstallationRepositoriesEvent from './handleInstallationRepositoriesEvent';
+import handlePullRequestEvent from './handlePullRequestEvent';
+import handleRelease from './handleRelease';
 
 const router = Router();
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 type EventHandler = (_: any) => Promise<void>;
 const eventHandlers: Record<EventType, EventHandler> = {
-  'push': handlePushEvent,
-  'installation': handleInstallationEvent,
-  'installation_repositories': handleInstallationRepositoriesEvent,
-  'pull_request': handlePullRequestEvent,
-  'release': handleRelease,
+  push: handlePushEvent,
+  installation: handleInstallationEvent,
+  installation_repositories: handleInstallationRepositoriesEvent,
+  pull_request: handlePullRequestEvent,
+  release: handleRelease,
 };
 
 /**
@@ -44,7 +49,7 @@ router.post('/', async (req: Request, res: Response) => {
     if (handler != null) {
       await handler(payload_data);
     } else {
-      console.warn(`Got event "${eventType}" without implemented handler.`)
+      console.warn(`Got event "${eventType}" without implemented handler.`);
     }
 
     res.status(200).json({ received: true });

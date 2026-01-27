@@ -1,11 +1,13 @@
 # GitHub App Registration - Final Checklist
 
 ## ✅ What You've Done
+
 - [x] Webhook URL: `https://street-client-production.up.railway.app/webhooks/github`
 
 ## 🔴 REQUIRED Before Creating App
 
 ### 1. Generate Webhook Secret
+
 - Click in the **"Secret"** input field
 - Generate a random secret (you can use: `openssl rand -hex 32` in terminal, or use a password generator)
 - **SAVE THIS SECRET!** You'll need to add it to Railway variables
@@ -31,10 +33,12 @@ Check these checkboxes:
 - ✅ **Installation repositories** (REQUIRED)
 
 Optional (you can skip for now):
+
 - Pull request
 - Push
 
 ### 4. SSL Verification
+
 - Keep **"Enable SSL verification"** selected (default) ✅
 
 ---

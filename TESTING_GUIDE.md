@@ -3,6 +3,7 @@
 ## Step 1: Install GitHub App on a Repository
 
 ### Install the App
+
 1. Go to: `https://github.com/apps/dev-update-by-street-labs`
 2. Click **"Install"**
 3. Select an account/organization (e.g., StreetFDN)
@@ -12,6 +13,7 @@
 5. Click **"Install"**
 
 ### What Should Happen
+
 - GitHub sends webhook to your Railway deployment
 - System creates client and installation records
 - System creates repo records
@@ -22,16 +24,19 @@
 ## Step 2: Verify Installation (Check Database/API)
 
 ### Test 1: Health Check
+
 ```bash
 curl https://street-client-production.up.railway.app/health
 ```
 
 Expected response:
+
 ```json
-{"status":"ok","timestamp":"2025-12-31T..."}
+{ "status": "ok", "timestamp": "2025-12-31T..." }
 ```
 
 ### Test 2: List Clients
+
 ```bash
 curl https://street-client-production.up.railway.app/api/clients
 ```
@@ -39,6 +44,7 @@ curl https://street-client-production.up.railway.app/api/clients
 Should return client records with installation info.
 
 ### Test 3: List Repos
+
 ```bash
 # Get client ID from previous response, then:
 curl https://street-client-production.up.railway.app/api/clients/{CLIENT_ID}/repos
@@ -87,6 +93,7 @@ If you want to test without waiting:
 
 1. Get repo ID from API
 2. Call backfill endpoint:
+
 ```bash
 curl -X POST https://street-client-production.up.railway.app/api/repos/{REPO_ID}/backfill
 ```
@@ -94,6 +101,7 @@ curl -X POST https://street-client-production.up.railway.app/api/repos/{REPO_ID}
 ### Create Test Activity
 
 To test with real activity:
+
 1. Create a test PR in your repository
 2. Merge it
 3. Wait for next daily sync (2 AM UTC)
@@ -110,16 +118,19 @@ After adding `OPENAI_API_KEY`:
 3. Compare with template summaries (before LLM)
 
 **LLM summaries should be:**
+
 - More natural language
 - Better structured
 - More professional
 
 **Template summaries look like:**
+
 ```
 "2 pull requests merged, including "PR Title"."
 ```
 
 **LLM summaries look like:**
+
 ```
 "Development focused on [theme], with two pull requests merged addressing [key improvements]..."
 ```
@@ -143,17 +154,20 @@ After adding `OPENAI_API_KEY`:
 ## Troubleshooting
 
 ### No webhooks received?
+
 - Check webhook URL in GitHub App settings
 - Verify `GITHUB_APP_WEBHOOK_SECRET` matches
 - Check Railway logs for errors
 
 ### No summaries?
+
 - Check if backfill ran (look in logs)
 - Verify repository has activity in last 7 days
 - Check database connection
 - Verify migrations ran successfully
 
 ### LLM not working?
+
 - Verify `OPENAI_API_KEY` in Railway variables
 - Check logs for OpenAI API errors
 - Fallback to template should still work

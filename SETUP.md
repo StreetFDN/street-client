@@ -33,7 +33,7 @@ npm run migrate
 
 - Repository contents: Read (optional)
 - Pull requests: Read
-- Issues: Read  
+- Issues: Read
 - Metadata: Read (required)
 - Commit statuses: Read (optional)
 
@@ -45,6 +45,7 @@ npm run migrate
 ### Get Credentials
 
 After creating the app:
+
 1. Copy the **App ID** (from General settings)
 2. Generate and download the **Private key** (.pem file)
 3. Copy the **Webhook secret** you generated earlier
@@ -60,6 +61,7 @@ GITHUB_APP_WEBHOOK_SECRET=your_secret_here
 ```
 
 **Important**: The private key should include the full PEM content with newlines. You can either:
+
 - Put it in quotes with actual newlines
 - Use `\n` to represent newlines (config.ts handles this automatically)
 
@@ -83,6 +85,7 @@ npm start
 5. Install
 
 Your server should receive webhook events and automatically:
+
 - Create client and installation records
 - List repositories
 - When repos are added, trigger 7-day backfill
@@ -106,17 +109,20 @@ curl "http://localhost:3000/api/repos/REPO_ID/summaries?from=2024-01-01&to=2024-
 ## Troubleshooting
 
 ### Database Connection Issues
+
 - Ensure PostgreSQL is running
 - Check DATABASE_URL format: `postgresql://user:password@host:port/database?schema=public`
 - Verify database exists
 
 ### GitHub App Issues
+
 - Verify App ID is correct
 - Check private key format (must include BEGIN/END lines)
 - Ensure webhook URL is publicly accessible (use ngrok for local testing)
 - Check GitHub App permissions are set correctly
 
 ### Webhook Not Receiving Events
+
 - Verify webhook URL is correct in GitHub App settings
 - Check webhook secret matches .env
 - Ensure server is accessible (use ngrok for local development)

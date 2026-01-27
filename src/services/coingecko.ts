@@ -1,4 +1,4 @@
-import { RedisAdapter, TTL_1_HOUR, TTL_5_MIN } from "../utils/redis";
+import { RedisAdapter, TTL_1_HOUR, TTL_5_MIN } from '../utils/redis';
 import {
   periodToDaysMap,
   TokenHistoricalChartsObject,
@@ -9,36 +9,36 @@ import {
   ValidPeriodTokenHistoricalCharts,
   validPeriodTokenHolderDayMap,
   ValidPeriodTokenHoldersCount,
-} from "../types/routes/token";
+} from '../types/routes/token';
 
 export const TokenPriceCache = new RedisAdapter<TokenPriceObject>(
-  "tokenPrice_eth:"
+  'tokenPrice_eth:',
 );
 
 export const TokenHistoricalChartsCache =
-  new RedisAdapter<TokenHistoricalChartsObject>("tokenChart_eth:");
+  new RedisAdapter<TokenHistoricalChartsObject>('tokenChart_eth:');
 
 export const TokenVolumeCache = new RedisAdapter<TokenVolumeObject>(
-  "tokenVolume_eth:"
+  'tokenVolume_eth:',
 );
 export const TokenHoldersCache = new RedisAdapter<TokenHoldersCurrent>(
-  "tokenHolders_eth:"
+  'tokenHolders_eth:',
 );
 
 export const TokenHoldersCountHistoricalCache =
-  new RedisAdapter<TokenHoldersCountHistorical>("tokenHoldersHistorical_eth:");
+  new RedisAdapter<TokenHoldersCountHistorical>('tokenHoldersHistorical_eth:');
 
 // Wrapper for fetch() with Coingecko API Key as Header
 export const coingeckoFetch = (input: string | URL, init?: RequestInit) =>
   fetch(input, {
     ...init,
     headers: {
-      "x-cg-pro-api-key": process.env.COINGECKO_API_KEY!,
+      'x-cg-pro-api-key': process.env.COINGECKO_API_KEY!,
     },
   });
 
 export const getTokenPrice = async (
-  tokenAddress: string
+  tokenAddress: string,
 ): Promise<TokenPriceObject> => {
   const cachedValue = await TokenPriceCache.get(tokenAddress);
   if (cachedValue) {
@@ -46,7 +46,7 @@ export const getTokenPrice = async (
   }
 
   const fetchResponse = await coingeckoFetch(
-    COINGECKO_TOKEN_DATA_BASE_URL(tokenAddress)
+    COINGECKO_TOKEN_DATA_BASE_URL(tokenAddress),
   );
 
   if (!fetchResponse.ok) {
@@ -80,7 +80,7 @@ export const getTokenPrice = async (
 
 export const getTokenHistoricalCharts = async (
   tokenAddress: string,
-  period: ValidPeriodTokenHistoricalCharts
+  period: ValidPeriodTokenHistoricalCharts,
 ): Promise<TokenHistoricalChartsObject> => {
   const cacheKey = `${tokenAddress}_${period}`;
   const cachedValue = await TokenHistoricalChartsCache.get(cacheKey);
@@ -90,12 +90,12 @@ export const getTokenHistoricalCharts = async (
   }
   const queryParams = new URLSearchParams({
     contract_addresses: tokenAddress,
-    vs_currency: "usd",
+    vs_currency: 'usd',
     days: periodToDaysMap[period],
   });
 
   const requestURL = `${COINGECKO_TOKEN_DATA_HISTORICAL_BASE_URL(
-    tokenAddress
+    tokenAddress,
   )}?${queryParams.toString()}`;
 
   const fetchResponse = await coingeckoFetch(requestURL);
@@ -114,16 +114,16 @@ export const getTokenHistoricalCharts = async (
 
 export const getTokenVolume = async (
   tokenAddress: string,
-  period: Exclude<ValidPeriodTokenHistoricalCharts, "max">
+  period: Exclude<ValidPeriodTokenHistoricalCharts, 'max'>,
 ): Promise<TokenVolumeObject> => {
   const cacheKey = `${tokenAddress}_${period}`;
   const cachedValue = await TokenVolumeCache.get(cacheKey);
   if (cachedValue) {
-    cachedValue;
+    return cachedValue;
   }
   const tokenHistoricalVolumeForPeriod = await getTokenHistoricalCharts(
     tokenAddress,
-    period
+    period,
   );
   const [volumes, length] = [
     tokenHistoricalVolumeForPeriod.total_volumes,
@@ -133,11 +133,11 @@ export const getTokenVolume = async (
   // 24 hour volume is on 5 minutes interval each, so we only need the last item which would have the volume of the entire day
 
   const total_volume = (() => {
-    if (period === "24h") {
+    if (period === '24h') {
       return volumes[length - 1][1];
     }
 
-    if (period === "7d" || period === "30d") {
+    if (period === '7d' || period === '30d') {
       // Under 90 days, volumes are hour apart. So we'll take the index 0, 24, 48 etc
       let totalVolume = 0;
 
@@ -160,14 +160,14 @@ export const getTokenVolume = async (
 };
 
 export const getTokenHoldersCurrent = async (
-  tokenAddress: string
+  tokenAddress: string,
 ): Promise<TokenHoldersCurrent> => {
   const cachedValue = await TokenHoldersCache.get(tokenAddress);
   if (cachedValue) {
     return cachedValue;
   }
   const fetchResponse = await coingeckoFetch(
-    COINGECKO_TOP_TOKEN_HOLDERS("eth", tokenAddress)
+    COINGECKO_TOP_TOKEN_HOLDERS('eth', tokenAddress),
   );
 
   if (!fetchResponse.ok) {
@@ -183,8 +183,8 @@ export const getTokenHoldersCurrent = async (
           // Top 10% holders hold x% of total supply, top 11-30% hold y% of total supply...
           distribution_percentage: {
             top_10: string;
-            "11_30": string;
-            "31_50": string;
+            '11_30': string;
+            '31_50': string;
             rest: string;
           };
           last_updated: string;
@@ -197,7 +197,7 @@ export const getTokenHoldersCurrent = async (
     total_holders: response.data.attributes.holders.count,
     distribution: response.data.attributes.holders.distribution_percentage,
     last_updated: new Date(
-      response.data.attributes.holders.last_updated
+      response.data.attributes.holders.last_updated,
     ).getTime(),
   };
 
@@ -208,7 +208,7 @@ export const getTokenHoldersCurrent = async (
 
 export const getTokenHoldersCountHistorical = async (
   tokenAddress: string,
-  period: ValidPeriodTokenHoldersCount
+  period: ValidPeriodTokenHoldersCount,
 ): Promise<TokenHoldersCountHistorical> => {
   const cacheKey = `${tokenAddress}_${period}`;
   const cachedValue = await TokenHoldersCountHistoricalCache.get(cacheKey);
@@ -221,8 +221,8 @@ export const getTokenHoldersCountHistorical = async (
     days: periodValue,
   });
   const requestUrl = `${COINGECKO_TOKEN_HOLDERS_COUNT_HISTORICAL_BASE_URL(
-    "eth",
-    tokenAddress
+    'eth',
+    tokenAddress,
   )}?${searchParams.toString()}`;
   const fetchResponse = await coingeckoFetch(requestUrl);
 
@@ -247,7 +247,7 @@ export const getTokenHoldersCountHistorical = async (
   await TokenHoldersCountHistoricalCache.setEx(
     cacheKey,
     TTL_1_HOUR,
-    holdersObject
+    holdersObject,
   );
   return holdersObject;
 };
@@ -256,18 +256,18 @@ export const COINGECKO_TOKEN_DATA_BASE_URL = (tokenAddress: string) =>
   `https://pro-api.coingecko.com/api/v3/coins/ethereum/contract/${tokenAddress}`;
 
 export const COINGECKO_TOKEN_DATA_HISTORICAL_BASE_URL = (
-  tokenAddress: string
+  tokenAddress: string,
 ) =>
   `https://pro-api.coingecko.com/api/v3/coins/ethereum/contract/${tokenAddress}/market_chart`;
 
 export const COINGECKO_TOKEN_HOLDERS_COUNT_HISTORICAL_BASE_URL = (
-  network: string = "eth",
-  tokenAddress: string
+  network: string = 'eth',
+  tokenAddress: string,
 ) =>
   `https://pro-api.coingecko.com/api/v3/onchain/networks/${network}/tokens/${tokenAddress}/holders_chart`;
 
 export const COINGECKO_TOP_TOKEN_HOLDERS = (
-  network: string = "eth",
-  tokenAddress: string
+  network: string = 'eth',
+  tokenAddress: string,
 ) =>
   `https://pro-api.coingecko.com/api/v3/onchain/networks/${network}/tokens/${tokenAddress}/info`;

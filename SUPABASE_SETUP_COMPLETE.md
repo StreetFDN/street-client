@@ -27,6 +27,7 @@ Railway should have automatically redeployed when you added the environment vari
 The backend is now ready to accept Supabase JWT tokens! You can test it:
 
 **Option A: Test with a Supabase JWT token**
+
 ```bash
 # Get a JWT token from your frontend/Supabase
 # Then test:
@@ -35,6 +36,7 @@ curl -H "Authorization: Bearer YOUR_SUPABASE_JWT_TOKEN" \
 ```
 
 **Option B: Test that session auth still works**
+
 - The existing GitHub OAuth flow should still work
 - Session-based authentication is still supported as a fallback
 
@@ -43,8 +45,11 @@ curl -H "Authorization: Bearer YOUR_SUPABASE_JWT_TOKEN" \
 If you have a frontend that needs to authenticate with this backend:
 
 1. **Get Supabase session token:**
+
    ```typescript
-   const { data: { session } } = await supabase.auth.getSession();
+   const {
+     data: { session },
+   } = await supabase.auth.getSession();
    const token = session?.access_token;
    ```
 
@@ -54,7 +59,7 @@ If you have a frontend that needs to authenticate with this backend:
      method: 'GET',
      headers: {
        'Content-Type': 'application/json',
-       'Authorization': token ? `Bearer ${token}` : '',
+       Authorization: token ? `Bearer ${token}` : '',
      },
      credentials: 'include', // Still include for session fallback
    });
@@ -80,17 +85,20 @@ When a request comes in:
 ## Troubleshooting
 
 **Backend not starting?**
+
 - Check Railway logs for errors
 - Verify environment variables are set correctly
 - Make sure `SUPABASE_URL` includes `https://`
 - Make sure `SUPABASE_ANON_KEY` is the full key (starts with `eyJ...`)
 
 **Authentication not working?**
+
 - Verify the JWT token is valid (check in Supabase dashboard)
 - Check backend logs for authentication errors
 - Make sure the token is sent in the `Authorization: Bearer <token>` format
 
 **Need to test locally?**
+
 - Add the same environment variables to your local `.env` file
 - Run `npm run dev` to test locally
 

@@ -1,30 +1,18 @@
 import { Request, Response, NextFunction } from 'express';
 import { trySupabaseAuth } from './supabaseAuth';
 
-// Extend Express Request type to include user
-declare global {
-  namespace Express {
-    interface Request {
-      userId?: string;
-      user?: {
-        id: string;
-        githubLogin: string;
-        name?: string;
-        email?: string;
-        avatarUrl?: string;
-      };
-    }
-  }
-}
-
 /**
  * Middleware to require authentication
  * Tries Supabase JWT auth first, then falls back to session auth
  */
-export async function requireAuth(req: Request, res: Response, next: NextFunction): Promise<void> {
+export async function requireAuth(
+  req: Request,
+  res: Response,
+  next: NextFunction,
+): Promise<void> {
   // First try Supabase auth
   const supabaseAuthSuccess = await trySupabaseAuth(req);
-  
+
   if (supabaseAuthSuccess) {
     return next();
   }
@@ -45,12 +33,13 @@ export async function requireAuth(req: Request, res: Response, next: NextFunctio
 /**
  * Middleware to optionally get user (doesn't require auth)
  */
-export function optionalAuth(req: Request, res: Response, next: NextFunction): void {
+export function optionalAuth(
+  req: Request,
+  res: Response,
+  next: NextFunction,
+): void {
   if (req.session && req.session.userId) {
     req.userId = req.session.userId;
   }
   next();
 }
-
-
-

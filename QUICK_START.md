@@ -5,6 +5,7 @@
 ### 1. Install PostgreSQL (choose one)
 
 **Option A: Docker (Recommended - Easiest)**
+
 ```bash
 docker run --name street-postgres \
   -e POSTGRES_PASSWORD=streetpass \
@@ -14,6 +15,7 @@ docker run --name street-postgres \
 ```
 
 **Option B: Local Installation (macOS)**
+
 ```bash
 brew install postgresql@15
 brew services start postgresql@15
@@ -25,12 +27,14 @@ The `.env` file is in your project root: `/Users/lukasgruber/street-client/.env`
 
 **For Docker (Option A):**
 Update this line in `.env`:
+
 ```env
 DATABASE_URL="postgresql://postgres:streetpass@localhost:5432/street_client?schema=public"
 ```
 
 **For Local PostgreSQL (Option B):**
 First create the database:
+
 ```bash
 createdb street_client
 # or
@@ -38,6 +42,7 @@ psql postgres -c "CREATE DATABASE street_client;"
 ```
 
 Then update `.env` with your credentials:
+
 ```env
 DATABASE_URL="postgresql://yourusername@localhost:5432/street_client?schema=public"
 # or if you have a password:
@@ -90,6 +95,7 @@ BASE_URL=http://localhost:3000
 ## Next Steps
 
 After database setup:
+
 1. ✅ Database is ready
 2. Create GitHub App (see SETUP.md)
 3. Add GitHub App credentials to `.env`

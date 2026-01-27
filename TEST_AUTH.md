@@ -5,6 +5,7 @@
 ### 1. Visit Your Site
 
 Open in browser:
+
 ```
 https://street-client-production.up.railway.app
 ```
@@ -12,10 +13,12 @@ https://street-client-production.up.railway.app
 ### 2. What You Should See
 
 **If authentication is NOT configured yet:**
+
 - You'll see an error message (check browser console)
 - Or a generic error page
 
 **If authentication IS configured:**
+
 - You should see a login page with:
   - "Welcome to Dev Update Engine" heading
   - "Login with GitHub" button
@@ -46,10 +49,12 @@ If something doesn't work:
 ## Expected Behavior
 
 ### Before Login
+
 - Shows login prompt
 - Cannot access any data
 
 ### After Login
+
 - Shows user info (avatar, name)
 - Shows repositories (if any)
 - Shows summaries (if any)
@@ -60,6 +65,7 @@ If something doesn't work:
 ## Troubleshooting
 
 ### "GitHub OAuth not configured"
+
 - Check Railway Variables:
   - `GITHUB_CLIENT_ID` is set
   - `GITHUB_CLIENT_SECRET` is set
@@ -67,16 +73,19 @@ If something doesn't work:
 - Redeploy if you just added them
 
 ### "Invalid redirect URI"
+
 - Check OAuth App callback URL in GitHub:
   - Should be exactly: `https://street-client-production.up.railway.app/api/auth/github/callback`
 
 ### No repositories showing
+
 - Install GitHub App on repositories first:
   - Go to: https://github.com/apps/dev-update-by-street-labs
   - Click "Install"
   - Select repositories
 
 ### Migration errors in logs
+
 - Check Railway logs for migration output
 - If migration failed, you may need to run it manually
 

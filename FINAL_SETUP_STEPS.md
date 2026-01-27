@@ -1,6 +1,7 @@
 # Final Setup Steps
 
 ## ✅ Completed
+
 - [x] GitHub OAuth App created
 - [x] Code changes implemented
 - [x] Database migration created locally
@@ -19,9 +20,11 @@ Go to Railway → street-client service → Variables tab, and add:
 
 3. **SESSION_SECRET**
    - Generate a random secret:
+
    ```bash
    openssl rand -hex 32
    ```
+
    - Copy the output and use it as the value
 
 ### Step 2: Commit & Push Code
@@ -57,6 +60,7 @@ This creates the `User` table and adds `userId` to `Client` table.
 ## 🎉 You're Done!
 
 After these steps, your system will be fully functional with:
+
 - ✅ User authentication
 - ✅ Protected routes
 - ✅ User-specific data
@@ -68,14 +72,17 @@ After these steps, your system will be fully functional with:
 ## Troubleshooting
 
 **"GitHub OAuth not configured"**
+
 - Check all three variables are set in Railway
 - Make sure variable names are exact (case-sensitive)
 
 **"Invalid state parameter"**
+
 - Clear cookies and try again
 - Check SESSION_SECRET is set
 
 **No repositories showing**
+
 - Make sure GitHub App is installed on your repositories
 - Check Railway logs for webhook events
 - Verify installation in GitHub App settings

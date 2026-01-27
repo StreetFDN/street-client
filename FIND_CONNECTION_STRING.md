@@ -34,6 +34,7 @@ The connection string section will have:
 3. **Select "Transaction" mode** (or "URI" mode)
 
 4. **Copy the connection string** - it will look like:
+
    ```
    postgresql://postgres.xxxxx:[YOUR-PASSWORD]@aws-0-us-east-1.pooler.supabase.com:6543/postgres
    ```
@@ -57,7 +58,8 @@ After you copy the connection string and replace `[YOUR-PASSWORD]`, add `?schema
 DATABASE_URL="postgresql://postgres.xxxxx:Sadzod-fythi6-wuvmyz@aws-0-us-east-1.pooler.supabase.com:6543/postgres?schema=public"
 ```
 
-**Important**: 
+**Important**:
+
 - Replace `xxxxx` with your actual project reference (from the connection string)
 - Use your password: `Sadzod-fythi6-wuvmyz`
 - Make sure `?schema=public` is at the end

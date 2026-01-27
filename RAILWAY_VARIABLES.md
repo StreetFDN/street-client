@@ -7,7 +7,7 @@ Railway often provides a ready-to-use connection string in the Variables tab!
 1. In Railway, click on your **Postgres** service
 2. Click on the **"Variables"** tab (in the service navigation)
 3. Look for:
-   - **"DATABASE_URL"** 
+   - **"DATABASE_URL"**
    - **"POSTGRES_URL"**
    - **"POSTGRES_PRIVATE_URL"**
    - **"POSTGRES_PUBLIC_URL"**
@@ -21,6 +21,7 @@ Just copy that DATABASE_URL value and update your `.env` file. It should already
 ## Current Connection String We're Using
 
 Based on what you showed me, we're using:
+
 ```
 postgresql://postgres:PASSWORD@tramway.proxy.rlwy.net:45858/railway?schema=public
 ```

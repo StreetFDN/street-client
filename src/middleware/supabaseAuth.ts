@@ -1,12 +1,13 @@
-import { Request, Response, NextFunction } from 'express';
+import { Request } from 'express';
 import { createClient } from '@supabase/supabase-js';
 import { config } from '../config';
 import { prisma } from '../db';
 
 // Initialize Supabase client (only if URL and key are provided)
-const supabase = config.supabase.url && config.supabase.anonKey
-  ? createClient(config.supabase.url, config.supabase.anonKey)
-  : null;
+const supabase =
+  config.supabase.url && config.supabase.anonKey
+    ? createClient(config.supabase.url, config.supabase.anonKey)
+    : null;
 
 /**
  * Attempts to authenticate using Supabase JWT token
@@ -25,11 +26,14 @@ export async function trySupabaseAuth(req: Request): Promise<boolean> {
   }
 
   const token = authHeader.substring(7);
-  
+
   try {
     // Verify the JWT token with Supabase
-    const { data: { user }, error } = await supabase.auth.getUser(token);
-    
+    const {
+      data: { user },
+      error,
+    } = await supabase.auth.getUser(token);
+
     if (error || !user) {
       return false;
     }
@@ -50,9 +54,9 @@ export async function trySupabaseAuth(req: Request): Promise<boolean> {
 
     // If not found, try to find by GitHub login (if user has GitHub provider)
     if (!backendUser && user.app_metadata?.provider === 'github') {
-      const githubLogin = user.user_metadata?.user_name || 
-                         user.user_metadata?.preferred_username;
-      
+      const githubLogin =
+        user.user_metadata?.user_name || user.user_metadata?.preferred_username;
+
       if (githubLogin) {
         backendUser = await prisma.user.findFirst({
           where: {
@@ -64,17 +68,19 @@ export async function trySupabaseAuth(req: Request): Promise<boolean> {
 
     // If still not found, create a new user
     if (!backendUser) {
-      const githubLogin = user.user_metadata?.user_name || 
-                         user.user_metadata?.preferred_username ||
-                         (user.email ? user.email.split('@')[0] : null);
+      const githubLogin =
+        user.user_metadata?.user_name ||
+        user.user_metadata?.preferred_username ||
+        (user.email ? user.email.split('@')[0] : null);
 
       backendUser = await prisma.user.create({
         data: {
           email: user.email || undefined,
-          name: user.user_metadata?.full_name || 
-                user.user_metadata?.name ||
-                (user.email ? user.email.split('@')[0] : null) || 
-                'User',
+          name:
+            user.user_metadata?.full_name ||
+            user.user_metadata?.name ||
+            (user.email ? user.email.split('@')[0] : null) ||
+            'User',
           githubLogin: githubLogin || undefined,
           avatarUrl: user.user_metadata?.avatar_url || undefined,
           supabaseId: user.id,

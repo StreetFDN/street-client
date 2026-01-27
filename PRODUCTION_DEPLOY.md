@@ -5,6 +5,7 @@
 ### Option 1: Deploy via GitHub (Recommended)
 
 1. **Push your code to GitHub:**
+
    ```bash
    git add .
    git commit -m "Initial commit"
@@ -45,11 +46,13 @@
 ### Option 2: Deploy via Railway CLI
 
 1. **Link your project:**
+
    ```bash
    railway link
    ```
 
 2. **Set environment variables:**
+
    ```bash
    railway variables set GITHUB_APP_ID=your_app_id
    railway variables set GITHUB_APP_PRIVATE_KEY="-----BEGIN RSA PRIVATE KEY-----\n...\n-----END RSA PRIVATE KEY-----"
@@ -60,6 +63,7 @@
    ```
 
 3. **Deploy:**
+
    ```bash
    railway up
    ```
@@ -121,16 +125,19 @@ After deployment:
 ## Troubleshooting
 
 ### Deployment fails
+
 - Check build logs in Railway
 - Ensure all dependencies are in `package.json`
 - Verify Node.js version (18+)
 
 ### Database connection fails
+
 - Check `DATABASE_URL` is correct
 - Ensure migrations have run
 - Verify Railway Postgres service is running
 
 ### Webhook not receiving events
+
 - Verify webhook URL is correct: `https://your-app.up.railway.app/webhooks/github`
 - Check Railway logs for incoming requests
 - Verify `GITHUB_APP_WEBHOOK_SECRET` matches GitHub App settings

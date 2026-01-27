@@ -50,6 +50,7 @@ SUPABASE_ANON_KEY=your-anon-key-here
 ```
 
 **Where to find these values:**
+
 - Go to your Supabase project dashboard
 - Settings → API
 - Copy the "Project URL" (SUPABASE_URL)
@@ -89,7 +90,9 @@ To use Supabase JWT authentication from your frontend, send requests with the Au
 
 ```typescript
 // Get Supabase session token
-const { data: { session } } = await supabase.auth.getSession();
+const {
+  data: { session },
+} = await supabase.auth.getSession();
 const token = session?.access_token;
 
 // Send request with Bearer token
@@ -97,7 +100,7 @@ const response = await fetch(`${backendUrl}/api/clients`, {
   method: 'GET',
   headers: {
     'Content-Type': 'application/json',
-    'Authorization': token ? `Bearer ${token}` : '',
+    Authorization: token ? `Bearer ${token}` : '',
   },
   credentials: 'include', // Still include credentials for session fallback
 });
@@ -114,6 +117,7 @@ The implementation maintains full backward compatibility:
 ## 🧪 Testing
 
 1. **Test Supabase JWT Auth:**
+
    ```bash
    # Get token from Supabase (in your frontend)
    # Then test API:

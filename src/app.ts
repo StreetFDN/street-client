@@ -9,7 +9,7 @@ import installationRoutes from './routes/installations';
 import repoRoutes from './routes/repos';
 import summaryRoutes from './routes/summaries';
 import syncRoutes from './routes/sync';
-import tokenRoutes from './routes/token'
+import tokenRoutes from './routes/token';
 import githubWebhookRoutes from './routes/webhooks/github';
 import { startScheduler } from './worker/scheduler';
 import { initRedis } from './utils/redis';
@@ -17,19 +17,25 @@ import { initRedis } from './utils/redis';
 const app = express();
 
 // Session configuration
-app.use(session({
-  secret: config.session.secret,
-  resave: false,
-  saveUninitialized: false,
-  cookie: {
-    secure: config.nodeEnv === 'production',
-    httpOnly: true,
-    maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
-  },
-}));
+app.use(
+  session({
+    secret: config.session.secret,
+    resave: false,
+    saveUninitialized: false,
+    cookie: {
+      secure: config.nodeEnv === 'production',
+      httpOnly: true,
+      maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+    },
+  }),
+);
 
 // Webhook endpoint needs raw body for signature verification
-app.use('/webhooks/github', express.raw({ type: 'application/json' }), githubWebhookRoutes);
+app.use(
+  '/webhooks/github',
+  express.raw({ type: 'application/json' }),
+  githubWebhookRoutes,
+);
 
 // Other API routes use JSON
 app.use(express.json());
@@ -56,7 +62,6 @@ app.get('/health', (req, res) => {
 
 // Start scheduler
 startScheduler();
-initRedis()
+initRedis();
 
 export default app;
-
