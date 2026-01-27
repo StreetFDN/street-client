@@ -14,7 +14,7 @@ From the GitHub App page, you need:
 
 - **App ID**: `2570214` ✅ (already visible)
 - **Private Key**: Contents of the `.pem` file you downloaded
-- **Webhook Secret**: 
+- **Webhook Secret**:
   - Go to **"Permissions & events"** in the left sidebar
   - Scroll to **"Webhook"** section
   - Copy the webhook secret you entered earlier
@@ -28,12 +28,14 @@ From the GitHub App page, you need:
 Add these three variables:
 
 **Variable 1:**
+
 ```
 Name: GITHUB_APP_ID
 Value: 2570214
 ```
 
 **Variable 2:**
+
 ```
 Name: GITHUB_APP_PRIVATE_KEY
 Value: -----BEGIN RSA PRIVATE KEY-----
@@ -42,11 +44,13 @@ Value: -----BEGIN RSA PRIVATE KEY-----
 ```
 
 **Important:** Copy the ENTIRE private key, including:
+
 - `-----BEGIN RSA PRIVATE KEY-----`
 - All the encoded lines in between
 - `-----END RSA PRIVATE KEY-----`
 
 **Variable 3:**
+
 ```
 Name: GITHUB_APP_WEBHOOK_SECRET
 Value: (your webhook secret from GitHub)
@@ -81,6 +85,7 @@ This creates all database tables.
 ## After This
 
 Once credentials are added and migrations are run, you're ready to:
+
 1. Install the GitHub App on repositories
 2. Webhooks will start working
 3. System will automatically track repos and generate summaries

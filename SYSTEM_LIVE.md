@@ -35,6 +35,7 @@ Your **Dev Update Engine** is now fully deployed and running on Railway!
 ### 2. What Happens Automatically
 
 Once installed on repositories:
+
 - ✅ Client and installation records created
 - ✅ Repository records created
 - ✅ **7-day backfill** triggered automatically
@@ -43,16 +44,19 @@ Once installed on repositories:
 ### 3. Query Summaries via API
 
 **Get all clients:**
+
 ```
 GET https://street-client-production.up.railway.app/api/clients
 ```
 
 **Get summaries for a repo:**
+
 ```
 GET https://street-client-production.up.railway.app/api/repos/{repoId}/summaries?from=2024-01-01&to=2024-01-31
 ```
 
 **Get aggregated summaries for a client:**
+
 ```
 GET https://street-client-production.up.railway.app/api/clients/{clientId}/summaries?from=2024-01-01
 ```

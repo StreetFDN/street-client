@@ -1,7 +1,9 @@
-import {PullRequestEventSchema} from "utils/validation/github";
-import {prisma} from "db";
+import { PullRequestEventSchema } from 'utils/validation/github';
+import { prisma } from 'db';
 
-export default async function handlePullRequestEvent(payload_data: any): Promise<void> {
+export default async function handlePullRequestEvent(
+  payload_data: any,
+): Promise<void> {
   const payload = PullRequestEventSchema.parse(payload_data);
   const pullRequest = payload.pull_request;
 
@@ -13,11 +15,13 @@ export default async function handlePullRequestEvent(payload_data: any): Promise
     where: {
       repoId: payload.repository.id,
       isEnabled: true,
-    }
+    },
   });
 
   if (repo == null) {
-    console.warn(`Received pull request for non-existent/disabled repository ${payload.repository.id}`);
+    console.warn(
+      `Received pull request for non-existent/disabled repository ${payload.repository.id}`,
+    );
     return;
   }
 
@@ -31,7 +35,7 @@ export default async function handlePullRequestEvent(payload_data: any): Promise
         title: pullRequest.title,
         url: pullRequest.url,
         author: pullRequest.user.login,
-      }
+      },
     });
   } catch (error) {
     console.error(`Failed to store pull request ${pullRequest.url}: `, error);

@@ -1,12 +1,15 @@
-import {ReleaseEvent, ReleaseEventSchema, SupportedReleaseAction} from "utils/validation/github";
-import {prisma} from "db";
-import {GitHubRepo} from "@prisma/client";
-
+import {
+  ReleaseEvent,
+  ReleaseEventSchema,
+  SupportedReleaseAction,
+} from 'utils/validation/github';
+import { prisma } from 'db';
+import { GitHubRepo } from '@prisma/client';
 
 type ActionHandler = (_: any, repo: GitHubRepo) => Promise<void>;
 const actionHandlers: Record<SupportedReleaseAction, ActionHandler> = {
-  'released': createRelease,
-  'deleted': deleteRelease,
+  released: createRelease,
+  deleted: deleteRelease,
 };
 
 export default async function handleRelease(payload_data: any): Promise<void> {
@@ -17,11 +20,13 @@ export default async function handleRelease(payload_data: any): Promise<void> {
     where: {
       repoId: payload.repository.id,
       isEnabled: true,
-    }
+    },
   });
 
   if (repo == null) {
-    console.warn(`Received release for non-existent/disabled repository ${payload.repository.id}`);
+    console.warn(
+      `Received release for non-existent/disabled repository ${payload.repository.id}`,
+    );
     return;
   }
 
@@ -29,25 +34,33 @@ export default async function handleRelease(payload_data: any): Promise<void> {
   if (handler != null) {
     await handler(payload, repo);
   } else {
-    console.info(`Got release action ${payload.action} without defined handler: ${payload.release.url}`);
+    console.info(
+      `Got release action ${payload.action} without defined handler: ${payload.release.url}`,
+    );
   }
 }
 
-async function deleteRelease(payload: ReleaseEvent, repo: GitHubRepo): Promise<void> {
+async function deleteRelease(
+  payload: ReleaseEvent,
+  repo: GitHubRepo,
+): Promise<void> {
   // NOTE: Deleting this mimics current implementation. As deleted releases are just not shown in the activity feed
   // at all. This can be changed if necessary, but IMO not worth rn.
   const deleted = await prisma.repoActivityEvent.deleteMany({
     where: {
       repoId: repo.id,
       type: 'release',
-      githubId: payload.release.id.toString()
-    }
+      githubId: payload.release.id.toString(),
+    },
   });
 
   console.log(`Deleted ${deleted.count} releases due to the event.`);
 }
 
-async function createRelease(payload: ReleaseEvent, repo: GitHubRepo): Promise<void> {
+async function createRelease(
+  payload: ReleaseEvent,
+  repo: GitHubRepo,
+): Promise<void> {
   const release = payload.release;
   const author = release.author;
 
@@ -55,11 +68,15 @@ async function createRelease(payload: ReleaseEvent, repo: GitHubRepo): Promise<v
     data: {
       githubId: payload.release.id.toString(),
       repoId: repo.id,
-      occurredAt: release.published_at ?? release.updated_at ?? release.created_at ?? new Date(),
+      occurredAt:
+        release.published_at ??
+        release.updated_at ??
+        release.created_at ??
+        new Date(),
       type: 'release',
       title: release.name,
       url: release.url,
       author: author.login,
-    }
+    },
   });
 }

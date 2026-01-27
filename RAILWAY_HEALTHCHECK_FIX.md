@@ -1,7 +1,9 @@
 # Railway Healthcheck Failure - Fix Guide
 
 ## Issue
+
 Deployment failed during "Network > Healthcheck" step. This usually means:
+
 1. Missing environment variables (app crashes on startup)
 2. Healthcheck endpoint not responding
 3. App not starting properly
@@ -13,6 +15,7 @@ Deployment failed during "Network > Healthcheck" step. This usually means:
 Go to Railway → Your Service → **Variables** tab, and add:
 
 **Minimum Required:**
+
 ```
 DATABASE_URL=your_postgres_connection_string
 PORT=3000
@@ -20,6 +23,7 @@ NODE_ENV=production
 ```
 
 **For GitHub App (add later after registration):**
+
 ```
 GITHUB_APP_ID=
 GITHUB_APP_PRIVATE_KEY=""
@@ -29,18 +33,21 @@ GITHUB_APP_WEBHOOK_SECRET=
 ### Step 2: Check Healthcheck Configuration
 
 The healthcheck is set to `/health` in `railway.json`. Make sure:
+
 - Your app has a `/health` endpoint (it does in `src/app.ts`)
 - The endpoint returns a 200 status code
 
 ### Step 3: Redeploy
 
 After adding environment variables:
+
 1. Railway should auto-redeploy
 2. Or manually trigger: Railway → Deployments → Redeploy
 
 ### Step 4: Check Deploy Logs
 
 If it still fails:
+
 1. Go to **"Deploy Logs"** tab
 2. Check for error messages
 3. Common issues:

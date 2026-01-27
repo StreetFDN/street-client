@@ -1,27 +1,37 @@
 import {
   AddedInstallationRepositoriesEvent,
   InstallationRepositoriesEvent,
-  InstallationRepositoriesEventSchema, RemovedInstallationRepositoriesEvent,
-  SupportedInstallationRepositoriesAction
-} from "utils/validation/github";
-import {prisma} from "db";
-import {config} from "config";
-import {backfillRepo} from "services/sync";
-import {createAppAuth} from "@octokit/auth-app";
-import {Octokit} from "@octokit/rest";
+  InstallationRepositoriesEventSchema,
+  RemovedInstallationRepositoriesEvent,
+  SupportedInstallationRepositoriesAction,
+} from 'utils/validation/github';
+import { prisma } from 'db';
+import { config } from 'config';
+import { backfillRepo } from 'services/sync';
+import { createAppAuth } from '@octokit/auth-app';
+import { Octokit } from '@octokit/rest';
 
-const actionHandlers: Record<SupportedInstallationRepositoriesAction, (_: any) => Promise<void>> = {
-  'added': handleAddedInstallationRepositoriesEvent,
-  'removed': handleRemovedInstallationRepositoriesEvent,
-}
+const actionHandlers: Record<
+  SupportedInstallationRepositoriesAction,
+  (_: any) => Promise<void>
+> = {
+  added: handleAddedInstallationRepositoriesEvent,
+  removed: handleRemovedInstallationRepositoriesEvent,
+};
 
-export default async function handleInstallationRepositoriesEvent(payload_data: any): Promise<void> {
-  const payload = InstallationRepositoriesEventSchema.parse(payload_data) as InstallationRepositoriesEvent;
+export default async function handleInstallationRepositoriesEvent(
+  payload_data: any,
+): Promise<void> {
+  const payload = InstallationRepositoriesEventSchema.parse(
+    payload_data,
+  ) as InstallationRepositoriesEvent;
 
   await actionHandlers[payload.action](payload);
 }
 
-async function handleAddedInstallationRepositoriesEvent(payload: AddedInstallationRepositoriesEvent): Promise<void> {
+async function handleAddedInstallationRepositoriesEvent(
+  payload: AddedInstallationRepositoriesEvent,
+): Promise<void> {
   const installation = payload.installation;
   const repositories_added = payload.repositories_added || [];
 
@@ -42,12 +52,12 @@ async function handleAddedInstallationRepositoriesEvent(payload: AddedInstallati
     privateKey: config.github.privateKey,
   });
 
-  const {token} = await auth({
+  const { token } = await auth({
     type: 'installation',
     installationId: installation.id,
   });
 
-  const octokit = new Octokit({auth: token});
+  const octokit = new Octokit({ auth: token });
 
   for (const repo of repositories_added) {
     try {
@@ -82,12 +92,19 @@ async function handleAddedInstallationRepositoriesEvent(payload: AddedInstallati
       // Trigger backfill for newly added repo
       await backfillRepo(githubRepo.id);
     } catch (error) {
-      console.error(`Error processing repo ${(repo as any).owner.login}/${repo.name}:`, error);
+      console.error(
+        `Error processing repo ${(repo as any).owner.login}/${repo.name}:`,
+        error,
+      );
     }
   }
 }
 
-async function handleRemovedInstallationRepositoriesEvent(payload: RemovedInstallationRepositoriesEvent): Promise<void> {
+async function handleRemovedInstallationRepositoriesEvent(
+  payload: RemovedInstallationRepositoriesEvent,
+): Promise<void> {
   // Handle repository removal if needed
-  console.log(`Repositories removed from installation ${payload.installation.id}`);
+  console.log(
+    `Repositories removed from installation ${payload.installation.id}`,
+  );
 }

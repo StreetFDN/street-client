@@ -25,11 +25,13 @@
 ## What Changes
 
 **Before (Template-based):**
+
 ```
 "3 pull requests merged, including "Fix user authentication bug"."
 ```
 
 **After (LLM-powered):**
+
 ```
 "Development focused on authentication improvements, with three pull requests merged including fixes for user authentication bugs and related security enhancements."
 ```
@@ -40,7 +42,7 @@
 
 ✅ Your API key is now stored securely in Railway's environment variables  
 ✅ It won't be exposed in code or logs  
-✅ Only your application can access it  
+✅ Only your application can access it
 
 ---
 

@@ -15,12 +15,12 @@ The connection string you have uses `postgres.railway.internal` which only works
 ### Option 2: Check Variables Tab Again
 
 1. Click on your **PostgreSQL** service
-2. Go to **"Variables"** tab  
+2. Go to **"Variables"** tab
 3. Look for:
    - **"POSTGRES_URL"** (might be public)
    - **"DATABASE_URL"** (might have both internal and external)
    - Scroll down to see if there's a separate **"Public URL"
-   ** variable
+     ** variable
 
 ### Option 3: Use Railway CLI (Alternative)
 
@@ -45,6 +45,7 @@ Then use: `postgresql://postgres:ZxnOjKmXLNKWpBUlTeUZIeZCCAgqOmLo@localhost:5432
 ## What the External URL Looks Like
 
 The external URL will have a domain like:
+
 - `containers-us-west-xxx.railway.app`
 - `xxxx.up.railway.app`
 - `xxxx.railway.app`

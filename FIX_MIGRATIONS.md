@@ -33,6 +33,7 @@ railway run npm run migrate:deploy
 ## After Running Migrations
 
 Once migrations complete:
+
 - ✅ Tables will be created
 - ✅ Frontend will work
 - ✅ Webhooks will work
@@ -43,6 +44,7 @@ Once migrations complete:
 ## Verify It Worked
 
 After running migrations, try:
+
 1. Visit frontend: `https://street-client-production.up.railway.app`
 2. Should show "No clients found" (instead of error)
 3. Or check health endpoint: `/health`

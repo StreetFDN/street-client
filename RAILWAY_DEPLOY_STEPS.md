@@ -52,6 +52,7 @@ OPENAI_API_KEY=(optional)
 ```
 
 **Important:** You can add GitHub App credentials later - for now, just add:
+
 - `DATABASE_URL` (copy from your Postgres service)
 - `PORT=3000`
 - `NODE_ENV=production`
@@ -65,6 +66,7 @@ npm run migrate
 ```
 
 Or use CLI:
+
 ```bash
 railway run npm run migrate
 ```
@@ -79,6 +81,7 @@ railway run npm run migrate
 ## Step 6: Complete GitHub App Registration
 
 Now use your production webhook URL:
+
 - **Webhook URL**: `https://your-app.up.railway.app/webhooks/github`
 - Complete the GitHub App registration
 - Add the credentials to Railway Variables

@@ -2,7 +2,14 @@ import { Octokit } from '@octokit/rest';
 import { getInstallationOctokit } from './auth';
 
 export interface ActivityEvent {
-  type: 'commit' | 'pr_merged' | 'pr_opened' | 'issue_closed' | 'release' | 'tag' | 'ci';
+  type:
+    | 'commit'
+    | 'pr_merged'
+    | 'pr_opened'
+    | 'issue_closed'
+    | 'release'
+    | 'tag'
+    | 'ci';
   title: string;
   url: string;
   author: string | null;
@@ -34,7 +41,7 @@ export async function fetchRepoActivity(
   owner: string,
   repo: string,
   windowStart: Date,
-  windowEnd: Date
+  windowEnd: Date,
 ): Promise<ActivityPacket> {
   const octokit = await getInstallationOctokit(installationId);
 
@@ -86,8 +93,14 @@ export async function fetchRepoActivity(
     });
 
     for (const release of releasesResponse.data) {
-      const publishedAt = release.published_at ? new Date(release.published_at) : null;
-      if (publishedAt && publishedAt >= windowStart && publishedAt <= windowEnd) {
+      const publishedAt = release.published_at
+        ? new Date(release.published_at)
+        : null;
+      if (
+        publishedAt &&
+        publishedAt >= windowStart &&
+        publishedAt <= windowEnd
+      ) {
         releases.push({
           type: 'release',
           title: release.name || release.tag_name,
@@ -117,19 +130,28 @@ export async function fetchRepoActivity(
     });
 
     for (const commit of commitsResponse.data) {
-      const commitDate = new Date(commit.commit.author?.date || commit.commit.committer?.date || Date.now());
+      const commitDate = new Date(
+        commit.commit.author?.date ||
+          commit.commit.committer?.date ||
+          Date.now(),
+      );
       if (commitDate >= windowStart && commitDate <= windowEnd) {
         const message = commit.commit.message.split('\n')[0]; // First line only
-        
+
         // Skip merge commits and dependabot/automated commits unless they're the only activity
-        const isMergeCommit = message.toLowerCase().startsWith('merge') || 
-                              message.toLowerCase().startsWith('merging');
-        const isAutomated = commit.author?.login?.includes('dependabot') || 
-                           commit.author?.login?.includes('bot') ||
-                           commit.commit.author?.name?.includes('bot');
-        
+        const isMergeCommit =
+          message.toLowerCase().startsWith('merge') ||
+          message.toLowerCase().startsWith('merging');
+        const isAutomated =
+          commit.author?.login?.includes('dependabot') ||
+          commit.author?.login?.includes('bot') ||
+          commit.commit.author?.name?.includes('bot');
+
         // Only skip if we have PRs - if no PRs, include everything to show activity
-        if (!isMergeCommit && (!isAutomated || (mergedPRs.length === 0 && releases.length === 0))) {
+        if (
+          !isMergeCommit &&
+          (!isAutomated || (mergedPRs.length === 0 && releases.length === 0))
+        ) {
           commits.push({
             type: 'commit',
             title: message,

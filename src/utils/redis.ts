@@ -1,8 +1,8 @@
-import { createClient } from "redis";
+import { createClient } from 'redis';
 import {
   TokenHistoricalChartsObject,
   TokenPriceObject,
-} from "../types/routes/token";
+} from '../types/routes/token';
 
 type RedisClient = ReturnType<typeof createClient>;
 
@@ -10,37 +10,37 @@ let client: RedisClient | null = null;
 
 export async function initRedis(): Promise<void> {
   if (client) {
-    console.log("Redis client already initialized");
+    console.log('Redis client already initialized');
     return;
   }
 
   client = createClient({
-    url: process.env.REDIS_URL || "redis://localhost:6379",
+    url: process.env.REDIS_URL || 'redis://localhost:6379',
     socket: {
       reconnectStrategy: (retries) => {
         if (retries > 10) {
-          console.error("Redis: Too many reconnection attempts");
-          return new Error("Too many reconnection attempts");
+          console.error('Redis: Too many reconnection attempts');
+          return new Error('Too many reconnection attempts');
         }
         return Math.min(retries * 100, 3000);
       },
     },
   });
 
-  client.on("error", (err) => {
-    console.error("Redis Client Error:", err);
+  client.on('error', (err) => {
+    console.error('Redis Client Error:', err);
   });
 
-  client.on("connect", () => {
-    console.log("Redis client connected");
+  client.on('connect', () => {
+    console.log('Redis client connected');
   });
 
-  client.on("reconnecting", () => {
-    console.log("Redis client reconnecting...");
+  client.on('reconnecting', () => {
+    console.log('Redis client reconnecting...');
   });
 
   await client.connect();
-  console.log("Redis initialized and ready");
+  console.log('Redis initialized and ready');
 }
 
 /**
@@ -49,7 +49,7 @@ export async function initRedis(): Promise<void> {
  */
 export function getRedisClient(): RedisClient {
   if (!client) {
-    throw new Error("Redis client not initialized. Call initRedis() first.");
+    throw new Error('Redis client not initialized. Call initRedis() first.');
   }
   return client;
 }
@@ -62,7 +62,7 @@ export async function closeRedis(): Promise<void> {
   if (client) {
     await client.quit();
     client = null;
-    console.log("Redis connection closed");
+    console.log('Redis connection closed');
   }
 }
 
@@ -84,7 +84,7 @@ type Serializable = Primitive | object;
  */
 export class RedisAdapter<T extends Serializable> {
   prefix: string;
-  constructor(prefix: string = "") {
+  constructor(prefix: string = '') {
     this.prefix = prefix;
   }
 

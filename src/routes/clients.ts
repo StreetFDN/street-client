@@ -28,7 +28,7 @@ router.get('/clients', requireAuth, async (req: Request, res: Response) => {
     });
 
     res.json(
-      clients.map(client => ({
+      clients.map((client) => ({
         id: client.id,
         name: client.name,
         counts: {
@@ -37,7 +37,7 @@ router.get('/clients', requireAuth, async (req: Request, res: Response) => {
         },
         createdAt: client.createdAt,
         updatedAt: client.updatedAt,
-      }))
+      })),
     );
   } catch (error) {
     console.error('Error listing clients:', error);
@@ -49,61 +49,65 @@ router.get('/clients', requireAuth, async (req: Request, res: Response) => {
  * GET /api/clients/:clientId
  * Get client details (must belong to authenticated user)
  */
-router.get('/clients/:clientId', requireAuth, async (req: Request, res: Response) => {
-  try {
-    const { clientId } = req.params;
+router.get(
+  '/clients/:clientId',
+  requireAuth,
+  async (req: Request, res: Response) => {
+    try {
+      const { clientId } = req.params;
 
-    const client = await prisma.client.findFirst({
-      where: { 
-        id: clientId,
-        userId: req.userId || undefined,
-      },
-      include: {
-        installations: {
-          include: {
-            _count: {
-              select: {
-                repos: true,
+      const client = await prisma.client.findFirst({
+        where: {
+          id: clientId,
+          userId: req.userId || undefined,
+        },
+        include: {
+          installations: {
+            include: {
+              _count: {
+                select: {
+                  repos: true,
+                },
               },
             },
           },
-        },
-        repos: {
-          include: {
-            installation: true,
+          repos: {
+            include: {
+              installation: true,
+            },
+          },
+          _count: {
+            select: {
+              installations: true,
+              repos: true,
+            },
           },
         },
-        _count: {
-          select: {
-            installations: true,
-            repos: true,
-          },
-        },
-      },
-    });
+      });
 
-    if (!client) {
-      return res.status(404).json({ error: 'Client not found' });
+      if (!client) {
+        return res.status(404).json({ error: 'Client not found' });
+      }
+
+      res.json({
+        id: client.id,
+        name: client.name,
+        installations: client.installations.map((inst) => ({
+          id: inst.id,
+          installationId: inst.installationId,
+          accountLogin: inst.accountLogin,
+          repoCount: inst._count.repos,
+        })),
+        repoCount: client._count.repos,
+        createdAt: client.createdAt,
+        updatedAt: client.updatedAt,
+      });
+    } catch (error) {
+      console.error('Error getting client:', error);
+      res.status(500).json({ error: 'Internal server error' });
     }
-
-    res.json({
-      id: client.id,
-      name: client.name,
-      installations: client.installations.map(inst => ({
-        id: inst.id,
-        installationId: inst.installationId,
-        accountLogin: inst.accountLogin,
-        repoCount: inst._count.repos,
-      })),
-      repoCount: client._count.repos,
-      createdAt: client.createdAt,
-      updatedAt: client.updatedAt,
-    });
-  } catch (error) {
-    console.error('Error getting client:', error);
-    res.status(500).json({ error: 'Internal server error' });
-  }
-});
+  },
+);
 
 /**
  * POST /api/clients
@@ -118,7 +122,7 @@ router.post('/clients', requireAuth, async (req: Request, res: Response) => {
     }
 
     const client = await prisma.client.create({
-      data: { 
+      data: {
         name,
         userId: req.userId!,
       },

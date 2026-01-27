@@ -17,11 +17,14 @@ router.post('/trigger', requireAuth, async (req: Request, res: Response) => {
       .then(() => {
         console.log('Manual sync completed successfully');
       })
-      .catch(error => {
+      .catch((error) => {
         console.error('Error in manual sync:', error);
       });
 
-    res.json({ message: 'Sync started for all enabled repos', status: 'started' });
+    res.json({
+      message: 'Sync started for all enabled repos',
+      status: 'started',
+    });
   } catch (error) {
     console.error('Error triggering sync:', error);
     res.status(500).json({ error: 'Internal server error' });
@@ -32,40 +35,44 @@ router.post('/trigger', requireAuth, async (req: Request, res: Response) => {
  * POST /api/sync/repos/:repoId
  * Manually trigger a sync for a specific repo (last 24 hours)
  */
-router.post('/repos/:repoId', requireAuth, async (req: Request, res: Response) => {
-  try {
-    const { repoId } = req.params;
+router.post(
+  '/repos/:repoId',
+  requireAuth,
+  async (req: Request, res: Response) => {
+    try {
+      const { repoId } = req.params;
 
-    const repo = await prisma.gitHubRepo.findUnique({
-      where: { id: repoId },
-      include: {
-        client: true,
-      },
-    });
+      const repo = await prisma.gitHubRepo.findUnique({
+        where: { id: repoId },
+        include: {
+          client: true,
+        },
+      });
 
-    if (!repo) {
-      return res.status(404).json({ error: 'Repo not found' });
+      if (!repo) {
+        return res.status(404).json({ error: 'Repo not found' });
+      }
+
+      // Verify repo belongs to user
+      if (repo.client.userId !== req.userId) {
+        return res.status(403).json({ error: 'Access denied' });
+      }
+
+      // Sync last 24 hours
+      const windowEnd = new Date();
+      const windowStart = new Date(windowEnd.getTime() - 24 * 60 * 60 * 1000);
+
+      // Run sync asynchronously
+      syncRepo(repo.id, windowStart, windowEnd, 'daily').catch((error) => {
+        console.error(`Error syncing repo ${repoId}:`, error);
+      });
+
+      res.json({ message: 'Sync started', repoId });
+    } catch (error) {
+      console.error('Error triggering repo sync:', error);
+      res.status(500).json({ error: 'Internal server error' });
     }
-
-    // Verify repo belongs to user
-    if (repo.client.userId !== req.userId) {
-      return res.status(403).json({ error: 'Access denied' });
-    }
-
-    // Sync last 24 hours
-    const windowEnd = new Date();
-    const windowStart = new Date(windowEnd.getTime() - 24 * 60 * 60 * 1000);
-
-    // Run sync asynchronously
-    syncRepo(repo.id, windowStart, windowEnd, 'daily').catch(error => {
-      console.error(`Error syncing repo ${repoId}:`, error);
-    });
-
-    res.json({ message: 'Sync started', repoId });
-  } catch (error) {
-    console.error('Error triggering repo sync:', error);
-    res.status(500).json({ error: 'Internal server error' });
-  }
-});
+  },
+);
 
 export default router;

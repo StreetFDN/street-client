@@ -21,10 +21,14 @@ declare global {
  * Middleware to require authentication
  * Tries Supabase JWT auth first, then falls back to session auth
  */
-export async function requireAuth(req: Request, res: Response, next: NextFunction): Promise<void> {
+export async function requireAuth(
+  req: Request,
+  res: Response,
+  next: NextFunction,
+): Promise<void> {
   // First try Supabase auth
   const supabaseAuthSuccess = await trySupabaseAuth(req);
-  
+
   if (supabaseAuthSuccess) {
     return next();
   }
@@ -45,12 +49,13 @@ export async function requireAuth(req: Request, res: Response, next: NextFunctio
 /**
  * Middleware to optionally get user (doesn't require auth)
  */
-export function optionalAuth(req: Request, res: Response, next: NextFunction): void {
+export function optionalAuth(
+  req: Request,
+  res: Response,
+  next: NextFunction,
+): void {
   if (req.session && req.session.userId) {
     req.userId = req.session.userId;
   }
   next();
 }
-
-
-

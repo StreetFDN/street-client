@@ -31,6 +31,7 @@ If it still doesn't show:
 ### Option 4: Check Repository Visibility
 
 Make sure:
+
 - Repository exists: https://github.com/StreetFDN/street-client
 - You have access to the StreetFDN organization
 - Railway is authorized to access StreetFDN's repositories
@@ -50,6 +51,7 @@ Make sure:
 ## If Still Not Working:
 
 Try refreshing the page or:
+
 1. Go to Railway Dashboard
 2. Click "+ New"
 3. Select "Empty Project"

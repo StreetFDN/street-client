@@ -38,6 +38,7 @@ npm run studio   # Open Prisma Studio (database GUI)
 ## Start Server for GitHub App Testing
 
 1. **Terminal 1 - Start Server:**
+
    ```bash
    cd /Users/lukasgruber/street-client
    npm run dev

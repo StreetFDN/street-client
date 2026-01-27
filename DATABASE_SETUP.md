@@ -5,27 +5,31 @@
 ### Option 1: Using PostgreSQL locally
 
 1. **Check if PostgreSQL is installed:**
+
    ```bash
    psql --version
    ```
 
 2. **If not installed (macOS):**
+
    ```bash
    brew install postgresql@15
    brew services start postgresql@15
    ```
 
 3. **Create the database:**
+
    ```bash
    # Connect to PostgreSQL (default user is usually your system user or 'postgres')
    psql postgres
-   
+
    # In PostgreSQL prompt, create database:
    CREATE DATABASE street_client;
    \q
    ```
 
 4. **Update your .env file:**
+
    ```bash
    # Open .env file
    # Update DATABASE_URL with your credentials:
@@ -46,6 +50,7 @@
 ### Option 2: Using Docker (easiest)
 
 1. **Run PostgreSQL in Docker:**
+
    ```bash
    docker run --name street-postgres \
      -e POSTGRES_PASSWORD=streetpass \
@@ -55,6 +60,7 @@
    ```
 
 2. **Update .env:**
+
    ```env
    DATABASE_URL="postgresql://postgres:streetpass@localhost:5432/street_client?schema=public"
    ```
@@ -82,18 +88,22 @@
 ## Troubleshooting
 
 ### "psql: command not found"
+
 - Install PostgreSQL (see Option 1 above)
 - Or use Docker (Option 2)
 
 ### "password authentication failed"
+
 - Check your username and password
 - Try connecting manually first: `psql -U username -d postgres`
 - On macOS, you might not need a password if using your system user
 
 ### "database already exists"
+
 - That's fine! Just continue with migrations
 
 ### "connection refused"
+
 - Make sure PostgreSQL is running: `brew services list` (macOS)
 - Check if PostgreSQL is listening: `lsof -i :5432`
 - Restart PostgreSQL: `brew services restart postgresql@15`
@@ -101,6 +111,7 @@
 ### Connection String Format
 
 The format is always:
+
 ```
 postgresql://username:password@host:port/database_name?schema=public
 ```

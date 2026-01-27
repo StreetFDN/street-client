@@ -7,11 +7,9 @@
 3. In the left sidebar, click **Settings** (gear icon)
 4. Click **API** in the settings menu
 5. You'll see two values you need:
-
    - **Project URL** - This is your `SUPABASE_URL`
      - Format: `https://xxxxx.supabase.co`
      - Copy this entire URL
-   
    - **anon public** key - This is your `SUPABASE_ANON_KEY`
      - It's a long string starting with `eyJ...`
      - Click the "Reveal" button or copy icon to copy it
@@ -48,6 +46,7 @@ railway variables set SUPABASE_ANON_KEY="your-anon-key-here"
 ```
 
 **Note**: Make sure you're in the correct project:
+
 ```bash
 railway link  # Link to your project if needed
 railway variables  # List current variables

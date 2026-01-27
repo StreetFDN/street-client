@@ -19,7 +19,7 @@ This service connects to GitHub repositories via GitHub App and generates daily 
 
 ### Prerequisites
 
-- Node.js 18+ 
+- Node.js 18+
 - PostgreSQL database
 - GitHub App (see below)
 - OpenAI API key (optional, for LLM summaries)
@@ -75,6 +75,7 @@ npm run migrate   # Run database migrations
    - Copy the **Webhook secret**
 
 6. Add to `.env`:
+
 ```env
 GITHUB_APP_ID=your_app_id
 GITHUB_APP_PRIVATE_KEY="-----BEGIN RSA PRIVATE KEY-----\n...\n-----END RSA PRIVATE KEY-----"
@@ -109,6 +110,7 @@ npm start
 ### 1. Install GitHub App
 
 Users/organizations install your GitHub App on their repositories. When installed, webhooks will automatically:
+
 - Create a client record
 - Create installation record
 - List available repos
@@ -117,11 +119,13 @@ Users/organizations install your GitHub App on their repositories. When installe
 ### 2. API Endpoints
 
 #### Health Check
+
 ```
 GET /health
 ```
 
 #### Clients
+
 ```
 GET    /api/clients
 GET    /api/clients/:clientId
@@ -129,6 +133,7 @@ POST   /api/clients
 ```
 
 #### Installations
+
 ```
 GET    /api/installations
 GET    /api/clients/:clientId/installations
@@ -136,6 +141,7 @@ GET    /api/installations/:installationId/repos
 ```
 
 #### Repositories
+
 ```
 GET    /api/clients/:clientId/repos
 GET    /api/repos/:repoId
@@ -145,6 +151,7 @@ POST   /api/repos/:repoId/backfill
 ```
 
 #### Summaries
+
 ```
 GET    /api/repos/:repoId/summaries?from=2024-01-01&to=2024-01-31
 GET    /api/clients/:clientId/repos/:repoId/summaries?from=2024-01-01&to=2024-01-31
@@ -195,6 +202,7 @@ curl http://localhost:3000/api/clients/CLIENT_ID/summaries?from=2024-01-01
 ### Backfill Process
 
 When a repo is first connected:
+
 1. Generate 7 calendar days (today - 6 days back to today)
 2. For each day (00:00 to 23:59 UTC):
    - Fetch activity

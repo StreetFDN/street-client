@@ -1,40 +1,50 @@
 import {
-  CreatedInstallationEvent, DeletedInstallationEvent,
+  CreatedInstallationEvent,
+  DeletedInstallationEvent,
   InstallationEvent,
   InstallationEventSchema,
-  SupportedInstallationAction
-} from "utils/validation/github";
-import {prisma} from "db";
-import {backfillRepo} from "services/sync";
-import {createAppAuth} from "@octokit/auth-app";
-import {config} from "config";
-import {Octokit} from "@octokit/rest";
+  SupportedInstallationAction,
+} from 'utils/validation/github';
+import { prisma } from 'db';
+import { backfillRepo } from 'services/sync';
+import { createAppAuth } from '@octokit/auth-app';
+import { config } from 'config';
+import { Octokit } from '@octokit/rest';
 
-const actionHandlers: Record<SupportedInstallationAction, (payload: any) => Promise<void>> = {
-  'created': handleCreateInstallationAction,
-  'deleted': handleDeletedInstallationAction,
+const actionHandlers: Record<
+  SupportedInstallationAction,
+  (payload: any) => Promise<void>
+> = {
+  created: handleCreateInstallationAction,
+  deleted: handleDeletedInstallationAction,
 };
 
-export default async function handleInstallationEvent(payload_data: any): Promise<void> {
-  const payload = InstallationEventSchema.parse(payload_data) as InstallationEvent;
+export default async function handleInstallationEvent(
+  payload_data: any,
+): Promise<void> {
+  const payload = InstallationEventSchema.parse(
+    payload_data,
+  ) as InstallationEvent;
 
   await actionHandlers[payload.action](payload);
 }
 
-async function handleCreateInstallationAction(payload: CreatedInstallationEvent): Promise<void> {
+async function handleCreateInstallationAction(
+  payload: CreatedInstallationEvent,
+): Promise<void> {
   const installation = payload.installation;
   const account = payload.installation.account;
 
   // Try to find user by GitHub login first
   let user = await prisma.user.findUnique({
-    where: {githubLogin: account.login},
+    where: { githubLogin: account.login },
   });
 
   // If not found, try to find by email (from GitHub account)
   // This helps link Supabase users who haven't logged in via GitHub OAuth yet
   if (!user && account.email) {
     user = await prisma.user.findFirst({
-      where: {email: account.email},
+      where: { email: account.email },
     });
   }
 
@@ -59,8 +69,8 @@ async function handleCreateInstallationAction(payload: CreatedInstallationEvent)
   } else if (user && !client.userId) {
     // Link existing client to user if user found (by login or email)
     client = await prisma.client.update({
-      where: {id: client.id},
-      data: {userId: user.id},
+      where: { id: client.id },
+      data: { userId: user.id },
     });
   }
 
@@ -89,12 +99,12 @@ async function handleCreateInstallationAction(payload: CreatedInstallationEvent)
       privateKey: config.github.privateKey,
     });
 
-    const {token} = await auth({
+    const { token } = await auth({
       type: 'installation',
       installationId: installation.id,
     });
 
-    const octokit = new Octokit({auth: token});
+    const octokit = new Octokit({ auth: token });
     const response = await octokit.rest.apps.listReposAccessibleToInstallation({
       per_page: 100,
     });
@@ -122,7 +132,10 @@ async function handleCreateInstallationAction(payload: CreatedInstallationEvent)
 
         console.log(`Repo synced: ${repo.owner.login}/${repo.name}`);
       } catch (error) {
-        console.error(`Error processing repo ${repo.owner.login}/${repo.name}:`, error);
+        console.error(
+          `Error processing repo ${repo.owner.login}/${repo.name}:`,
+          error,
+        );
       }
     }
 
@@ -137,16 +150,21 @@ async function handleCreateInstallationAction(payload: CreatedInstallationEvent)
     });
 
     for (const repo of newRepos) {
-      backfillRepo(repo.id).catch(error => {
+      backfillRepo(repo.id).catch((error) => {
         console.error(`Error backfilling repo ${repo.id}:`, error);
       });
     }
   } catch (error) {
-    console.error(`Error fetching repos for installation ${installation.id}:`, error);
+    console.error(
+      `Error fetching repos for installation ${installation.id}:`,
+      error,
+    );
   }
 }
 
-async function handleDeletedInstallationAction(payload: DeletedInstallationEvent): Promise<void> {
+async function handleDeletedInstallationAction(
+  payload: DeletedInstallationEvent,
+): Promise<void> {
   const installationId = payload.installation.id;
 
   await prisma.gitHubInstallation.updateMany({
@@ -155,29 +173,33 @@ async function handleDeletedInstallationAction(payload: DeletedInstallationEvent
     },
     data: {
       revokedAt: new Date(),
-    }
+    },
   });
 
-  const revokedInstallations = (await prisma.gitHubInstallation.findMany({
-    select: {
-      id: true,
-    },
-    where: {
-      installationId
-    }
-  })).map(({id}) => id);
+  const revokedInstallations = (
+    await prisma.gitHubInstallation.findMany({
+      select: {
+        id: true,
+      },
+      where: {
+        installationId,
+      },
+    })
+  ).map(({ id }) => id);
 
-// Disable all repositories associated with this installation.
+  // Disable all repositories associated with this installation.
   const disabledRepos = await prisma.gitHubRepo.updateMany({
     where: {
       installationId: {
         in: revokedInstallations,
-      }
+      },
     },
     data: {
       isEnabled: false,
-    }
+    },
   });
 
-  console.log(`Installation revoked: ${installationId}; ${disabledRepos.count} associated repos disabled.`);
+  console.log(
+    `Installation revoked: ${installationId}; ${disabledRepos.count} associated repos disabled.`,
+  );
 }

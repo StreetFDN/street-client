@@ -6,7 +6,9 @@ import { config } from '../../config';
  * Creates an Octokit instance authenticated as the GitHub App
  * for installation-level API calls
  */
-export async function getInstallationOctokit(installationId: number): Promise<Octokit> {
+export async function getInstallationOctokit(
+  installationId: number,
+): Promise<Octokit> {
   const auth = createAppAuth({
     appId: config.github.appId,
     privateKey: config.github.privateKey,

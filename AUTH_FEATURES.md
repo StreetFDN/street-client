@@ -6,17 +6,19 @@
 ✅ **Protected Routes** - API endpoints require authentication  
 ✅ **User-Scoped Data** - Users only see their own repositories  
 ✅ **Session Management** - Secure server-side sessions  
-✅ **Frontend Login** - Beautiful login UI  
+✅ **Frontend Login** - Beautiful login UI
 
 ---
 
 ## Database Changes
 
 ### New `User` Model
+
 - Stores GitHub user information
 - Links to clients via `userId` field
 
 ### Updated `Client` Model
+
 - Added optional `userId` field
 - Links clients to authenticated users
 
@@ -91,6 +93,7 @@ See `GITHUB_OAUTH_SETUP.md` for detailed setup instructions.
 ## User-Installation Linking
 
 When GitHub App is installed:
+
 - System looks for user with matching `githubLogin`
 - If found → Links installation to that user
 - If not found → Creates client without user (links when user logs in)

@@ -8,7 +8,7 @@ Railway provides two types of connection strings:
    - Only works from within Railway's network
    - Won't work from your local machine
 
-2. **External URL** (what you need for local dev): 
+2. **External URL** (what you need for local dev):
    - Usually something like: `containers-us-west-xxx.railway.app` or `xxxx.up.railway.app`
    - Works from anywhere
 

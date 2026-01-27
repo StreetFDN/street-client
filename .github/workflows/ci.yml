@@ -42,14 +42,14 @@ jobs:
       # Bring up required docker services (db/redis/etc.)
       - name: Start docker dependencies
         run: |
-         docker compose -f docker-compose.dev.yml up -d
-         docker compose -f docker-compose.dev.yml ps
+          docker compose -f docker-compose.dev.yml up -d
+          docker compose -f docker-compose.dev.yml ps
 
       # Run built app and check /health
       - name: Start app (from dist)
         env:
           NODE_ENV: production
-          DATABASE_URL: "postgresql://postgres:postgres@localhost:5432/mydb?schema=public"
+          DATABASE_URL: 'postgresql://postgres:postgres@localhost:5432/mydb?schema=public'
         run: |
           node dist/index.js > app.log 2>&1 &
           echo $! > app.pid

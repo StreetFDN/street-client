@@ -16,6 +16,7 @@ A simple, modern web interface to view GitHub activity summaries.
 ## Access
 
 Once deployed, visit:
+
 ```
 https://street-client-production.up.railway.app
 ```
@@ -39,6 +40,7 @@ The frontend is served at the root path, and automatically loads all clients, re
 ## Customization
 
 Edit `public/index.html` to customize:
+
 - Colors (CSS variables in `<style>` tag)
 - Layout and spacing
 - Auto-refresh interval (currently 5 minutes)

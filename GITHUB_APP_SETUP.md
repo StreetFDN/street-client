@@ -9,21 +9,26 @@ This guide helps you configure your GitHub App for the Dev Update Engine.
 ## 1. Webhook Section
 
 ### Webhook URL
+
 **For local development:**
+
 - Use ngrok to expose your local server: `ngrok http 3000`
 - Copy the ngrok URL and add `/webhooks/github` at the end
 - Example: `https://abc123.ngrok.io/webhooks/github`
 
 **For production:**
+
 - Your production URL + `/webhooks/github`
 - Example: `https://yourdomain.com/webhooks/github`
 
 ### Webhook Secret
+
 - Generate a random secret (you can use: `openssl rand -hex 32`)
 - Save this! You'll add it to your `.env` file as `GITHUB_APP_WEBHOOK_SECRET`
 - Example secret: `a1b2c3d4e5f6...` (long random string)
 
-**Important:** 
+**Important:**
+
 - ✅ Check "Active" (should already be checked)
 - Copy the secret and save it - you'll need it for `.env`
 
@@ -51,10 +56,12 @@ Check these webhook events:
 - ✅ **Installation repositories** (REQUIRED - for when repos are added/removed)
 
 You can also subscribe to (optional):
+
 - Pull request
 - Push (if you want real-time updates, but daily polling works fine)
 
 **For v1, you only NEED:**
+
 - Installation
 - Installation repositories
 

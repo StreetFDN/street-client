@@ -25,6 +25,7 @@ Railway makes this super easy - the connection string is right there!
 4. Click the **copy icon** next to it - that's your connection string!
 
 The connection string will look like:
+
 ```
 postgresql://postgres:password@containers-us-west-xxx.railway.app:5432/railway
 ```
@@ -36,6 +37,7 @@ postgresql://postgres:password@containers-us-west-xxx.railway.app:5432/railway
 3. **Add `?schema=public` at the end** if it's not already there
 
 **Example:**
+
 ```env
 DATABASE_URL="postgresql://postgres:password@containers-us-west-xxx.railway.app:5432/railway?schema=public"
 ```
@@ -54,17 +56,20 @@ That's it! Railway handles everything else automatically.
 ## Where to Find Connection String in Railway
 
 ### Method 1: Variables Tab (Easiest)
+
 1. Click on your **PostgreSQL** service
 2. Click **"Variables"** tab
 3. Find **"DATABASE_URL"** or **"POSTGRES_URL"**
 4. Copy it!
 
 ### Method 2: Connect Tab
-1. Click on your **PostgreSQL** service  
+
+1. Click on your **PostgreSQL** service
 2. Click **"Connect"** or **"Data"** tab
 3. Connection string should be visible there
 
 ### Method 3: Settings
+
 1. Click on your **PostgreSQL** service
 2. Click **"Settings"**
 3. Look for connection info
@@ -74,11 +79,13 @@ That's it! Railway handles everything else automatically.
 ## Railway Connection String Format
 
 Railway's connection string usually looks like:
+
 ```
 postgresql://postgres:PASSWORD@CONTAINER-URL:PORT/DATABASE
 ```
 
 Just make sure to add `?schema=public` at the end for Prisma:
+
 ```
 postgresql://postgres:PASSWORD@CONTAINER-URL:PORT/DATABASE?schema=public
 ```
@@ -98,13 +105,16 @@ postgresql://postgres:PASSWORD@CONTAINER-URL:PORT/DATABASE?schema=public
 ## Troubleshooting
 
 ### "Connection refused"
+
 - Make sure you copied the entire connection string
 - Check that `?schema=public` is at the end
 
 ### "password authentication failed"
+
 - Make sure you copied the password correctly (it's in the connection string)
 
 ### Can't find connection string
+
 - Look in the **Variables** tab of your PostgreSQL service
 - Or check the **Connect** or **Data** tab
 - It's always visible somewhere in the PostgreSQL service page

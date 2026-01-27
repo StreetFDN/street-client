@@ -49,16 +49,19 @@
 ### 6. API Routes
 
 #### Clients (`src/routes/clients.ts`)
+
 - `GET /api/clients`: List all clients
 - `GET /api/clients/:id`: Get client details
 - `POST /api/clients`: Create client
 
 #### Installations (`src/routes/installations.ts`)
+
 - `GET /api/installations`: List all installations
 - `GET /api/clients/:clientId/installations`: List installations for client
 - `GET /api/installations/:installationId/repos`: List available repos from GitHub
 
 #### Repositories (`src/routes/repos.ts`)
+
 - `GET /api/clients/:clientId/repos`: List repos for client
 - `GET /api/repos/:repoId`: Get repo details
 - `POST /api/repos/:repoId/enable`: Enable repo syncing
@@ -66,6 +69,7 @@
 - `POST /api/repos/:repoId/backfill`: Manually trigger backfill
 
 #### Summaries (`src/routes/summaries.ts`)
+
 - `GET /api/repos/:repoId/summaries`: Get summaries for a repo
 - `GET /api/clients/:clientId/repos/:repoId/summaries`: Get summaries (with client validation)
 - `GET /api/clients/:clientId/summaries`: Get aggregated summaries across all client repos

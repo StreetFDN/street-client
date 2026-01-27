@@ -30,6 +30,7 @@ If you can't find it, you can build it from the connection parameters:
    - User (usually `postgres.xxxxx` where xxxxx is your project ref)
 
 Then build the connection string:
+
 ```
 postgresql://postgres.xxxxx:YOUR-PASSWORD@host:port/postgres?schema=public
 ```
@@ -42,5 +43,6 @@ postgresql://postgres.xxxxx:YOUR-PASSWORD@host:port/postgres?schema=public
 ## Quick Test: Try Connection Pooling Section
 
 **Most likely location:**
+
 - Left sidebar → **"Connection Pooling"** (under PLATFORM section)
 - This is where Supabase usually shows connection strings with pooling options

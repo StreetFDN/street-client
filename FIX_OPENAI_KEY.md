@@ -3,6 +3,7 @@
 ## Problem
 
 The logs show:
+
 ```
 [Aggregate Summary] Error generating LLM summary: AuthenticationError: 401 Incorrect API key provided
 ```

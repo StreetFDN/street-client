@@ -16,14 +16,14 @@ router.get('/github', (req: Request, res: Response) => {
 
   const redirectUri = `${config.baseUrl}/api/auth/github/callback`;
   const state = Math.random().toString(36).substring(7); // Simple state for CSRF protection
-  
+
   if (!req.session) {
     req.session = {} as any;
   }
   req.session.oauthState = state;
-  
+
   const githubAuthUrl = `https://github.com/login/oauth/authorize?client_id=${config.github.clientId}&redirect_uri=${encodeURIComponent(redirectUri)}&scope=read:user&state=${state}`;
-  
+
   res.redirect(githubAuthUrl);
 });
 
@@ -45,23 +45,32 @@ router.get('/github/callback', async (req: Request, res: Response) => {
     }
 
     // Exchange code for access token
-    const tokenResponse = await fetch('https://github.com/login/oauth/access_token', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Accept': 'application/json',
+    const tokenResponse = await fetch(
+      'https://github.com/login/oauth/access_token',
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Accept: 'application/json',
+        },
+        body: JSON.stringify({
+          client_id: config.github.clientId,
+          client_secret: config.github.clientSecret,
+          code: code as string,
+        }),
       },
-      body: JSON.stringify({
-        client_id: config.github.clientId,
-        client_secret: config.github.clientSecret,
-        code: code as string,
-      }),
-    });
+    );
 
-    const tokenData = await tokenResponse.json() as { access_token?: string; error?: string; error_description?: string };
+    const tokenData = (await tokenResponse.json()) as {
+      access_token?: string;
+      error?: string;
+      error_description?: string;
+    };
 
     if (tokenData.error) {
-      return res.status(400).json({ error: tokenData.error_description || 'Failed to get access token' });
+      return res.status(400).json({
+        error: tokenData.error_description || 'Failed to get access token',
+      });
     }
 
     if (!tokenData.access_token) {
