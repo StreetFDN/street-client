@@ -10,7 +10,11 @@
     "generate": "prisma generate",
     "migrate:dev": "prisma migrate dev",
     "migrate:deploy": "prisma migrate deploy",
+    "prepare": "husky",
     "studio": "prisma studio"
+  },
+  "lint-staged": {
+    "**/*": "npx prettier --write --ignore-unknown"
   },
   "keywords": [
     "github",
@@ -38,6 +42,9 @@
     "@types/express-session": "^1.17.10",
     "@types/node": "^20.14.10",
     "@types/node-cron": "^3.0.11",
+    "husky": "^9.1.7",
+    "lint-staged": "^16.2.7",
+    "prettier": "^3.8.1",
     "tsc-alias": "^1.8.16",
     "tsx": "^4.16.2",
     "typescript": "^5.5.3"
