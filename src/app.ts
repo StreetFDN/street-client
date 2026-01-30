@@ -10,11 +10,23 @@ import repoRoutes from './routes/repos';
 import summaryRoutes from './routes/summaries';
 import syncRoutes from './routes/sync';
 import tokenRoutes from './routes/token';
+import testAuthRoutes from './routes/test-auth';
 import githubWebhookRoutes from './routes/webhooks/github';
 import { startScheduler } from './worker/scheduler';
 import { initRedis } from './utils/redis';
+import cors from 'cors';
+import cookieParser from 'cookie-parser';
 
 const app = express();
+
+app.use(
+  cors({
+    origin: config.frontEnd.url,
+    credentials: true,
+  }),
+);
+
+app.use(cookieParser());
 
 // Session configuration
 app.use(
@@ -51,6 +63,9 @@ app.use('/api', repoRoutes);
 app.use('/api', summaryRoutes);
 app.use('/api', tokenRoutes);
 app.use('/api/sync', syncRoutes);
+
+// Example endpoint for demonstration, will delete once auth is implemented site-wide
+app.use('/api/test-auth', testAuthRoutes);
 
 // Serve static files (frontend) - before API routes to allow /api/auth routes
 app.use(express.static(path.join(__dirname, '../public')));

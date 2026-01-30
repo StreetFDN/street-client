@@ -9,7 +9,8 @@ import {
   ValidPeriodTokenHistoricalCharts,
   validPeriodTokenHolderDayMap,
   ValidPeriodTokenHoldersCount,
-} from '../types/routes/token';
+} from 'types/routes/token';
+import { config } from 'config';
 
 export const TokenPriceCache = new RedisAdapter<TokenPriceObject>(
   'tokenPrice_eth:',
@@ -33,7 +34,7 @@ export const coingeckoFetch = (input: string | URL, init?: RequestInit) =>
   fetch(input, {
     ...init,
     headers: {
-      'x-cg-pro-api-key': process.env.COINGECKO_API_KEY!,
+      'x-cg-pro-api-key': config.coingecko.apiKey,
     },
   });
 
