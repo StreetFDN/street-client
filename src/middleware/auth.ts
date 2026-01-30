@@ -19,6 +19,7 @@ export async function requireAuth(
 
   if (data.user) {
     req.userId = data.user.id;
+    // TODO: Set user payload to schema from our DB instead of Supabase User Object
     req.user = data.user;
     return next();
   }
@@ -40,6 +41,8 @@ export async function optionalAuth(
 
   if (data.user) {
     req.userId = data.user.id;
+
+    // TODO: Set user payload to schema from our DB instead of Supabase User Object
     req.user = data.user;
   }
   next();
