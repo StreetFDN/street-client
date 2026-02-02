@@ -1,7 +1,8 @@
 import { Router, Request, Response } from 'express';
-import { requireAuth } from '../middleware/auth';
-import { prisma } from '../db';
-import { syncRepo, syncAllReposDaily } from '../services/sync';
+import { requireAuth } from 'middleware/auth';
+import { syncRepo, syncAllReposDaily } from 'services/sync';
+import { findUserAccessToRepository } from 'utils/db';
+import { UserRole } from '@prisma/client';
 
 const router = Router();
 
@@ -10,6 +11,7 @@ const router = Router();
  * Manually trigger a sync for all repos (last 24 hours, updates today's date)
  */
 router.post('/trigger', requireAuth, async (req: Request, res: Response) => {
+  // TODO (mlacko): Fix this. The authorization is wrong.
   try {
     console.log('Manual sync triggered');
     // Run sync asynchronously
@@ -41,22 +43,23 @@ router.post(
   async (req: Request, res: Response) => {
     try {
       const { repoId } = req.params;
+      const userId = req.userId;
 
-      const repo = await prisma.gitHubRepo.findUnique({
-        where: { id: repoId },
-        include: {
-          client: true,
-        },
-      });
-
-      if (!repo) {
-        return res.status(404).json({ error: 'Repo not found' });
+      if (userId == null) {
+        return res.status(401).json({ error: 'Access denied' });
       }
 
-      // Verify repo belongs to user
-      if (repo.client.userId !== req.userId) {
+      const access = await findUserAccessToRepository(
+        userId,
+        repoId,
+        UserRole.ADMIN,
+      );
+
+      if (access == null) {
         return res.status(403).json({ error: 'Access denied' });
       }
+
+      const repo = access.repo;
 
       // Sync last 24 hours
       const windowEnd = new Date();

@@ -1,6 +1,11 @@
 import { Router, Request, Response } from 'express';
-import { prisma } from '../db';
-import { requireAuth } from '../middleware/auth';
+import { z } from 'zod';
+
+import { prisma } from 'db';
+import { requireAuth } from 'middleware/auth';
+import { findUserAccessToClient } from 'utils/db';
+import { CreateClientSchema } from 'types/routes/clients';
+import { UserRole } from '@prisma/client';
 
 const router = Router();
 
@@ -10,34 +15,27 @@ const router = Router();
  */
 router.get('/clients', requireAuth, async (req: Request, res: Response) => {
   try {
-    const clients = await prisma.client.findMany({
+    const userId = req.userId!;
+    const accesses = await prisma.userRoleForClient.findMany({
       where: {
-        userId: req.userId || undefined,
+        userId,
       },
       include: {
-        _count: {
-          select: {
-            installations: true,
-            repos: true,
-          },
-        },
-      },
-      orderBy: {
-        createdAt: 'desc',
+        client: true,
       },
     });
 
     res.json(
-      clients.map((client) => ({
-        id: client.id,
-        name: client.name,
-        counts: {
-          installations: client._count.installations,
-          repos: client._count.repos,
-        },
-        createdAt: client.createdAt,
-        updatedAt: client.updatedAt,
-      })),
+      accesses.map((access) => {
+        const client = access.client;
+        return {
+          id: client.id,
+          name: client.name,
+          role: access.role,
+          createdAt: client.createdAt,
+          updatedAt: client.updatedAt,
+        };
+      }),
     );
   } catch (error) {
     console.error('Error listing clients:', error);
@@ -54,51 +52,48 @@ router.get(
   requireAuth,
   async (req: Request, res: Response) => {
     try {
+      const userId = req.userId!;
       const { clientId } = req.params;
 
-      const client = await prisma.client.findFirst({
-        where: {
-          id: clientId,
-          userId: req.userId || undefined,
-        },
-        include: {
-          installations: {
-            include: {
-              _count: {
-                select: {
-                  repos: true,
+      const access = await findUserAccessToClient(
+        userId,
+        clientId,
+        UserRole.USER,
+        {
+          client: {
+            githubInstallation: {
+              include: {
+                creator: true,
+                _count: {
+                  select: {
+                    repos: true,
+                  },
                 },
               },
             },
           },
-          repos: {
-            include: {
-              installation: true,
-            },
-          },
-          _count: {
-            select: {
-              installations: true,
-              repos: true,
-            },
-          },
         },
-      });
+      );
 
-      if (!client) {
-        return res.status(404).json({ error: 'Client not found' });
+      if (access == null) {
+        return res.status(403).json({ error: 'Access Denied ' });
       }
 
+      const client = access.client;
+      const installation = client.githubInstallation;
+
       res.json({
-        id: client.id,
-        name: client.name,
-        installations: client.installations.map((inst) => ({
-          id: inst.id,
-          installationId: inst.installationId,
-          accountLogin: inst.accountLogin,
-          repoCount: inst._count.repos,
-        })),
-        repoCount: client._count.repos,
+        id: access.client.id,
+        name: access.client.name,
+        installation:
+          installation != null
+            ? {
+                id: installation.id,
+                githubId: installation.githubId,
+                accountLogin: installation.creator.login,
+                repoCount: installation._count.repos,
+              }
+            : null,
         createdAt: client.createdAt,
         updatedAt: client.updatedAt,
       });
@@ -115,16 +110,51 @@ router.get(
  */
 router.post('/clients', requireAuth, async (req: Request, res: Response) => {
   try {
-    const { name } = req.body;
+    const userId = req.userId;
+    if (userId == null) {
+      return res.status(403).json({ error: 'Access denied' });
+    }
 
-    if (!name) {
-      return res.status(400).json({ error: 'Name is required' });
+    const user = await prisma.user.findUnique({
+      where: {
+        id: userId,
+      },
+    });
+
+    if (user == null || !user.superUser) {
+      return res.status(403).json('Access denied');
+    }
+
+    const parsed = CreateClientSchema.safeParse(req.body);
+    if (!parsed.success) {
+      return res.status(400).json({
+        error: 'Invalid request body',
+        details: z.treeifyError(parsed.error),
+      });
+    }
+    const payload = parsed.data;
+
+    const newAdmin = await prisma.user.findUnique({
+      where: {
+        email: payload.administratorEmail,
+      },
+    });
+
+    if (newAdmin == null) {
+      return res
+        .status(400)
+        .json({ error: 'Invalid administratorEmail: User does not exists' });
     }
 
     const client = await prisma.client.create({
       data: {
-        name,
-        userId: req.userId!,
+        name: payload.name,
+        users: {
+          create: {
+            userId: newAdmin.id,
+            role: UserRole.ADMIN,
+          },
+        },
       },
     });
 

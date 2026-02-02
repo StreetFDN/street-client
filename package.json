@@ -37,7 +37,6 @@
     "express-session": "^1.18.0",
     "node-cron": "^3.0.3",
     "openai": "^6.16.0",
-    "prisma": "^5.19.1",
     "redis": "^5.10.0",
     "zod": "^4.3.5"
   },
@@ -52,6 +51,7 @@
     "husky": "^9.1.7",
     "lint-staged": "^16.2.7",
     "prettier": "^3.8.1",
+    "prisma": "^6.19.2",
     "tsc-alias": "^1.8.16",
     "tsx": "^4.16.2",
     "typescript": "^5.5.3",

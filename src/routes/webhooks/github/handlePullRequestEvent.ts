@@ -14,7 +14,7 @@ export default async function handlePullRequestEvent(
 
   const repo = await prisma.gitHubRepo.findFirst({
     where: {
-      repoId: payload.repository.id,
+      githubId: payload.repository.id,
       isEnabled: true,
     },
   });
