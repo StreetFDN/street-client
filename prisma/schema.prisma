@@ -54,17 +54,23 @@ model SupabaseAccount {
 }
 
 model UserRoleForClient {
-  userId    String   @db.Uuid
-  clientId  String   @db.Uuid
-  role      UserRole
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id             String   @id @default(uuid(7)) @db.Uuid
+  userId         String   @db.Uuid
+  clientId       String   @db.Uuid
+  role           UserRole
+  sharedAccessId String?  @db.Uuid
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
 
-  user   User   @relation(fields: [userId], references: [id])
-  client Client @relation(fields: [clientId], references: [id])
+  user         User                @relation(fields: [userId], references: [id])
+  client       Client              @relation(fields: [clientId], references: [id])
+  sharedAccess SharedClientAccess? @relation(fields: [sharedAccessId], references: [id], onDelete: Cascade)
 
-  @@id([userId, clientId])
+  @@index([userId, clientId])
   @@index([clientId])
+  @@index([sharedAccessId])
+
+  // There are also partial indexes required. Which are not supported by Prisma. They are in the migration file 20260129123312_init/migration.sql
 }
 
 model Client {
@@ -86,14 +92,17 @@ model Client {
 }
 
 model SharedClientAccess {
-  sharerId    String   @db.Uuid
-  recipientId String   @db.Uuid
-  createdAt   DateTime @default(now())
+  id          String @id @default(uuid(7)) @db.Uuid
+  sharerId    String @db.Uuid
+  recipientId String @db.Uuid
 
-  sharer    Client @relation("givenAccesses", fields: [sharerId], references: [id])
-  recipient Client @relation("recievedAccesses", fields: [recipientId], references: [id])
+  createdAt DateTime @default(now())
 
-  @@id([sharerId, recipientId])
+  sharer          Client              @relation("givenAccesses", fields: [sharerId], references: [id])
+  recipient       Client              @relation("recievedAccesses", fields: [recipientId], references: [id])
+  grantedAccesses UserRoleForClient[]
+
+  @@unique([sharerId, recipientId])
   @@index(recipientId)
 }
 

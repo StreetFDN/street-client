@@ -10,6 +10,7 @@ import { Request } from 'express';
  * Attempts to authenticate using Supabase JWT token
  * Returns true if authentication succeeded and set req.userId, false otherwise
  */
+//
 export async function trySupabaseAuth(_req: Request): Promise<boolean> {
   // TODO(mlacko): Finish this
   throw new Error('Not Implemented');

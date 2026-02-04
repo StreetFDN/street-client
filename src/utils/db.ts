@@ -56,19 +56,20 @@ export async function findUserAccessToRepository(
     return null;
   }
 
-  const access = await prisma.userRoleForClient.findFirst({
+  const accesses = await prisma.userRoleForClient.findMany({
     where: {
       userId,
       clientId: owningClient.id,
     },
   });
 
-  if (access == null || !validateRole(access.role, expectedRole)) {
+  const role = getHighestRole(accesses.map((access) => access.role));
+  if (role == null || !validateRole(role, expectedRole)) {
     return null;
   }
 
   return {
-    role: access.role,
+    role,
     user,
     repo,
   };
@@ -126,31 +127,40 @@ export async function findUserAccessToClient<
     } as UserAccessToClient<TIncludeQuery>;
   }
 
-  const access = await prisma.userRoleForClient.findUnique({
+  const accesses = await prisma.userRoleForClient.findMany({
     where: {
-      userId_clientId: {
-        userId,
-        clientId,
-      },
+      userId,
+      clientId,
     },
   });
 
-  if (access == null || !validateRole(access.role, expectedRole)) {
+  const role = getHighestRole(accesses.map((access) => access.role));
+  if (role == null || !validateRole(role, expectedRole)) {
     return null;
   }
 
   return {
-    role: access.role,
+    role,
     user,
     client,
   } as UserAccessToClient<TIncludeQuery>;
 }
 
-const RoleToValue: Record<UserRole, number> = {
+export const RoleToValue: Record<UserRole, number> = {
   [UserRole.SHARED_ACCESS]: 0,
   [UserRole.USER]: 1,
   [UserRole.ADMIN]: 2,
 };
+
+function getHighestRole(roles: UserRole[]) {
+  if (roles.length === 0) {
+    return null;
+  }
+
+  return roles.reduce((highest, role) =>
+    RoleToValue[role] > RoleToValue[highest] ? role : highest,
+  );
+}
 
 function validateRole(givenRole: UserRole, expectedRole: UserRole) {
   const givenRoleValue = RoleToValue[givenRole];

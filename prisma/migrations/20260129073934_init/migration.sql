@@ -35,13 +35,15 @@ CREATE TABLE "SupabaseAccount" (
 
 -- CreateTable
 CREATE TABLE "UserRoleForClient" (
+    "id" UUID NOT NULL,
     "userId" UUID NOT NULL,
     "clientId" UUID NOT NULL,
     "role" "UserRole" NOT NULL,
+    "sharedAccessId" UUID,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
 
-    CONSTRAINT "UserRoleForClient_pkey" PRIMARY KEY ("userId","clientId")
+    CONSTRAINT "UserRoleForClient_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateTable
@@ -57,11 +59,12 @@ CREATE TABLE "Client" (
 
 -- CreateTable
 CREATE TABLE "SharedClientAccess" (
+    "id" UUID NOT NULL,
     "sharerId" UUID NOT NULL,
     "recipientId" UUID NOT NULL,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
-    CONSTRAINT "SharedClientAccess_pkey" PRIMARY KEY ("sharerId","recipientId")
+    CONSTRAINT "SharedClientAccess_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateTable
@@ -139,6 +142,18 @@ CREATE TABLE "RepoDailySummary" (
     CONSTRAINT "RepoDailySummary_pkey" PRIMARY KEY ("id")
 );
 
+-- Manually added partial indexes for ClientRole table
+-- Index for direct roles
+CREATE UNIQUE INDEX "UserRoleForClientForClient_userId_clientId_noSharedAccessId_key"
+    ON "UserRoleForClient" ("userId", "clientId")
+    WHERE "sharedAccessId" IS NULL;
+
+-- Index for shared access
+CREATE UNIQUE INDEX "UserRoleForClientForClient_userId_clientId_sharedAccessId_key"
+    ON "UserRoleForClient" ("userId", "clientId")
+    WHERE "sharedAccessId" IS NOT NULL;
+
+
 -- CreateIndex
 CREATE UNIQUE INDEX "User_email_key" ON "User"("email");
 
@@ -155,7 +170,16 @@ CREATE UNIQUE INDEX "GithubAccount_githubId_key" ON "GithubAccount"("githubId");
 CREATE UNIQUE INDEX "GithubAccount_login_key" ON "GithubAccount"("login");
 
 -- CreateIndex
+CREATE INDEX "GithubAccount_login_idx" ON "GithubAccount"("login");
+
+-- CreateIndex
+CREATE INDEX "UserRoleForClient_userId_clientId_idx" ON "UserRoleForClient"("userId", "clientId");
+
+-- CreateIndex
 CREATE INDEX "UserRoleForClient_clientId_idx" ON "UserRoleForClient"("clientId");
+
+-- CreateIndex
+CREATE INDEX "UserRoleForClient_sharedAccessId_idx" ON "UserRoleForClient"("sharedAccessId");
 
 -- CreateIndex
 CREATE UNIQUE INDEX "Client_name_key" ON "Client"("name");
@@ -168,6 +192,9 @@ CREATE INDEX "Client_githubInstallationId_idx" ON "Client"("githubInstallationId
 
 -- CreateIndex
 CREATE INDEX "SharedClientAccess_recipientId_idx" ON "SharedClientAccess"("recipientId");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "SharedClientAccess_sharerId_recipientId_key" ON "SharedClientAccess"("sharerId", "recipientId");
 
 -- CreateIndex
 CREATE UNIQUE INDEX "GitHubInstallation_githubId_key" ON "GitHubInstallation"("githubId");
@@ -207,6 +234,9 @@ ALTER TABLE "UserRoleForClient" ADD CONSTRAINT "UserRoleForClient_userId_fkey" F
 
 -- AddForeignKey
 ALTER TABLE "UserRoleForClient" ADD CONSTRAINT "UserRoleForClient_clientId_fkey" FOREIGN KEY ("clientId") REFERENCES "Client"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "UserRoleForClient" ADD CONSTRAINT "UserRoleForClient_sharedAccessId_fkey" FOREIGN KEY ("sharedAccessId") REFERENCES "SharedClientAccess"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "Client" ADD CONSTRAINT "Client_githubInstallationId_fkey" FOREIGN KEY ("githubInstallationId") REFERENCES "GitHubInstallation"("id") ON DELETE SET NULL ON UPDATE CASCADE;
