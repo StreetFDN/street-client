@@ -51,6 +51,13 @@ jobs:
         env:
           NODE_ENV: production
           DATABASE_URL: 'postgresql://postgres:postgres@localhost:5432/mydb?schema=public'
+          COINGECKO_API_KEY: ''
+          GITHUB_APP_ID: ''
+          GITHUB_CLIENT_ID: ''
+          GITHUB_CLIENT_SECRET: ''
+          GITHUB_APP_PRIVATE_KEY: ''
+          GITHUB_APP_WEBHOOK_SECRET: ''
+          SESSION_SECRET: '',
         run: |
           node dist/index.js > app.log 2>&1 &
           echo $! > app.pid
