@@ -62,7 +62,7 @@ router.post(
           per_page: 100,
         });
 
-      let toSync = 0;
+      let syncedRepos = 0;
       const reposToBackfill: { id: string; githubId: number; name: string }[] =
         [];
 
@@ -90,7 +90,7 @@ router.post(
             },
           });
 
-          toSync++;
+          syncedRepos++;
           console.log(`Repo synced: ${repo.owner.login}/${repo.name}`);
 
           // If this is a new repo, schedule backfill
@@ -124,7 +124,7 @@ router.post(
 
       res.json({
         message: 'Repositories synced successfully',
-        synced: toSync,
+        synced: syncedRepos,
         backfilled: backfilledRepositories,
       });
     } catch (error) {
