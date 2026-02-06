@@ -3,7 +3,7 @@ import { config } from '../config';
 import { RepoActivityEvent } from '@prisma/client';
 
 const openai = new OpenAI({
-  apiKey: config.openai.apiKey,
+  apiKey: config.openai.apiKey as string | undefined,
 });
 
 /**

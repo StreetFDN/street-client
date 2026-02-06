@@ -57,7 +57,10 @@ jobs:
           GITHUB_CLIENT_SECRET: ''
           GITHUB_APP_PRIVATE_KEY: ''
           GITHUB_APP_WEBHOOK_SECRET: ''
-          SESSION_SECRET: '',
+          SESSION_SECRET: '0.phq63b4ej8'
+          SUPABASE_URL: ''
+          SUPABASE_ANON_KEY: ''
+          SUPABASE_PUBLISHABLE_KEY: ''
         run: |
           node dist/index.js > app.log 2>&1 &
           echo $! > app.pid

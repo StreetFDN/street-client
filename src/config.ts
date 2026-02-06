@@ -45,9 +45,9 @@ export const config = {
     apiKey: getDefaultEnv('OPENAI_API_KEY'),
   },
   supabase: {
-    url: getDefaultEnv('SUPABASE_URL'),
-    anonKey: getDefaultEnv('SUPABASE_ANON_KEY'),
-    publishableKey: getDefaultEnv('SUPABASE_PUBLISHABLE_KEY'),
+    url: getRequiredEnv('SUPABASE_URL'),
+    anonKey: getRequiredEnv('SUPABASE_ANON_KEY'),
+    publishableKey: getRequiredEnv('SUPABASE_PUBLISHABLE_KEY'),
   },
   baseUrl,
 };
