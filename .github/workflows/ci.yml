@@ -3,7 +3,8 @@ name: CI
 on:
   push:
     branches:
-      - main
+      - 'main'
+      - 'release-candidate/**'
   pull_request:
 
 jobs:
