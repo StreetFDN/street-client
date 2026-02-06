@@ -20,7 +20,7 @@ export default async function handleRelease(payload_data: any): Promise<void> {
 
   const repo = await prisma.gitHubRepo.findFirst({
     where: {
-      repoId: payload.repository.id,
+      githubId: payload.repository.id,
       isEnabled: true,
     },
   });

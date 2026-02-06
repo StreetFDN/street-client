@@ -1,7 +1,5 @@
 import { Router, Request, Response } from 'express';
-import { Octokit } from '@octokit/rest';
-import { config } from '../config';
-import { prisma } from '../db';
+import { config } from 'config';
 
 const router = Router();
 
@@ -34,107 +32,107 @@ router.get('/github', (req: Request, res: Response) => {
  */
 router.get('/github/callback', async (req: Request, res: Response) => {
   try {
-    const { code, state } = req.query;
-
-    // Verify state
-    if (!state || !req.session || state !== req.session.oauthState) {
-      return res.status(400).json({ error: 'Invalid state parameter' });
-    }
-
-    if (!code) {
-      return res.status(400).json({ error: 'No authorization code provided' });
-    }
-
-    // Exchange code for access token
-    const tokenResponse = await fetch(
-      'https://github.com/login/oauth/access_token',
-      {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Accept: 'application/json',
-        },
-        body: JSON.stringify({
-          client_id: config.github.clientId,
-          client_secret: config.github.clientSecret,
-          code: code as string,
-        }),
-      },
-    );
-
-    const tokenData = (await tokenResponse.json()) as {
-      access_token?: string;
-      error?: string;
-      error_description?: string;
-    };
-
-    if (tokenData.error) {
-      return res.status(400).json({
-        error: tokenData.error_description || 'Failed to get access token',
-      });
-    }
-
-    if (!tokenData.access_token) {
-      return res.status(400).json({ error: 'No access token received' });
-    }
-
-    const accessToken = tokenData.access_token;
-
-    // Get user info from GitHub
-    const octokit = new Octokit({ auth: accessToken });
-    const { data: githubUser } = await octokit.rest.users.getAuthenticated();
-
+    // TODO: Unify this with Supabase login. Potentially drop this?
+    // const { code, state } = req.query;
+    //
+    // // Verify state
+    // if (!state || !req.session || state !== req.session.oauthState) {
+    //   return res.status(400).json({ error: 'Invalid state parameter' });
+    // }
+    //
+    // if (!code) {
+    //   return res.status(400).json({ error: 'No authorization code provided' });
+    // }
+    //
+    // // Exchange code for access token
+    // const tokenResponse = await fetch(
+    //   'https://github.com/login/oauth/access_token',
+    //   {
+    //     method: 'POST',
+    //     headers: {
+    //       'Content-Type': 'application/json',
+    //       Accept: 'application/json',
+    //     },
+    //     body: JSON.stringify({
+    //       client_id: config.github.clientId,
+    //       client_secret: config.github.clientSecret,
+    //       code: code as string,
+    //     }),
+    //   },
+    // );
+    //
+    // const tokenData = (await tokenResponse.json()) as {
+    //   access_token?: string;
+    //   error?: string;
+    //   error_description?: string;
+    // };
+    //
+    // if (tokenData.error) {
+    //   return res.status(400).json({
+    //     error: tokenData.error_description || 'Failed to get access token',
+    //   });
+    // }
+    //
+    // if (!tokenData.access_token) {
+    //   return res.status(400).json({ error: 'No access token received' });
+    // }
+    //
+    // const accessToken = tokenData.access_token;
+    //
+    // // Get user info from GitHub
+    // const octokit = new Octokit({ auth: accessToken });
+    // const { data: githubUser } = await octokit.rest.users.getAuthenticated();
     // Create or update user in database
-    const user = await prisma.user.upsert({
-      where: { githubId: githubUser.id },
-      create: {
-        githubId: githubUser.id,
-        githubLogin: githubUser.login,
-        name: githubUser.name || githubUser.login,
-        email: githubUser.email || undefined,
-        avatarUrl: githubUser.avatar_url,
-        accessToken: accessToken, // In production, encrypt this
-      },
-      update: {
-        githubLogin: githubUser.login,
-        name: githubUser.name || githubUser.login,
-        email: githubUser.email || undefined,
-        avatarUrl: githubUser.avatar_url,
-        accessToken: accessToken,
-      },
-    });
-
-    // Link any existing clients that match this user's GitHub login but don't have a userId
-    // This handles the case where GitHub App was installed before OAuth login
-    if (user.githubLogin) {
-      await prisma.client.updateMany({
-        where: {
-          userId: null,
-          installations: {
-            some: {
-              accountLogin: user.githubLogin,
-            },
-          },
-        },
-        data: {
-          userId: user.id,
-        },
-      });
-    }
-
-    // Set session
-    if (!req.session) {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      req.session = {} as any;
-    }
-    req.session.userId = user.id;
-    req.session.user = {
-      id: user.id,
-      githubLogin: user.githubLogin || '', // GitHub OAuth always provides login, but handle null for type safety
-      name: user.name || undefined,
-      email: user.email || undefined,
-      avatarUrl: user.avatarUrl || undefined,
-    };
+    // const user = await prisma.user.upsert({
+    //   where: { githubId: githubUser.id },
+    //   create: {
+    //     githubId: githubUser.id,
+    //     githubLogin: githubUser.login,
+    //     name: githubUser.name || githubUser.login,
+    //     email: githubUser.email || undefined,
+    //     avatarUrl: githubUser.avatar_url,
+    //     accessToken: accessToken, // In production, encrypt this
+    //   },
+    //   update: {
+    //     githubLogin: githubUser.login,
+    //     name: githubUser.name || githubUser.login,
+    //     email: githubUser.email || undefined,
+    //     avatarUrl: githubUser.avatar_url,
+    //     accessToken: accessToken,
+    //   },
+    // });
+    //
+    // // Link any existing clients that match this user's GitHub login but don't have a userId
+    // // This handles the case where GitHub App was installed before OAuth login
+    // if (user.githubLogin) {
+    //   await prisma.client.updateMany({
+    //     where: {
+    //       userId: null,
+    //       installations: {
+    //         some: {
+    //           accountLogin: user.githubLogin,
+    //         },
+    //       },
+    //     },
+    //     data: {
+    //       userId: user.id,
+    //     },
+    //   });
+    // }
+    //
+    // // Set session
+    // if (!req.session) {
+    //   // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    //   req.session = {} as any;
+    // }
+    // req.session.userId = user.id;
+    // req.session.user = {
+    //   id: user.id,
+    //   githubLogin: user.githubLogin || '', // GitHub OAuth always provides login, but handle null for type safety
+    //   name: user.name || undefined,
+    //   email: user.email || undefined,
+    //   avatarUrl: user.avatarUrl || undefined,
+    // };
 
     // Redirect to frontend
     res.redirect('/');

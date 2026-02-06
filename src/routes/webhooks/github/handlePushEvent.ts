@@ -9,7 +9,7 @@ export default async function handlePushEvent(
 
   const repo = await prisma.gitHubRepo.findFirst({
     where: {
-      repoId: payload.repository.id,
+      githubId: payload.repository.id,
       isEnabled: true,
     },
   });

@@ -10,6 +10,8 @@ import { backfillRepo } from 'services/sync';
 import { createAppAuth } from '@octokit/auth-app';
 import { config } from 'config';
 import { Octokit } from '@octokit/rest';
+import { Client, UserRole } from '@prisma/client';
+import { Maybe } from 'types/utils';
 
 const actionHandlers: Record<
   SupportedInstallationAction,
@@ -21,8 +23,7 @@ const actionHandlers: Record<
 };
 
 export default async function handleInstallationEvent(
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  payload_data: any,
+  payload_data: unknown,
 ): Promise<void> {
   const payload = InstallationEventSchema.parse(
     payload_data,
@@ -37,58 +38,54 @@ async function handleCreateInstallationAction(
   const installation = payload.installation;
   const account = payload.installation.account;
 
-  // Try to find user by GitHub login first
-  let user = await prisma.user.findUnique({
-    where: { githubLogin: account.login },
-  });
-
-  // If not found, try to find by email (from GitHub account)
-  // This helps link Supabase users who haven't logged in via GitHub OAuth yet
-  if (!user && account.email) {
-    user = await prisma.user.findFirst({
-      where: { email: account.email },
-    });
-  }
-
-  // Find or create client
-  let client = await prisma.client.findFirst({
-    where: {
-      installations: {
-        some: {
-          accountLogin: account.login,
+  // Try to find user by GitHub login
+  // TODO: Figure out how to sanitize this.
+  //       It is required to make this safe, currently, there is no guarantee, that the account exists, or
+  //       that it can be created.
+  const githubAccount = (await prisma.githubAccount.findUnique({
+    where: { login: account.login },
+    include: {
+      user: {
+        include: {
+          clients: {
+            include: {
+              client: true,
+            },
+          },
         },
       },
     },
-  });
+  }))!;
 
-  if (!client) {
-    client = await prisma.client.create({
-      data: {
-        name: `${account.login} (GitHub)`,
-        userId: user?.id || null, // Link to user if found by login or email
-      },
-    });
-  } else if (user && !client.userId) {
-    // Link existing client to user if user found (by login or email)
-    client = await prisma.client.update({
-      where: { id: client.id },
-      data: { userId: user.id },
-    });
+  let client: Maybe<Client> = null;
+  // This is orphaned installation. Someone triggered installation outside the expected context, resulting
+  // it being installed without whitelisted client.
+  if (githubAccount.user != null) {
+    const potentialClients = githubAccount.user.clients.filter(
+      (access) =>
+        access.role == UserRole.ADMIN &&
+        access.client.githubInstallationId == null,
+    );
+
+    if (potentialClients.length == 1) {
+      client = potentialClients[0].client;
+    }
   }
 
+  const clientSubQuery = {
+    client: {
+      connect: {
+        id: client?.id,
+      },
+    },
+  };
+
   // Create or update installation
-  const githubInstallation = await prisma.gitHubInstallation.upsert({
-    where: {
-      installationId: installation.id,
-    },
-    create: {
-      clientId: client.id,
-      installationId: installation.id,
-      accountLogin: account.login,
-    },
-    update: {
-      accountLogin: account.login,
-      revokedAt: null,
+  const githubInstallation = await prisma.gitHubInstallation.create({
+    data: {
+      githubId: installation.id,
+      creatorId: githubAccount.id,
+      ...(client != null ? clientSubQuery : {}),
     },
   });
 
@@ -116,14 +113,13 @@ async function handleCreateInstallationAction(
       try {
         await prisma.gitHubRepo.upsert({
           where: {
-            repoId: repo.id,
+            githubId: repo.id,
           },
           create: {
-            clientId: client.id,
             installationId: githubInstallation.id,
             owner: repo.owner.login,
             name: repo.name,
-            repoId: repo.id,
+            githubId: repo.id,
             isPrivate: repo.private,
             isEnabled: true,
           },
@@ -171,37 +167,12 @@ async function handleDeletedInstallationAction(
 
   await prisma.gitHubInstallation.updateMany({
     where: {
-      installationId,
+      githubId: installationId,
     },
     data: {
       revokedAt: new Date(),
     },
   });
 
-  const revokedInstallations = (
-    await prisma.gitHubInstallation.findMany({
-      select: {
-        id: true,
-      },
-      where: {
-        installationId,
-      },
-    })
-  ).map(({ id }) => id);
-
-  // Disable all repositories associated with this installation.
-  const disabledRepos = await prisma.gitHubRepo.updateMany({
-    where: {
-      installationId: {
-        in: revokedInstallations,
-      },
-    },
-    data: {
-      isEnabled: false,
-    },
-  });
-
-  console.log(
-    `Installation revoked: ${installationId}; ${disabledRepos.count} associated repos disabled.`,
-  );
+  console.log(`Installation revoked: ${installationId}.`);
 }

@@ -10,60 +10,125 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-model User {
-  id          String   @id @default(uuid())
-  githubId    Int?     @unique
-  supabaseId  String?  @unique
-  githubLogin String?  @unique
-  name        String?
-  email       String?  @unique
-  avatarUrl   String?
-  accessToken String? // GitHub OAuth token (encrypted in production)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-
-  clients Client[]
+enum UserRole {
+  SHARED_ACCESS
+  USER
+  ADMIN
 }
 
-model Client {
-  id        String   @id @default(uuid())
-  userId    String?
-  user      User?    @relation(fields: [userId], references: [id], onDelete: Cascade)
+model User {
+  id        String   @id @default(uuid(7)) @db.Uuid
   name      String
+  email     String   @unique
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  superUser Boolean  @default(false)
+
+  githubAccountId   String?         @unique @db.Uuid
+  githubAccount     GithubAccount?  @relation(fields: [githubAccountId], references: [id])
+  supabaseAccountId String          @unique
+  supabaseAccount   SupabaseAccount @relation(fields: [supabaseAccountId], references: [id])
+
+  clients UserRoleForClient[]
+}
+
+model GithubAccount {
+  id       String @id @default(uuid(7)) @db.Uuid
+  githubId Int    @unique
+  login    String @unique
+
+  user User?
+
+  triggeredInstallations GitHubInstallation[]
+
+  @@index(login)
+}
+
+model SupabaseAccount {
+  id        String   @id
+  // TODO: Integrate Supabase and figure out, what can be stored
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  installations GitHubInstallation[]
-  repos         GitHubRepo[]
+  user User?
+}
 
-  @@index([userId])
+model UserRoleForClient {
+  id             String   @id @default(uuid(7)) @db.Uuid
+  userId         String   @db.Uuid
+  clientId       String   @db.Uuid
+  role           UserRole
+  sharedAccessId String?  @db.Uuid
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  user         User                @relation(fields: [userId], references: [id])
+  client       Client              @relation(fields: [clientId], references: [id])
+  sharedAccess SharedClientAccess? @relation(fields: [sharedAccessId], references: [id], onDelete: Cascade)
+
+  @@index([userId, clientId])
+  @@index([clientId])
+  @@index([sharedAccessId])
+
+  // There are also partial indexes required. Which are not supported by Prisma. They are in the migration file 20260129123312_init/migration.sql
+}
+
+model Client {
+  id        String   @id @default(uuid(7)) @db.Uuid
+  name      String   @unique
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  githubInstallationId String?             @unique @db.Uuid
+  githubInstallation   GitHubInstallation? @relation(fields: [githubInstallationId], references: [id])
+  users                UserRoleForClient[]
+
+  /// To which clients this client gave access to see this clients data.
+  givenAccesses    SharedClientAccess[] @relation("givenAccesses")
+  /// Which clients granted this client accesses to see theirs data.
+  receivedAccesses SharedClientAccess[] @relation("recievedAccesses")
+
+  @@index([githubInstallationId])
+}
+
+model SharedClientAccess {
+  id          String @id @default(uuid(7)) @db.Uuid
+  sharerId    String @db.Uuid
+  recipientId String @db.Uuid
+
+  createdAt DateTime @default(now())
+
+  sharer          Client              @relation("givenAccesses", fields: [sharerId], references: [id])
+  recipient       Client              @relation("recievedAccesses", fields: [recipientId], references: [id])
+  grantedAccesses UserRoleForClient[]
+
+  @@unique([sharerId, recipientId])
+  @@index(recipientId)
 }
 
 model GitHubInstallation {
-  id             String    @id @default(uuid())
-  clientId       String
-  client         Client    @relation(fields: [clientId], references: [id], onDelete: Cascade)
-  installationId Int       @unique // GitHub's installation ID
-  accountLogin   String
-  createdAt      DateTime  @default(now())
-  revokedAt      DateTime?
+  id        String    @id @default(uuid(7)) @db.Uuid
+  githubId  Int       @unique
+  createdAt DateTime  @default(now())
+  revokedAt DateTime?
 
-  repos GitHubRepo[]
+  creatorId String        @db.Uuid
+  creator   GithubAccount @relation(fields: [creatorId], references: [id])
 
-  @@index([clientId, revokedAt])
-  @@index([accountLogin])
-  @@index([clientId])
+  client Client?
+  repos  GitHubRepo[]
+
+  @@index(githubId)
+  @@index(creatorId)
 }
 
 model GitHubRepo {
-  id             String             @id @default(uuid())
-  clientId       String
-  client         Client             @relation(fields: [clientId], references: [id], onDelete: Cascade)
-  installationId String
+  id             String             @id @default(uuid(7)) @db.Uuid
+  installationId String             @db.Uuid
   installation   GitHubInstallation @relation(fields: [installationId], references: [id], onDelete: Cascade)
   owner          String
   name           String
-  repoId         Int                @unique // GitHub's numeric repo ID
+  githubId       Int                @unique
   isPrivate      Boolean            @default(false)
   isEnabled      Boolean            @default(true)
   createdAt      DateTime           @default(now())
@@ -73,15 +138,12 @@ model GitHubRepo {
   activityEvents RepoActivityEvent[]
   dailySummaries RepoDailySummary[]
 
-  @@unique([clientId, owner, name])
-  @@index([clientId])
-  @@index([clientId, isEnabled])
   @@index([installationId])
 }
 
 model RepoSyncRun {
-  id           String     @id @default(uuid())
-  repoId       String
+  id           String     @id @default(uuid(7)) @db.Uuid
+  repoId       String     @db.Uuid
   repo         GitHubRepo @relation(fields: [repoId], references: [id], onDelete: Cascade)
   runType      String // "daily" | "backfill"
   windowStart  DateTime
@@ -96,9 +158,9 @@ model RepoSyncRun {
 }
 
 model RepoActivityEvent {
-  id         String     @id @default(uuid())
+  id         String     @id @default(uuid(7)) @db.Uuid
   githubId   String
-  repoId     String
+  repoId     String     @db.Uuid
   repo       GitHubRepo @relation(fields: [repoId], references: [id], onDelete: Cascade)
   occurredAt DateTime
   type       String // "commit" | "pr_merged" | "pr_opened" | "issue_closed" | "release" | "tag" | "ci"
@@ -114,8 +176,8 @@ model RepoActivityEvent {
 }
 
 model RepoDailySummary {
-  id          String     @id @default(uuid())
-  repoId      String
+  id          String     @id @default(uuid(7)) @db.Uuid
+  repoId      String     @db.Uuid
   repo        GitHubRepo @relation(fields: [repoId], references: [id], onDelete: Cascade)
   date        DateTime   @db.Date
   windowStart DateTime

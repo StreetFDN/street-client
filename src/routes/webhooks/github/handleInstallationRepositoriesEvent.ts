@@ -39,7 +39,7 @@ async function handleAddedInstallationRepositoriesEvent(
 
   const githubInstallation = await prisma.gitHubInstallation.findUnique({
     where: {
-      installationId: installation.id,
+      githubId: installation.id,
     },
   });
 
@@ -74,14 +74,13 @@ async function handleAddedInstallationRepositoriesEvent(
       // Create or update repo
       const githubRepo = await prisma.gitHubRepo.upsert({
         where: {
-          repoId: repoData.id,
+          githubId: repoData.id,
         },
         create: {
-          clientId: githubInstallation.clientId,
           installationId: githubInstallation.id,
           owner: repoData.owner.login,
           name: repoData.name,
-          repoId: repoData.id,
+          githubId: repoData.id,
           isPrivate: repoData.private,
           isEnabled: true,
         },
