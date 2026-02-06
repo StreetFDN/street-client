@@ -61,6 +61,10 @@ jobs:
           SUPABASE_URL: ''
           SUPABASE_ANON_KEY: ''
           SUPABASE_PUBLISHABLE_KEY: ''
+          X_API_CONSUMER_KEY: ''
+          X_API_CONSUMER_SECRET: ''
+          X_API_TOKEN_KEY: ''
+          X_API_TOKEN_SECRET: ''
         run: |
           node dist/index.js > app.log 2>&1 &
           echo $! > app.pid

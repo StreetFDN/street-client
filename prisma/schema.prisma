@@ -82,6 +82,7 @@ model Client {
   githubInstallationId String?             @unique @db.Uuid
   githubInstallation   GitHubInstallation? @relation(fields: [githubInstallationId], references: [id])
   users                UserRoleForClient[]
+  xAccount             XAccount?
 
   /// To which clients this client gave access to see this clients data.
   givenAccesses    SharedClientAccess[] @relation("givenAccesses")
@@ -90,6 +91,53 @@ model Client {
   tokens           ClientTokens[]
 
   @@index([githubInstallationId])
+}
+
+model XAccount {
+  id           String   @id @default(uuid(7)) @db.Uuid
+  clientId     String   @db.Uuid
+  userId       String
+  username     String?
+  profileUrl   String?
+  lastSyncedAt DateTime?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  client    Client             @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  snapshots XAccountSnapshot[]
+  posts     XPostSnapshot[]
+
+  @@unique([clientId])
+  @@unique([userId])
+  @@index([userId])
+}
+
+model XAccountSnapshot {
+  id         String   @id @default(uuid(7)) @db.Uuid
+  xAccountId String   @db.Uuid
+  followers  Int
+  createdAt  DateTime @default(now())
+
+  account XAccount @relation(fields: [xAccountId], references: [id], onDelete: Cascade)
+
+  @@index([xAccountId, createdAt])
+}
+
+model XPostSnapshot {
+  id            String   @id @default(uuid(7)) @db.Uuid
+  xAccountId    String   @db.Uuid
+  postId        String
+  postCreatedAt DateTime
+  likes         Int
+  reposts       Int
+  replies       Int
+  impressions   Int?
+  createdAt     DateTime @default(now())
+
+  account XAccount @relation(fields: [xAccountId], references: [id], onDelete: Cascade)
+
+  @@index([xAccountId, createdAt])
+  @@index([postId])
 }
 
 model SharedClientAccess {
