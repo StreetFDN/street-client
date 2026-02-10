@@ -66,11 +66,11 @@ model UserRoleForClient {
   client       Client              @relation(fields: [clientId], references: [id])
   sharedAccess SharedClientAccess? @relation(fields: [sharedAccessId], references: [id], onDelete: Cascade)
 
+  // There are also partial indexes required. Which are not supported by Prisma. They are in the migration file 20260129073934_init/migration.sql
+
   @@index([userId, clientId])
   @@index([clientId])
   @@index([sharedAccessId])
-
-  // There are also partial indexes required. Which are not supported by Prisma. They are in the migration file 20260129123312_init/migration.sql
 }
 
 model Client {
@@ -87,6 +87,7 @@ model Client {
   givenAccesses    SharedClientAccess[] @relation("givenAccesses")
   /// Which clients granted this client accesses to see theirs data.
   receivedAccesses SharedClientAccess[] @relation("recievedAccesses")
+  tokens           ClientTokens[]
 
   @@index([githubInstallationId])
 }
@@ -139,6 +140,29 @@ model GitHubRepo {
   dailySummaries RepoDailySummary[]
 
   @@index([installationId])
+}
+
+model Token {
+  id        String   @id @default(uuid(7)) @db.Uuid
+  address   String   @unique
+  chainId   String
+  createdAt DateTime @default(now())
+
+  clients ClientTokens[]
+
+  @@index([address, chainId])
+}
+
+model ClientTokens {
+  id        String   @id @default(uuid(7)) @db.Uuid
+  clientId  String   @db.Uuid
+  tokenId   String   @unique @db.Uuid
+  createdAt DateTime @default(now())
+
+  client Client @relation(fields: [clientId], references: [id])
+  token  Token  @relation(fields: [tokenId], references: [id])
+
+  @@unique([clientId, tokenId])
 }
 
 model RepoSyncRun {

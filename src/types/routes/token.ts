@@ -64,3 +64,10 @@ export const validPeriodTokenHolderDayMap: Record<
   ValidPeriodTokenHoldersCount,
   string
 > = { '7d': '7', '30d': '30', max: 'max' };
+
+export const ClientTokenSchema = z
+  .object({
+    address: z.string().startsWith('0x').min(42),
+    chainId: z.string().min(1),
+  })
+  .strict();
