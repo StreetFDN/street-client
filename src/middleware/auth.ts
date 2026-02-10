@@ -1,5 +1,11 @@
 import { Request, Response, NextFunction } from 'express';
-import { trySupabaseAuth } from './supabaseAuth';
+import {
+  CookieOptions,
+  createServerClient,
+  parseCookieHeader,
+  serializeCookieHeader,
+} from '@supabase/ssr';
+import { config } from 'config';
 
 /**
  * Middleware to require authentication
@@ -10,19 +16,12 @@ export async function requireAuth(
   res: Response,
   next: NextFunction,
 ): Promise<void> {
-  // First try Supabase auth
-  const supabaseAuthSuccess = await trySupabaseAuth(req);
+  const supabase = createClient({ req, res });
+  const { data } = await supabase.auth.getUser();
 
-  if (supabaseAuthSuccess) {
-    return next();
-  }
-
-  // Otherwise, try session auth
-  if (req.session && req.session.userId) {
-    req.userId = req.session.userId;
-    if (req.session.user) {
-      req.user = req.session.user;
-    }
+  if (data.user) {
+    req.userId = data.user.id;
+    req.user = data.user;
     return next();
   }
 
@@ -33,13 +32,51 @@ export async function requireAuth(
 /**
  * Middleware to optionally get user (doesn't require auth)
  */
-export function optionalAuth(
+export async function optionalAuth(
   req: Request,
   res: Response,
   next: NextFunction,
-): void {
-  if (req.session && req.session.userId) {
-    req.userId = req.session.userId;
+): Promise<void> {
+  const supabase = createClient({ req, res });
+  const { data } = await supabase.auth.getUser();
+
+  if (data.user) {
+    req.userId = data.user.id;
+    req.user = data.user;
   }
   next();
 }
+
+// Always create a new server client instance, instead of sharing one common instance across code
+export const createClient = (context: { req: Request; res: Response }) => {
+  return createServerClient(
+    config.supabase.url,
+    config.supabase.publishableKey,
+    {
+      cookies: {
+        getAll() {
+          return parseCookieHeader(context.req.headers.cookie ?? '')
+            .filter(
+              (cookie): cookie is { name: string; value: string } =>
+                cookie.value != null,
+            )
+            .map((cookie) => ({ name: cookie.name, value: cookie.value }));
+        },
+        setAll(
+          cookiesToSet: {
+            name: string;
+            value: string;
+            options: CookieOptions;
+          }[],
+        ) {
+          cookiesToSet.forEach(({ name, value, options }) =>
+            context.res.append(
+              'Set-Cookie',
+              serializeCookieHeader(name, value, options),
+            ),
+          );
+        },
+      },
+    },
+  );
+};

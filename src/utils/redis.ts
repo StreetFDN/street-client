@@ -1,4 +1,5 @@
 import { createClient } from 'redis';
+import { config } from 'config';
 
 type RedisClient = ReturnType<typeof createClient>;
 
@@ -11,7 +12,7 @@ export async function initRedis(): Promise<void> {
   }
 
   client = createClient({
-    url: process.env.REDIS_URL || 'redis://localhost:6379',
+    url: config.redis.url,
     socket: {
       reconnectStrategy: (retries) => {
         if (retries > 10) {
@@ -80,6 +81,7 @@ type Serializable = Primitive | object;
  */
 export class RedisAdapter<T extends Serializable> {
   prefix: string;
+
   constructor(prefix: string = '') {
     this.prefix = prefix;
   }
