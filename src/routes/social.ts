@@ -4,6 +4,8 @@ import { prisma } from 'db';
 import { requireAuth } from 'middleware/auth';
 import { findUserAccessToClient } from 'utils/db';
 import { UserRole } from '@prisma/client';
+import { SocialWindowSchema } from 'types/routes/social';
+import { z } from 'zod';
 
 const router = Router();
 
@@ -42,9 +44,22 @@ router.get(
         return res.status(404).json({ error: 'X account not configured' });
       }
 
+      const parsedQuery = SocialWindowSchema.safeParse(req.query);
+      if (!parsedQuery.success) {
+        return res.status(400).json({
+          error:
+            'Invalid query parameters. Expected: startTime (ISO timestamp, default now - 7 days), endTime (ISO timestamp, default now).',
+          details: z.treeifyError(parsedQuery.error),
+        });
+      }
+
       const snapshots = await prisma.xAccountSnapshot.findMany({
         where: {
           xAccountId: xAccount.id,
+          createdAt: {
+            gte: parsedQuery.data.start_time,
+            lte: parsedQuery.data.end_time,
+          },
         },
         orderBy: {
           createdAt: 'asc',
@@ -57,6 +72,10 @@ router.get(
           userId: xAccount.userId,
           username: xAccount.username,
           profileUrl: xAccount.profileUrl,
+        },
+        window: {
+          startTime: parsedQuery.data.start_time,
+          endTime: parsedQuery.data.end_time,
         },
         snapshots: snapshots.map((snapshot) => ({
           createdAt: snapshot.createdAt,
@@ -105,10 +124,23 @@ router.get(
         return res.status(404).json({ error: 'X account not configured' });
       }
 
+      const parsedQuery = SocialWindowSchema.safeParse(req.query);
+      if (!parsedQuery.success) {
+        return res.status(400).json({
+          error:
+            'Invalid query parameters. Expected: startTime (ISO timestamp, default now - 7 days), endTime (ISO timestamp, default now).',
+          details: z.treeifyError(parsedQuery.error),
+        });
+      }
+
       const aggregates = await prisma.xPostSnapshot.groupBy({
         by: ['createdAt'],
         where: {
           xAccountId: xAccount.id,
+          createdAt: {
+            gte: parsedQuery.data.start_time,
+            lte: parsedQuery.data.end_time,
+          },
         },
         _sum: {
           likes: true,
@@ -127,6 +159,10 @@ router.get(
           userId: xAccount.userId,
           username: xAccount.username,
           profileUrl: xAccount.profileUrl,
+        },
+        window: {
+          startTime: parsedQuery.data.start_time,
+          endTime: parsedQuery.data.end_time,
         },
         snapshots: aggregates.map((snapshot) => ({
           createdAt: snapshot.createdAt,
