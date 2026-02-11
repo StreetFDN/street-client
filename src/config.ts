@@ -49,5 +49,17 @@ export const config = {
     anonKey: getRequiredEnv('SUPABASE_ANON_KEY'),
     publishableKey: getRequiredEnv('SUPABASE_PUBLISHABLE_KEY'),
   },
+  xApi: {
+    consumer: {
+      key: getRequiredEnv('X_API_CONSUMER_KEY'),
+      secret: getRequiredEnv('X_API_CONSUMER_SECRET'),
+    },
+    token: {
+      key: getRequiredEnv('X_API_TOKEN_KEY'),
+      secret: getRequiredEnv('X_API_TOKEN_SECRET'),
+    },
+    syncCron: getDefaultEnv('X_API_SYNC_CRON', '0 */3 * * *'),
+    enabled: getDefaultEnv('X_API_SYNC_ENABLED', 'true') === 'true',
+  },
   baseUrl,
 };

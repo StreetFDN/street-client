@@ -1,5 +1,7 @@
 import cron from 'node-cron';
 import { syncAllReposDaily } from '../services/sync';
+import { syncXAccounts } from '../services/xApi';
+import { config } from '../config';
 
 /**
  * Sets up the daily sync scheduler
@@ -17,5 +19,19 @@ export function startScheduler(): void {
     }
   });
 
-  console.log('Scheduler started - daily sync scheduled for 2 AM UTC');
+  if (config.xApi.enabled) {
+    cron.schedule(config.xApi.syncCron, async () => {
+      console.log('Starting scheduled X API sync...');
+      try {
+        await syncXAccounts();
+        console.log('X API sync completed');
+      } catch (error) {
+        console.error('Error in X API sync:', error);
+      }
+    });
+  }
+
+  console.log(
+    `Scheduler started - daily sync at 2 AM UTC; X API sync ${config.xApi.enabled ? `at ${config.xApi.syncCron}` : 'disabled'}`,
+  );
 }
