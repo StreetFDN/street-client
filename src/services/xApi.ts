@@ -17,7 +17,7 @@ export async function syncXAccounts(): Promise<void> {
   const now = new Date();
   const windowStart = new Date(now.getTime() - 24 * 60 * 60 * 1000);
 
-  const userIds = new Set(...xAccounts.map((account) => account.userId));
+  const userIds = new Set(xAccounts.map((account) => account.userId));
   const userResultsByIds = await fetchUsersByIds(userIds);
 
   const snapshotEntries = xAccounts
@@ -123,7 +123,7 @@ export async function fetchUsersByIds(
       processedIds.add(user.id);
     }
 
-    for (const userError of response.error ?? []) {
+    for (const userError of response.errors ?? []) {
       if (userError.resource_type === 'user') {
         usersById.set(userError.resource_id!, nok(userError));
         processedIds.add(userError.resource_id!);

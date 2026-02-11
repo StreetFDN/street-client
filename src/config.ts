@@ -59,7 +59,7 @@ export const config = {
       secret: getRequiredEnv('X_API_TOKEN_SECRET'),
     },
     syncCron: getDefaultEnv('X_API_SYNC_CRON', '0 */3 * * *'),
-    enabled: getDefaultEnv('X_API_SYNC_ENABLED', 'true'),
+    enabled: getDefaultEnv('X_API_SYNC_ENABLED', 'true') === 'true',
   },
   baseUrl,
 };

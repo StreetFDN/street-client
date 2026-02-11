@@ -4,7 +4,7 @@ import { Maybe, Result } from 'types/utils';
 // Error types
 export type ApiResponse<T> = {
   data?: T[];
-  error?: ResponseError[];
+  errors?: ResponseError[];
   meta?: {
     next_token?: string;
   };
