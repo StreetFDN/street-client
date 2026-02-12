@@ -1,7 +1,6 @@
 import { Router, Request, Response } from 'express';
 import { config } from 'config';
 import { createClient } from 'middleware/auth';
-import { prisma } from 'db';
 
 const router = Router();
 
@@ -20,6 +19,7 @@ router.get('/oauth', async (req: Request, res: Response) => {
 
     if (!error) {
       const user = data.user;
+      console.log('Supabase Authenticated User', user);
 
       // TODO: Perform checks on User permission and redirect accordingly
       const isUserAllowed = true;
@@ -60,6 +60,5 @@ router.get('/me', (req: Request, res: Response) => {
 
   res.json(req.session.user || { id: req.session.userId });
 });
-
 
 export default router;
