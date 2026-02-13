@@ -1,6 +1,7 @@
 import { Router, Request, Response } from 'express';
 import { config } from 'config';
-import { createClient } from 'middleware/auth';
+import { createClient, requireAuth } from 'middleware/auth';
+import { prisma } from 'db';
 
 const router = Router();
 
@@ -9,7 +10,7 @@ const router = Router();
  * Initiate GitHub OAuth flow
  */
 router.get('/oauth', async (req: Request, res: Response) => {
-  const { code, next } = req.query;
+  const { code } = req.query;
 
   if (code) {
     const supabase = createClient({ req, res });
@@ -18,30 +19,45 @@ router.get('/oauth', async (req: Request, res: Response) => {
     );
 
     if (!error) {
-      const user = data.user;
-      console.log('Supabase Authenticated User', user);
+      // TODO: Create user on the DB, Would be needed to invite clients (since we check for user on DB)
 
-      // TODO: Perform checks on User permission and redirect accordingly
-      const isUserAllowed = true;
+      // Check if the user is SuperUser (Street Team)
+      const isSuperUser =
+        (await prisma.user.findUnique({
+          where: {
+            email: data.user.email,
+            superUser: true,
+          },
+        })) !== null;
 
-      if (!isUserAllowed) {
-        return res.redirect(
-          `${config.frontEnd.url}/auth/error?error=Not+whitelisted+user`,
-        );
+      if (isSuperUser) {
+        return res.redirect(`${config.frontEnd.url}/human/admin-dashboard`); // Update with the URL to client Dashboard
       }
 
-      const forwardedHost = req.headers['x-forwarded-host'] as
-        | string
-        | undefined;
-      const isLocalEnv = process.env.NODE_ENV === 'development';
-      if (isLocalEnv) {
-        // we can be sure that there is no load balancer in between, so no need to watch for X-Forwarded-Host
-        return res.redirect(`${config.frontEnd.url}${next ?? ''}`);
-      } else if (forwardedHost) {
-        return res.redirect(`https://${forwardedHost}${next ?? ''}`);
-      } else {
-        return res.redirect(`${config.frontEnd.url}${next ?? ''}`);
+      // Check if authenticated user is an approved client
+      // Send to a screen where they can choose client
+      const client = await prisma.client.findFirst({
+        where: {
+          users: {
+            some: {
+              role: 'ADMIN',
+              user: {
+                email: data.user.email,
+              },
+            },
+          },
+        },
+      });
+
+      // Redirect to client to their dashboard page
+      if (client != null) {
+        return res.redirect(`${config.frontEnd.url}/human/client/dashboard`);
       }
+
+      // Not allow anyone apart from Clients or Superadmins to create account
+      return res.redirect(
+        `${config.frontEnd.url}/auth/error?error=Not+whitelisted+user`,
+      );
     }
   }
 
@@ -53,12 +69,8 @@ router.get('/oauth', async (req: Request, res: Response) => {
  * GET /api/auth/me
  * Get current authenticated user
  */
-router.get('/me', (req: Request, res: Response) => {
-  if (!req.session || !req.session.userId) {
-    return res.status(401).json({ error: 'Not authenticated' });
-  }
-
-  res.json(req.session.user || { id: req.session.userId });
+router.get('/me', requireAuth, (req: Request, res: Response) => {
+  res.json(req.user);
 });
 
 export default router;
