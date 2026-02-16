@@ -51,7 +51,7 @@ export async function optionalAuth(
 export const createClient = (context: { req: Request; res: Response }) => {
   return createServerClient(
     config.supabase.url,
-    config.supabase.publishableKey,
+    config.supabase.serviceRoleKey,
     {
       cookies: {
         getAll() {
