@@ -48,7 +48,6 @@ export const config = {
     url: getRequiredEnv('SUPABASE_URL'),
     anonKey: getRequiredEnv('SUPABASE_ANON_KEY'),
     publishableKey: getRequiredEnv('SUPABASE_PUBLISHABLE_KEY'),
-    serviceRoleKey: getRequiredEnv('SUPABASE_SERVICE_ROLE_KEY'),
   },
   admin: {
     superUserEmails: new Set(
