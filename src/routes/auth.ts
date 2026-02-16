@@ -105,7 +105,7 @@ router.get('/oauth', async (req: Request, res: Response) => {
       }
     }
   } catch (err) {
-    console.error("Error Occured", err)
+    console.error('Error Occured', err);
     return res.redirect(
       `${config.frontEnd.url}/human/auth/error?error=Unexpected+Error.+Please+try+again`,
     );
