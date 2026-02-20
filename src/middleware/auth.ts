@@ -1,11 +1,6 @@
 import { Request, Response, NextFunction } from 'express';
-import {
-  CookieOptions,
-  createServerClient,
-  parseCookieHeader,
-  serializeCookieHeader,
-} from '@supabase/ssr';
-import { config } from 'config';
+import { supabase } from 'services/supabase';
+import { AuthenticatedUser } from 'types/authenticatedUser';
 
 /**
  * Middleware to require authentication
@@ -16,67 +11,27 @@ export async function requireAuth(
   res: Response,
   next: NextFunction,
 ): Promise<void> {
-  const supabase = createClient({ req, res });
-  const { data } = await supabase.auth.getUser();
+  const auth = req.headers.authorization;
+  const token = auth?.startsWith('Bearer ') ? auth!.slice(7) : null;
 
-  if (data.user) {
-    req.userId = data.user.id;
-    req.user = data.user;
-    return next();
+  if (token === null) {
+    res.status(401).json({ error: 'Authentication required' });
+    return;
   }
 
-  // No authentication found
-  res.status(401).json({ error: 'Authentication required' });
-}
+  const { data, error } = await supabase.auth.getUser(token);
 
-/**
- * Middleware to optionally get user (doesn't require auth)
- */
-export async function optionalAuth(
-  req: Request,
-  res: Response,
-  next: NextFunction,
-): Promise<void> {
-  const supabase = createClient({ req, res });
-  const { data } = await supabase.auth.getUser();
-
-  if (data.user) {
-    req.userId = data.user.id;
-    req.user = data.user;
+  if (error || !data || !data.user?.id) {
+    res.status(401).json({ error: 'Failed to authenticate' });
+    return;
   }
-  next();
-}
 
-// Always create a new server client instance, instead of sharing one common instance across code
-export const createClient = (context: { req: Request; res: Response }) => {
-  return createServerClient(
-    config.supabase.url,
-    config.supabase.publishableKey,
-    {
-      cookies: {
-        getAll() {
-          return parseCookieHeader(context.req.headers.cookie ?? '')
-            .filter(
-              (cookie): cookie is { name: string; value: string } =>
-                cookie.value != null,
-            )
-            .map((cookie) => ({ name: cookie.name, value: cookie.value }));
-        },
-        setAll(
-          cookiesToSet: {
-            name: string;
-            value: string;
-            options: CookieOptions;
-          }[],
-        ) {
-          cookiesToSet.forEach(({ name, value, options }) =>
-            context.res.append(
-              'Set-Cookie',
-              serializeCookieHeader(name, value, options),
-            ),
-          );
-        },
-      },
-    },
-  );
-};
+  req.userId = data.user.id;
+  try {
+    req.user = await AuthenticatedUser.loadBySupabaseUser(data.user);
+  } catch (error) {
+    console.error('Failed to load authenticated user', error);
+    res.status(500).json({ error: 'Failed to load authenticated user' });
+  }
+  return next();
+}

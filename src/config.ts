@@ -49,6 +49,14 @@ export const config = {
     anonKey: getRequiredEnv('SUPABASE_ANON_KEY'),
     publishableKey: getRequiredEnv('SUPABASE_PUBLISHABLE_KEY'),
   },
+  admin: {
+    superUserEmails: new Set(
+      getRequiredEnv('ADMIN_SUPERUSER_EMAIL')
+        .replaceAll(' ', '')
+        .split(',')
+        .filter((i) => i != ''),
+    ),
+  },
   xApi: {
     consumer: {
       key: getRequiredEnv('X_API_CONSUMER_KEY'),
