@@ -142,7 +142,7 @@ router.post('/repos/:repoId/enable', async (req: Request, res: Response) => {
       return res.status(403).json({ error: 'Access denied' });
     }
 
-    res.json({ message: 'Repo disabled', repo });
+    res.json({ message: 'Repository enabled', repo });
   } catch (error) {
     if (
       error instanceof PrismaClientKnownRequestError &&
@@ -151,7 +151,7 @@ router.post('/repos/:repoId/enable', async (req: Request, res: Response) => {
       return res.status(403).json({ error: 'Access denied' });
     }
 
-    console.error('Error disabling repo:', error);
+    console.error('Error enabling repository:', error);
     res.status(500).json({ error: 'Internal server error' });
   }
 });
@@ -174,7 +174,7 @@ router.post('/repos/:repoId/disable', async (req: Request, res: Response) => {
       return res.status(403).json({ error: 'Access denied' });
     }
 
-    res.json({ message: 'Repo disabled', repo });
+    res.json({ message: 'Repository disabled', repo });
   } catch (error) {
     if (
       error instanceof PrismaClientKnownRequestError &&
@@ -218,12 +218,6 @@ async function changeRepoActivityStatus(
     if (error instanceof PrismaClientKnownRequestError) {
       console.info(`Failed to update repository ${repoId}: `, error);
       return null;
-    }
-
-    if (error != null && typeof error === 'object' && 'code' in error) {
-      if ((error as { code?: string }).code === 'P2025') {
-        return null;
-      }
     }
 
     throw error;
