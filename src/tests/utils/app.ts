@@ -16,7 +16,6 @@ export function createTestApp() {
   app.use((req, _res, next) => {
     const userId = req.header('x-test-user-id');
     if (userId) {
-      req.userId = userId;
       req.user = {
         id: userId,
         email: `${userId}@test.local`,

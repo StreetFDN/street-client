@@ -23,7 +23,7 @@ router.get(
   '/clients/:clientId/repos/:repoId/activity',
   requireAuth,
   async (req: Request, res: Response) => {
-    const userId = req.userId!;
+    const userId = req.user!.id;
     const { clientId, repoId } = req.params;
 
     const parsedQuery = GetActivityQuerySchema.safeParse(req.query);

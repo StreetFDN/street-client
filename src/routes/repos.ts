@@ -18,7 +18,7 @@ router.get(
   async (req: Request, res: Response) => {
     try {
       const { clientId } = req.params;
-      const userId = req.userId;
+      const userId = req.user!.id;
 
       if (userId == null) {
         return res.status(401).json({ error: 'Access denied' });
@@ -75,7 +75,7 @@ router.get(
   async (req: Request, res: Response) => {
     try {
       const { installationId } = req.params;
-      const userId = req.userId;
+      const userId = req.user!.id;
 
       if (userId == null) {
         return res.status(401).json({ error: 'Access denied' });
@@ -131,7 +131,7 @@ router.get(
 router.post('/repos/:repoId/enable', async (req: Request, res: Response) => {
   try {
     const { repoId } = req.params;
-    const userId = req.userId;
+    const userId = req.user!.id;
 
     if (userId == null) {
       return res.status(401).json({ error: 'Access denied' });
@@ -163,7 +163,7 @@ router.post('/repos/:repoId/enable', async (req: Request, res: Response) => {
 router.post('/repos/:repoId/disable', async (req: Request, res: Response) => {
   try {
     const { repoId } = req.params;
-    const userId = req.userId;
+    const userId = req.user!.id;
 
     if (userId == null) {
       return res.status(401).json({ error: 'Access denied' });
@@ -234,7 +234,7 @@ router.get(
   async (req: Request, res: Response) => {
     try {
       const { repoId } = req.params;
-      const userId = req.userId;
+      const userId = req.user!.id;
 
       if (userId == null) {
         return res.status(401).json({ error: 'Access denied' });

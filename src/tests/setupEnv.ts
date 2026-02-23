@@ -31,3 +31,27 @@ process.env.X_API_CONSUMER_KEY = process.env.X_API_CONSUMER_KEY ?? 'test';
 process.env.X_API_CONSUMER_SECRET = process.env.X_API_CONSUMER_SECRET ?? 'test';
 process.env.X_API_TOKEN_KEY = process.env.X_API_TOKEN_KEY ?? 'test';
 process.env.X_API_TOKEN_SECRET = process.env.X_API_TOKEN_SECRET ?? 'test';
+
+jest.mock('middleware/auth', () => ({
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  requireAuth: (req: any, res: any, next: any) => {
+    const authHeader = req.headers?.authorization;
+    const token = authHeader?.startsWith('Bearer ')
+      ? authHeader.slice(7)
+      : null;
+    const userId = token ?? req.headers?.['x-test-user-id'];
+
+    if (!userId) {
+      return res.status(401).json({ error: 'Authentication required' });
+    }
+
+    req.userId = userId;
+    req.user = {
+      id: userId,
+      email: `${userId}@test.local`,
+      isSuperUser: false,
+      accesses: [],
+    };
+    return next();
+  },
+}));

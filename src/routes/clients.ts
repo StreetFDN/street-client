@@ -21,7 +21,7 @@ const router = Router();
  */
 router.get('/clients', requireAuth, async (req: Request, res: Response) => {
   try {
-    const userId = req.userId!;
+    const userId = req.user!.id;
     const accesses = await prisma.userRoleForClient.findMany({
       where: {
         userId,
@@ -73,7 +73,7 @@ router.get(
   requireAuth,
   async (req: Request, res: Response) => {
     try {
-      const userId = req.userId!;
+      const userId = req.user!.id;
       const { clientId } = req.params;
 
       const access = await findUserAccessToClient(
@@ -131,7 +131,7 @@ router.get(
  */
 router.post('/clients', requireAuth, async (req: Request, res: Response) => {
   try {
-    const userId = req.userId;
+    const userId = req.user!.id;
     if (userId == null) {
       return res.status(403).json({ error: 'Access denied' });
     }
@@ -192,7 +192,7 @@ router.post(
   async (req: Request, res: Response) => {
     try {
       const { clientId } = req.params;
-      const userId = req.userId;
+      const userId = req.user!.id;
 
       if (userId == null) {
         return res.status(401).json({ error: 'Access denied' });
@@ -302,7 +302,7 @@ router.post(
   async (req: Request, res: Response) => {
     try {
       const { clientId } = req.params;
-      const userId = req.userId;
+      const userId = req.user!.id;
 
       if (userId == null) {
         return res.status(401).json({ error: 'Access denied' });
@@ -470,7 +470,7 @@ router.post(
   async (req: Request, res: Response) => {
     try {
       const { clientId } = req.params;
-      const userId = req.userId;
+      const userId = req.user!.id;
 
       if (userId == null) {
         return res.status(401).json({ error: 'Access denied' });
@@ -583,7 +583,7 @@ router.post(
   async (req: Request, res: Response) => {
     try {
       const { clientId } = req.params;
-      const userId = req.userId;
+      const userId = req.user!.id;
 
       if (userId == null) {
         return res.status(401).json({ error: 'Access denied' });

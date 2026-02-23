@@ -10,7 +10,6 @@ import repoRoutes from './routes/repos';
 import summaryRoutes from './routes/summaries';
 import syncRoutes from './routes/sync';
 import tokenRoutes from './routes/token';
-import testAuthRoutes from './routes/test-auth';
 import socialRoutes from './routes/social';
 import githubWebhookRoutes from './routes/webhooks/github';
 import { startScheduler } from './worker/scheduler';
@@ -65,9 +64,6 @@ app.use('/api', summaryRoutes);
 app.use('/api', tokenRoutes);
 app.use('/api', socialRoutes);
 app.use('/api/sync', syncRoutes);
-
-// Example endpoint for demonstration, will delete once auth is implemented site-wide
-app.use('/api/test-auth', testAuthRoutes);
 
 // Serve static files (frontend) - before API routes to allow /api/auth routes
 app.use(express.static(path.join(__dirname, '../public')));
