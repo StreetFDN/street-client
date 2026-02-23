@@ -6,6 +6,7 @@ import activityRoutes from './routes/activity';
 import authRoutes from './routes/auth';
 import clientRoutes from './routes/clients';
 import installationRoutes from './routes/installations';
+import adminRoutes from './routes/admin';
 import repoRoutes from './routes/repos';
 import summaryRoutes from './routes/summaries';
 import syncRoutes from './routes/sync';
@@ -57,6 +58,7 @@ app.use(express.json());
 app.use('/api/auth', authRoutes);
 
 // API routes
+app.use('/api/admin', adminRoutes);
 app.use('/api', activityRoutes);
 app.use('/api', clientRoutes);
 app.use('/api', installationRoutes);

@@ -186,6 +186,83 @@ router.post('/clients', requireAuth, async (req: Request, res: Response) => {
   }
 });
 
+/**
+ * GET /api/clients/:clientId/authorization
+ * Check if a user is authorized to perform Admin level actions for a client
+ */
+router.get(
+  '/clients/:clientId/authorization',
+  requireAuth,
+  async (req: Request, res: Response) => {
+    try {
+      const { clientId } = req.params;
+      const userId = req.userId;
+      if (!userId) {
+        return res.status(401).json({ error: 'Access denied' });
+      }
+
+      const clientWithAdminAccess = await prisma.userRoleForClient.findFirst({
+        where: {
+          userId,
+          clientId,
+          role: 'ADMIN',
+        },
+      });
+
+      if (clientWithAdminAccess === null) {
+        return res.status(403).json({
+          error: 'User is not the admin for the client.',
+        });
+      }
+
+      return res.json({
+        ok: true,
+      });
+    } catch (err) {
+      console.error('Error occured while fetching authorization', err);
+      return res.status(500).json({ error: 'Internal server error' });
+    }
+  },
+);
+
+/**
+ * GET /api/clients/authorization
+ * Check if a user is authorized to view the page for clients list (the invited users to set up clients)
+ */
+router.get(
+  '/clients/authorization',
+  requireAuth,
+  async (req: Request, res: Response) => {
+    try {
+      const userId = req.userId!;
+      if (!userId) {
+        return res.status(401).json({ error: 'Access denied' });
+      }
+
+      const clientWithAtleastOneAdminAccess =
+        await prisma.userRoleForClient.findFirst({
+          where: {
+            userId,
+            role: 'ADMIN',
+          },
+        });
+
+      if (clientWithAtleastOneAdminAccess === null) {
+        return res.status(403).json({
+          error: 'User is not an Admin for any client.',
+        });
+      }
+
+      return res.json({
+        ok: true,
+      });
+    } catch (err) {
+      console.error('Error occured while fetching authorization', err);
+      return res.status(500).json({ error: 'Internal server error' });
+    }
+  },
+);
+
 router.post(
   '/clients/:clientId/inviteMember',
   requireAuth,
