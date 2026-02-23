@@ -19,7 +19,7 @@ router.get(
   async (req: Request, res: Response) => {
     try {
       const { clientId } = req.params;
-      const userId = req.userId;
+      const userId = req.user!.id;
 
       if (userId == null) {
         return res.status(401).json({ error: 'Access denied' });
@@ -99,7 +99,7 @@ router.get(
   async (req: Request, res: Response) => {
     try {
       const { clientId } = req.params;
-      const userId = req.userId;
+      const userId = req.user!.id;
 
       if (userId == null) {
         return res.status(401).json({ error: 'Access denied' });

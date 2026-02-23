@@ -16,7 +16,7 @@ router.post(
   requireAuth,
   async (req: Request, res: Response) => {
     try {
-      const userId = req.userId;
+      const userId = req.user!.id;
       if (userId == null) {
         return res.status(401).json({ error: 'Access denied' });
       }

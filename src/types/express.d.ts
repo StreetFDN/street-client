@@ -6,7 +6,6 @@ import { AuthenticatedUser } from 'types/authenticatedUser';
 declare global {
   namespace Express {
     interface Request {
-      userId?: string;
       user?: AuthenticatedUser;
     }
   }

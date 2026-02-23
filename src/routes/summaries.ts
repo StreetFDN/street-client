@@ -23,7 +23,7 @@ router.get(
     try {
       const { clientId, repoId } = req.params;
       const { from, to, limit = '100', offset = '0' } = req.query;
-      const userId = req.userId;
+      const userId = req.user!.id;
 
       if (userId == null) {
         return res.status(401).json({ error: 'Access denied' });
@@ -107,7 +107,7 @@ router.get(
     try {
       const { clientId } = req.params;
       const { from, to, limit = '100', offset = '0' } = req.query;
-      const userId = req.userId;
+      const userId = req.user!.id;
 
       if (userId == null) {
         return res.status(401).json({ error: 'Access denied' });
@@ -196,7 +196,7 @@ router.get(
   async (req: Request, res: Response) => {
     try {
       const { clientId } = req.params;
-      const userId = req.userId;
+      const userId = req.user!.id;
 
       if (userId == null) {
         return res.status(401).json({ error: 'Access denied' });
@@ -328,7 +328,7 @@ router.get(
   async (req: Request, res: Response) => {
     try {
       const { clientId } = req.params;
-      const userId = req.userId;
+      const userId = req.user!.id;
 
       if (userId == null) {
         return res.status(401).json({ error: 'Access denied' });
@@ -473,7 +473,7 @@ router.post(
   async (req: Request, res: Response) => {
     try {
       const { repoId } = req.params;
-      const userId = req.userId;
+      const userId = req.user!.id;
 
       if (userId == null) {
         return res.status(401).json({ error: 'Access denied' });
@@ -512,7 +512,7 @@ router.get(
     try {
       const { repoId } = req.params;
       const { from, to, limit = '100', offset = '0' } = req.query;
-      const userId = req.userId;
+      const userId = req.user!.id;
 
       if (userId == null) {
         return res.status(401).json({ error: 'Access denied' });

@@ -26,7 +26,6 @@ export async function requireAuth(
     return;
   }
 
-  req.userId = data.user.id;
   try {
     req.user = await AuthenticatedUser.loadBySupabaseUser(data.user);
   } catch (error) {
