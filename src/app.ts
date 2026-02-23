@@ -18,6 +18,7 @@ import { startScheduler } from './worker/scheduler';
 import { initRedis } from './utils/redis';
 import cors from 'cors';
 import cookieParser from 'cookie-parser';
+import bodyParser from 'body-parser';
 
 const app = express();
 
@@ -53,6 +54,9 @@ app.use(
 
 // Other API routes use JSON
 app.use(express.json());
+
+app.use(bodyParser.json());
+app.use(bodyParser.urlencoded({ extended: false }));
 
 // Auth routes (before API routes)
 app.use('/api/auth', authRoutes);
