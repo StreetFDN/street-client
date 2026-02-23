@@ -142,9 +142,16 @@ router.post('/repos/:repoId/enable', async (req: Request, res: Response) => {
       return res.status(403).json({ error: 'Access denied' });
     }
 
-    res.json({ message: 'Repo disabled', repo });
+    res.json({ message: 'Repository enabled', repo });
   } catch (error) {
-    console.error('Error disabling repo:', error);
+    if (
+      error instanceof PrismaClientKnownRequestError &&
+      error.code === 'P2025'
+    ) {
+      return res.status(403).json({ error: 'Access denied' });
+    }
+
+    console.error('Error enabling repository:', error);
     res.status(500).json({ error: 'Internal server error' });
   }
 });
@@ -167,8 +174,15 @@ router.post('/repos/:repoId/disable', async (req: Request, res: Response) => {
       return res.status(403).json({ error: 'Access denied' });
     }
 
-    res.json({ message: 'Repo disabled', repo });
+    res.json({ message: 'Repository disabled', repo });
   } catch (error) {
+    if (
+      error instanceof PrismaClientKnownRequestError &&
+      error.code === 'P2025'
+    ) {
+      return res.status(403).json({ error: 'Access denied' });
+    }
+
     console.error('Error disabling repo:', error);
     res.status(500).json({ error: 'Internal server error' });
   }
