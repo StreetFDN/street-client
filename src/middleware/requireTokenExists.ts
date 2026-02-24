@@ -2,7 +2,7 @@ import { prisma } from 'db';
 import { Request, Response, NextFunction } from 'express';
 
 /**
- * Middleware to check if tokens to be searched are authorized
+ * Middleware to ensure that the token to be searched exists in the database.
  */
 export async function requireTokenExists(
   req: Request,
