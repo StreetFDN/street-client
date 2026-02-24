@@ -9,15 +9,21 @@ export async function requireTokenExists(
   res: Response,
   next: NextFunction,
 ): Promise<void> {
-  const { tokenAddress } = req.params;
-  const token = await prisma.token.findUnique({
-    where: { address: tokenAddress },
-  });
+  try {
+    const { tokenAddress } = req.params;
+    const token = await prisma.token.findUnique({
+      where: { address: tokenAddress.trim().toLowerCase() },
+    });
 
-  if (token === null) {
-    res.status(404).json({ error: "Token doesn't exist" });
+    if (token === null) {
+      res.status(404).json({ error: "Token doesn't exist" });
+      return;
+    }
+
+    return next();
+  } catch (err) {
+    console.error('Error occured in token middleware', err);
+    res.status(500).json({ error: 'Unexpected error' });
     return;
   }
-
-  return next();
 }
