@@ -8,9 +8,7 @@ const router = Router();
  * Check if the authenticated user is authorized for superuser access
  */
 router.get('/authorization', requireAuth, (req: Request, res: Response) => {
-  const user = req.user?.isSuperUser;
-
-  if (!user)
+  if (!req.user?.isSuperUser)
     return res.status(403).json({
       error: 'Access Denied',
     });

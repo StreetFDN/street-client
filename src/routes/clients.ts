@@ -219,7 +219,7 @@ router.get(
         ok: true,
       });
     } catch (err) {
-      console.error('Error occured while fetching authorization', err);
+      console.error('Error occurred while fetching authorization', err);
       return res.status(500).json({ error: 'Internal server error' });
     }
   },
@@ -257,7 +257,7 @@ router.get(
         ok: true,
       });
     } catch (err) {
-      console.error('Error occured while fetching authorization', err);
+      console.error('Error occurred while fetching authorization', err);
       return res.status(500).json({ error: 'Internal server error' });
     }
   },
