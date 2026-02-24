@@ -25,15 +25,6 @@ router.get(
         return res.status(401).json({ error: 'Access denied' });
       }
 
-      const access = await findUserAccessToClient(
-        userId,
-        clientId,
-        UserRole.SHARED_ACCESS,
-      );
-      if (access == null) {
-        return res.status(403).json({ error: 'Access denied' });
-      }
-
       const tokens = await prisma.clientTokens.findMany({
         where: {
           clientId,

@@ -44,65 +44,91 @@ const app = createTestApp();
 
 describe('token routes', () => {
   it('returns token price data', async () => {
-    const response = await request(app).get('/api/token/0xabc/price');
+    const user = await createUser();
+    await createToken({ address: '0xabc', chainId: '1' });
+    const response = await request(app)
+      .get('/api/token/0xabc/price')
+      .set('x-test-user-id', user.id);
     expect(response.status).toBe(200);
     expect(response.body.data.current_price).toBe(1);
   });
 
   it('returns token price history', async () => {
+    const user = await createUser();
+    await createToken({ address: '0xabc', chainId: '1' });
     const response = await request(app)
       .get('/api/token/0xabc/price/history')
-      .query({ period: '7d' });
+      .query({ period: '7d' })
+      .set('x-test-user-id', user.id);
 
     expect(response.status).toBe(200);
     expect(response.body.data.total_volumes).toBeDefined();
   });
 
   it('returns 400 for invalid price history period', async () => {
+    const user = await createUser();
+    await createToken({ address: '0xabc', chainId: '1' });
     const response = await request(app)
       .get('/api/token/0xabc/price/history')
-      .query({ period: 'bad' });
+      .query({ period: 'bad' })
+      .set('x-test-user-id', user.id);
 
     expect(response.status).toBe(400);
   });
 
   it('returns token holders data', async () => {
-    const response = await request(app).get('/api/token/0xabc/holders');
+    const user = await createUser();
+    await createToken({ address: '0xabc', chainId: '1' });
+    const response = await request(app)
+      .get('/api/token/0xabc/holders')
+      .set('x-test-user-id', user.id);
     expect(response.status).toBe(200);
     expect(response.body.data.total_holders).toBe(100);
   });
 
   it('returns token holders history', async () => {
+    const user = await createUser();
+    await createToken({ address: '0xabc', chainId: '1' });
     const response = await request(app)
       .get('/api/token/0xabc/holders/history')
-      .query({ period: '7d' });
+      .query({ period: '7d' })
+      .set('x-test-user-id', user.id);
 
     expect(response.status).toBe(200);
     expect(response.body.data.holders).toHaveLength(1);
   });
 
   it('returns token volume data', async () => {
+    const user = await createUser();
+    await createToken({ address: '0xabc', chainId: '1' });
     const response = await request(app)
       .get('/api/token/0xabc/volume')
-      .query({ period: '24h' });
+      .query({ period: '24h' })
+      .set('x-test-user-id', user.id);
 
     expect(response.status).toBe(200);
     expect(response.body.data.total_volume).toBe(42);
   });
 
   it('returns token volume history', async () => {
+    const user = await createUser();
+    await createToken({ address: '0xabc', chainId: '1' });
     const response = await request(app)
       .get('/api/token/0xabc/volume/history')
-      .query({ period: '7d' });
+      .query({ period: '7d' })
+      .set('x-test-user-id', user.id);
 
     expect(response.status).toBe(200);
     expect(response.body.data.volume).toBeDefined();
   });
 
   it('returns 400 for invalid volume period', async () => {
+    const user = await createUser();
+    await createToken({ address: '0xabc', chainId: '1' });
     const response = await request(app)
       .get('/api/token/0xabc/volume')
-      .query({ period: 'bad' });
+      .query({ period: 'bad' })
+      .set('x-test-user-id', user.id);
 
     expect(response.status).toBe(400);
   });
