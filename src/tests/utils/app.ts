@@ -1,5 +1,6 @@
 import express from 'express';
 import activityRoutes from 'routes/activity';
+import adminRoutes from 'routes/admin';
 import authRoutes from 'routes/auth';
 import clientRoutes from 'routes/clients';
 import installationRoutes from 'routes/installations';
@@ -15,12 +16,13 @@ export function createTestApp() {
   app.use(express.json());
   app.use((req, _res, next) => {
     const userId = req.header('x-test-user-id');
+    const superuser = req.header('x-is-superuser');
     if (userId) {
       req.userId = userId;
       req.user = {
         id: userId,
         email: `${userId}@test.local`,
-        isSuperUser: false,
+        isSuperUser: superuser === 'true',
         accesses: [],
       };
     }
@@ -28,6 +30,7 @@ export function createTestApp() {
   });
 
   app.use('/api/auth', authRoutes);
+  app.use('/api/admin', adminRoutes);
   app.use('/api', clientRoutes);
   app.use('/api', activityRoutes);
   app.use('/api', installationRoutes);

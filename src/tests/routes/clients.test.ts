@@ -150,4 +150,32 @@ describe('clients routes', () => {
 
     expect(revoke.status).toBe(204);
   });
+
+  it('authorized clients get successful response', async () => {
+    const admin = await createUser();
+    const client = await createClient();
+
+    await attachUserToClient({
+      userId: admin.id,
+      clientId: client.id,
+      role: UserRole.ADMIN,
+    });
+
+    const response = await request(app)
+      .get(`/api/clients/${client.id}/authorization`)
+      .set('x-test-user-id', admin.id);
+
+    expect(response.status).toBe(200);
+  });
+
+  it('unauthorized clients gets failed response on authorization endpoints', async () => {
+    const nonAdmin = await createUser();
+    const client = await createClient();
+
+    const response = await request(app)
+      .get(`/api/clients/${client.id}/authorization`)
+      .set('x-test-user-id', nonAdmin.id);
+
+    expect(response.status).toBe(403);
+  });
 });
