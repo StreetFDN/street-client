@@ -1,6 +1,11 @@
 import request from 'supertest';
 import { createTestApp } from 'tests/utils/app';
-import { attachUserToClient, createClient, createUser } from 'tests/utils/db';
+import {
+  attachUserToClient,
+  createClient,
+  createUser,
+  createXAccount,
+} from 'tests/utils/db';
 import { prisma } from 'db';
 import { UserRole } from '@prisma/client';
 
@@ -24,6 +29,55 @@ describe('clients routes', () => {
     expect(response.status).toBe(200);
     expect(response.body).toHaveLength(1);
     expect(response.body[0].role).toBe(UserRole.USER);
+  });
+
+  it('GET /api/clients/:clientId returns xAccount when client has linked X account', async () => {
+    const user = await createUser();
+    const client = await createClient({ name: 'Client with X' });
+    await attachUserToClient({
+      userId: user.id,
+      clientId: client.id,
+      role: UserRole.USER,
+    });
+    const lastSyncedAt = new Date('2025-01-15T12:00:00Z');
+    const xAccount = await createXAccount({
+      clientId: client.id,
+      username: 'testhandle',
+      profileUrl: 'https://x.com/testhandle',
+    });
+    await prisma.xAccount.update({
+      where: { id: xAccount.id },
+      data: { lastSyncedAt },
+    });
+
+    const response = await request(app)
+      .get(`/api/clients/${client.id}`)
+      .set('x-test-user-id', user.id);
+
+    expect(response.status).toBe(200);
+    expect(response.body.xAccount).toEqual({
+      id: xAccount.id,
+      username: 'testhandle',
+      profileUrl: 'https://x.com/testhandle',
+      lastSyncedAt: lastSyncedAt.toISOString(),
+    });
+  });
+
+  it('GET /api/clients/:clientId returns xAccount null when client has no linked X account', async () => {
+    const user = await createUser();
+    const client = await createClient({ name: 'Client without X' });
+    await attachUserToClient({
+      userId: user.id,
+      clientId: client.id,
+      role: UserRole.USER,
+    });
+
+    const response = await request(app)
+      .get(`/api/clients/${client.id}`)
+      .set('x-test-user-id', user.id);
+
+    expect(response.status).toBe(200);
+    expect(response.body.xAccount).toBeNull();
   });
 
   it('creates client only for superUser', async () => {
