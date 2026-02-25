@@ -36,3 +36,11 @@ export const RemoveClientMemberSchema = z
     email: z.email(),
   })
   .strict();
+
+export const UpdateClientSchema = z
+  .object({
+    name: z.string().min(3).max(100).optional(),
+    installationId: z.string().nullable().optional(),
+    xAccountName: z.string().min(1).nullable().optional(),
+  })
+  .strict();

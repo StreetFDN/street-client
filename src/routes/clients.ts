@@ -10,8 +10,10 @@ import {
   InviteClientMemberSchema,
   RemoveClientMemberSchema,
   RevokeClientAccessSchema,
+  UpdateClientSchema,
 } from 'types/routes/clients';
 import { Prisma, UserRole } from '@prisma/client';
+import { fetchXApi } from 'utils/xApi';
 
 const router = Router();
 
@@ -121,6 +123,281 @@ router.get(
     } catch (error) {
       console.error('Error getting client:', error);
       res.status(500).json({ error: 'Internal server error' });
+    }
+  },
+);
+
+/**
+ * PUT /api/clients/:clientId
+ * Update client details (admin or superuser)
+ */
+router.put(
+  '/clients/:clientId',
+  requireAuth,
+  async (req: Request, res: Response) => {
+    try {
+      const { clientId } = req.params;
+      const userId = req.user!.id;
+      const isSuperUser = req.user!.isSuperUser === true;
+
+      const parsed = UpdateClientSchema.safeParse(req.body);
+      if (!parsed.success) {
+        return res.status(400).json({
+          error: 'Invalid request body',
+          details: z.treeifyError(parsed.error),
+        });
+      }
+
+      let client = null;
+      if (isSuperUser) {
+        client = await prisma.client.findUnique({
+          where: { id: clientId },
+        });
+        if (client == null) {
+          return res.status(404).json({ error: 'Client not found' });
+        }
+      } else {
+        const access = await findUserAccessToClient(
+          userId,
+          clientId,
+          UserRole.ADMIN,
+        );
+        if (access == null) {
+          return res.status(403).json({ error: 'Access denied' });
+        }
+        client = access.client;
+      }
+
+      const payload = parsed.data;
+      const hasName = Object.prototype.hasOwnProperty.call(req.body, 'name');
+      const hasInstallation = Object.prototype.hasOwnProperty.call(
+        req.body,
+        'installationId',
+      );
+      const hasXAccount = Object.prototype.hasOwnProperty.call(
+        req.body,
+        'xAccountName',
+      );
+
+      const successes: Array<{ field: string; value: unknown }> = [];
+      const failures: Array<{
+        field: string;
+        reason: string;
+        details?: unknown;
+      }> = [];
+
+      if (hasName) {
+        if (!isSuperUser) {
+          failures.push({
+            field: 'name',
+            reason: 'Authorization Failed',
+          });
+        } else if (payload.name == null) {
+          failures.push({
+            field: 'name',
+            reason: 'Invalid value',
+          });
+        } else {
+          try {
+            await prisma.client.update({
+              where: { id: clientId },
+              data: { name: payload.name },
+            });
+            successes.push({ field: 'name', value: payload.name });
+          } catch (error) {
+            if (error instanceof Prisma.PrismaClientKnownRequestError) {
+              if (error.code === 'P2002') {
+                failures.push({
+                  field: 'name',
+                  reason: 'Name already in use',
+                });
+              } else {
+                failures.push({
+                  field: 'name',
+                  reason: 'Failed to update name',
+                  details: error.code,
+                });
+              }
+            } else {
+              failures.push({
+                field: 'name',
+                reason: 'Failed to update name',
+              });
+            }
+          }
+        }
+      }
+
+      if (hasInstallation) {
+        if (payload.installationId == null) {
+          try {
+            await prisma.client.update({
+              where: { id: clientId },
+              data: { githubInstallationId: null },
+            });
+            successes.push({ field: 'installationId', value: null });
+          } catch {
+            failures.push({
+              field: 'installationId',
+              reason: 'Failed to clear installation',
+            });
+          }
+        } else {
+          try {
+            const installation = await prisma.gitHubInstallation.findUnique({
+              where: { id: payload.installationId },
+            });
+
+            if (installation == null) {
+              failures.push({
+                field: 'installationId',
+                reason: 'Installation not found',
+              });
+            } else {
+              const clientUsers = await prisma.userRoleForClient.findMany({
+                where: {
+                  clientId,
+                  role: {
+                    in: [UserRole.ADMIN, UserRole.USER],
+                  },
+                },
+                include: {
+                  user: {
+                    select: {
+                      githubAccountId: true,
+                    },
+                  },
+                },
+              });
+
+              const installationIsOwnedByClientUser = clientUsers.some(
+                (access) =>
+                  access.user.githubAccountId === installation.creatorId,
+              );
+
+              if (!installationIsOwnedByClientUser) {
+                failures.push({
+                  field: 'installationId',
+                  reason: 'Installation not found',
+                });
+              } else {
+                await prisma.client.update({
+                  where: { id: clientId },
+                  data: { githubInstallationId: payload.installationId },
+                });
+                successes.push({
+                  field: 'installationId',
+                  value: payload.installationId,
+                });
+              }
+            }
+          } catch (error) {
+            if (error instanceof Prisma.PrismaClientKnownRequestError) {
+              if (error.code === 'P2002') {
+                failures.push({
+                  field: 'installationId',
+                  reason: 'Installation already linked',
+                });
+              } else if (error.code === 'P2003') {
+                failures.push({
+                  field: 'installationId',
+                  reason: 'Invalid installation',
+                });
+              } else {
+                failures.push({
+                  field: 'installationId',
+                  reason: 'Failed to update installation',
+                  details: error.code,
+                });
+              }
+            } else {
+              failures.push({
+                field: 'installationId',
+                reason: 'Failed to update installation',
+              });
+            }
+          }
+        }
+      }
+
+      if (hasXAccount) {
+        if (payload.xAccountName == null) {
+          try {
+            await prisma.xAccount.deleteMany({
+              where: { clientId },
+            });
+            successes.push({ field: 'xAccountName', value: null });
+          } catch {
+            failures.push({
+              field: 'xAccountName',
+              reason: 'Failed to clear X account',
+            });
+          }
+        } else {
+          try {
+            const response = await fetchXApi('/users/by', {
+              usernames: [payload.xAccountName],
+            });
+            const maybeError = (response.errors ?? [])[0];
+            const user = (response.data ?? [])[0];
+            if (maybeError != null || user == null) {
+              failures.push({
+                field: 'xAccountName',
+                reason: maybeError?.detail ?? 'X account not found',
+              });
+            } else {
+              const profileUrl = `https://x.com/${user.username}`;
+              await prisma.xAccount.upsert({
+                where: { clientId },
+                create: {
+                  clientId,
+                  userId: user.id,
+                  username: user.username,
+                  profileUrl,
+                },
+                update: {
+                  userId: user.id,
+                  username: user.username,
+                  profileUrl,
+                },
+              });
+              successes.push({
+                field: 'xAccountName',
+                value: user.username,
+              });
+            }
+          } catch (error) {
+            if (error instanceof Prisma.PrismaClientKnownRequestError) {
+              if (error.code === 'P2002') {
+                failures.push({
+                  field: 'xAccountName',
+                  reason: 'X account already linked',
+                });
+              } else {
+                failures.push({
+                  field: 'xAccountName',
+                  reason: 'Failed to update X account',
+                  details: error.code,
+                });
+              }
+            } else {
+              failures.push({
+                field: 'xAccountName',
+                reason: 'Failed to update X account',
+              });
+            }
+          }
+        }
+      }
+
+      const statusCode = failures.length > 0 ? 207 : 200;
+      return res.status(statusCode).json({
+        successes,
+        failures,
+      });
+    } catch (error) {
+      console.error('Failed to update client:', error);
+      return res.status(500).json({ error: 'Internal server error' });
     }
   },
 );
