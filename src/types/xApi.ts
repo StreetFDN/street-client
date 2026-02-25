@@ -97,6 +97,15 @@ type GetUsersByIDs = EndpointWithFields<
   UserFieldsQueryParameters
 >;
 
+// Search users by name
+type GetUsersByUsernames = EndpointWithFields<
+  '/users/by',
+  { usernames: string[] },
+  'user.fields',
+  BaseUserResponse,
+  UserFieldsQueryParameters
+>;
+
 // Search Tweets with Query
 type BaseSearchTweetsResponse = {
   text: string;
@@ -235,7 +244,10 @@ export type Tweet = BaseSearchTweetsResponse &
   >;
 
 // Type Glue for the xApiFetch function
-export type Endpoints = GetUsersByIDs | SearchRecentTweets;
+export type Endpoints =
+  | GetUsersByIDs
+  | GetUsersByUsernames
+  | SearchRecentTweets;
 
 type FieldsQuery<TFields extends object> = readonly (keyof TFields)[];
 
