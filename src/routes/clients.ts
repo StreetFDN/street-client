@@ -84,6 +84,7 @@ router.get(
         UserRole.USER,
         {
           client: {
+            xAccount: true,
             githubInstallation: {
               include: {
                 creator: true,
@@ -104,10 +105,20 @@ router.get(
 
       const client = access.client;
       const installation = client.githubInstallation;
+      const xAccount = client.xAccount;
 
       res.json({
         id: access.client.id,
         name: access.client.name,
+        xAccount:
+          xAccount != null
+            ? {
+                id: xAccount.id,
+                username: xAccount.username,
+                profileUrl: xAccount.profileUrl,
+                lastSyncedAt: xAccount.lastSyncedAt,
+              }
+            : null,
         installation:
           installation != null
             ? {
