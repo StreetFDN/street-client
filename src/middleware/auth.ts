@@ -1,5 +1,6 @@
 import { Request, Response, NextFunction } from 'express';
-import { trySupabaseAuth } from './supabaseAuth';
+import { supabase } from 'services/supabase';
+import { AuthenticatedUser } from 'types/authenticatedUser';
 
 /**
  * Middleware to require authentication
@@ -10,36 +11,26 @@ export async function requireAuth(
   res: Response,
   next: NextFunction,
 ): Promise<void> {
-  // First try Supabase auth
-  const supabaseAuthSuccess = await trySupabaseAuth(req);
+  const auth = req.headers.authorization;
+  const token = auth?.startsWith('Bearer ') ? auth!.slice(7) : null;
 
-  if (supabaseAuthSuccess) {
-    return next();
+  if (token === null) {
+    res.status(401).json({ error: 'Authentication required' });
+    return;
   }
 
-  // Otherwise, try session auth
-  if (req.session && req.session.userId) {
-    req.userId = req.session.userId;
-    if (req.session.user) {
-      req.user = req.session.user;
-    }
-    return next();
+  const { data, error } = await supabase.auth.getUser(token);
+
+  if (error || !data || !data.user?.id) {
+    res.status(401).json({ error: 'Failed to authenticate' });
+    return;
   }
 
-  // No authentication found
-  res.status(401).json({ error: 'Authentication required' });
-}
-
-/**
- * Middleware to optionally get user (doesn't require auth)
- */
-export function optionalAuth(
-  req: Request,
-  res: Response,
-  next: NextFunction,
-): void {
-  if (req.session && req.session.userId) {
-    req.userId = req.session.userId;
+  try {
+    req.user = await AuthenticatedUser.loadBySupabaseUser(data.user);
+  } catch (error) {
+    console.error('Failed to load authenticated user', error);
+    res.status(500).json({ error: 'Failed to load authenticated user' });
   }
-  next();
+  return next();
 }

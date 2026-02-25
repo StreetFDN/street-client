@@ -1,9 +1,10 @@
 import { Request, Response, Router } from 'express';
 import { requireAuth } from 'middleware/auth';
 import { prisma } from '../db';
-import { RepoActivityEvent } from '@prisma/client';
+import { RepoActivityEvent, UserRole } from '@prisma/client';
 import { z } from 'zod';
 import { RequestError } from 'utils/errors';
+import { findUserAccessToRepository } from 'utils/db';
 
 const router = Router();
 
@@ -22,7 +23,9 @@ router.get(
   '/clients/:clientId/repos/:repoId/activity',
   requireAuth,
   async (req: Request, res: Response) => {
+    const userId = req.user!.id;
     const { clientId, repoId } = req.params;
+
     const parsedQuery = GetActivityQuerySchema.safeParse(req.query);
 
     if (!parsedQuery.success) {
@@ -36,19 +39,18 @@ router.get(
     const { limit, offsetId } = parsedQuery.data;
 
     try {
-      const repo = await prisma.gitHubRepo.findFirst({
-        where: {
-          id: repoId,
-          clientId,
-          client: {
-            userId: req.userId || undefined,
-          },
-        },
-      });
+      const userRepositoryAccess = await findUserAccessToRepository(
+        userId,
+        repoId,
+        UserRole.SHARED_ACCESS,
+        clientId,
+      );
 
-      if (!repo) {
-        return res.status(404).json({ error: 'Repository not found' });
+      if (userRepositoryAccess == null) {
+        return res.status(403).json({ error: 'Access Denied' });
       }
+
+      const repo = userRepositoryAccess.repo;
 
       const activity = await listRepoActivity({ repoId, limit, offsetId });
       const maybeLastEntry = activity[activity.length - 1];

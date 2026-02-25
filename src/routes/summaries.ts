@@ -3,6 +3,11 @@ import { prisma } from '../db';
 import { backfillRepo } from '../services/sync';
 import { requireAuth } from '../middleware/auth';
 import { generateAggregateSummary } from '../services/summarizer';
+import {
+  findUserAccessToClient,
+  findUserAccessToRepository,
+} from '../utils/db';
+import { Prisma, UserRole } from '@prisma/client';
 
 const router = Router();
 
@@ -18,24 +23,25 @@ router.get(
     try {
       const { clientId, repoId } = req.params;
       const { from, to, limit = '100', offset = '0' } = req.query;
+      const userId = req.user!.id;
 
-      // Verify repo belongs to client and user
-      const repo = await prisma.gitHubRepo.findFirst({
-        where: {
-          id: repoId,
-          clientId,
-          client: {
-            userId: req.userId || undefined,
-          },
-        },
-      });
-
-      if (!repo) {
-        return res.status(404).json({ error: 'Repo not found' });
+      if (userId == null) {
+        return res.status(401).json({ error: 'Access denied' });
       }
 
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const where: any = {
+      // Verify repo belongs to client and user
+      const access = await findUserAccessToRepository(
+        userId,
+        repoId,
+        UserRole.SHARED_ACCESS,
+        clientId,
+      );
+
+      if (access == null) {
+        return res.status(403).json({ error: 'Access denied' });
+      }
+
+      const where: Prisma.RepoDailySummaryWhereInput = {
         repoId,
       };
 
@@ -101,20 +107,30 @@ router.get(
     try {
       const { clientId } = req.params;
       const { from, to, limit = '100', offset = '0' } = req.query;
+      const userId = req.user!.id;
 
-      // Verify client belongs to user
-      const client = await prisma.client.findFirst({
-        where: { id: clientId, userId: req.userId || undefined },
-      });
-
-      if (!client) {
-        return res.status(404).json({ error: 'Client not found' });
+      if (userId == null) {
+        return res.status(401).json({ error: 'Access denied' });
       }
 
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const where: any = {
+      // Verify client belongs to user
+      const access = await findUserAccessToClient(
+        userId,
+        clientId,
+        UserRole.SHARED_ACCESS,
+      );
+
+      if (access == null) {
+        return res.status(403).json({ error: 'Access denied' });
+      }
+
+      const where: Prisma.RepoDailySummaryWhereInput = {
         repo: {
-          clientId,
+          installation: {
+            client: {
+              id: access.client.id,
+            },
+          },
         },
       };
 
@@ -180,19 +196,24 @@ router.get(
   async (req: Request, res: Response) => {
     try {
       const { clientId } = req.params;
+      const userId = req.user!.id;
 
-      // Verify client belongs to user
-      const client = await prisma.client.findFirst({
-        where: { id: clientId, userId: req.userId || undefined },
-        include: {
-          repos: {
-            where: { isEnabled: true },
-          },
-        },
-      });
+      if (userId == null) {
+        return res.status(401).json({ error: 'Access denied' });
+      }
 
-      if (!client) {
-        return res.status(404).json({ error: 'Client not found' });
+      const access = await findUserAccessToClient(
+        userId,
+        clientId,
+        UserRole.SHARED_ACCESS,
+      );
+
+      if (access == null) {
+        return res.status(403).json({ error: 'Access denied' });
+      }
+
+      if (access.client.githubInstallationId == null) {
+        return [];
       }
 
       // Get date range (last 7 days)
@@ -206,7 +227,7 @@ router.get(
       const summaries = await prisma.repoDailySummary.findMany({
         where: {
           repo: {
-            clientId,
+            installationId: access.client.githubInstallationId,
             isEnabled: true,
           },
           date: {
@@ -232,7 +253,7 @@ router.get(
       const activityEvents = await prisma.repoActivityEvent.findMany({
         where: {
           repo: {
-            clientId,
+            installationId: access.client.githubInstallationId,
             isEnabled: true,
           },
           occurredAt: {
@@ -307,19 +328,25 @@ router.get(
   async (req: Request, res: Response) => {
     try {
       const { clientId } = req.params;
+      const userId = req.user!.id;
+
+      if (userId == null) {
+        return res.status(401).json({ error: 'Access denied' });
+      }
 
       // Verify client belongs to user
-      const client = await prisma.client.findFirst({
-        where: { id: clientId, userId: req.userId || undefined },
-        include: {
-          repos: {
-            where: { isEnabled: true },
-          },
-        },
-      });
+      const access = await findUserAccessToClient(
+        userId,
+        clientId,
+        UserRole.SHARED_ACCESS,
+      );
 
-      if (!client) {
-        return res.status(404).json({ error: 'Client not found' });
+      if (access == null) {
+        return res.status(403).json({ error: 'Access denied' });
+      }
+
+      if (access.client.githubInstallationId == null) {
+        return [];
       }
 
       // Get date range (last 7 days)
@@ -332,7 +359,7 @@ router.get(
       // Get all repos with their activity
       const repos = await prisma.gitHubRepo.findMany({
         where: {
-          clientId,
+          installationId: access.client.githubInstallationId,
           isEnabled: true,
         },
         orderBy: {
@@ -446,25 +473,23 @@ router.post(
   async (req: Request, res: Response) => {
     try {
       const { repoId } = req.params;
+      const userId = req.user!.id;
 
-      const repo = await prisma.gitHubRepo.findUnique({
-        where: { id: repoId },
-        include: {
-          client: true,
-        },
-      });
-
-      if (!repo) {
-        return res.status(404).json({ error: 'Repo not found' });
+      if (userId == null) {
+        return res.status(401).json({ error: 'Access denied' });
       }
 
-      // Verify repo belongs to user
-      if (repo.client.userId !== req.userId) {
+      const access = await findUserAccessToRepository(
+        userId,
+        repoId,
+        UserRole.ADMIN,
+      );
+
+      if (access == null) {
         return res.status(403).json({ error: 'Access denied' });
       }
 
-      // Run backfill asynchronously
-      backfillRepo(repoId).catch((error) => {
+      await backfillRepo(repoId).catch((error) => {
         console.error(`Error in backfill for repo ${repoId}:`, error);
       });
 
@@ -487,25 +512,24 @@ router.get(
     try {
       const { repoId } = req.params;
       const { from, to, limit = '100', offset = '0' } = req.query;
+      const userId = req.user!.id;
 
-      const repo = await prisma.gitHubRepo.findUnique({
-        where: { id: repoId },
-        include: {
-          client: true,
-        },
-      });
-
-      if (!repo) {
-        return res.status(404).json({ error: 'Repo not found' });
+      if (userId == null) {
+        return res.status(401).json({ error: 'Access denied' });
       }
 
+      const access = await findUserAccessToRepository(
+        userId,
+        repoId,
+        UserRole.SHARED_ACCESS,
+      );
+
       // Verify repo belongs to user
-      if (repo.client.userId !== req.userId) {
+      if (access == null) {
         return res.status(403).json({ error: 'Access denied' });
       }
 
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const where: any = {
+      const where: Prisma.RepoDailySummaryWhereInput = {
         repoId,
       };
 

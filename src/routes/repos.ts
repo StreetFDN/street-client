@@ -1,7 +1,10 @@
 import { Router, Request, Response } from 'express';
-import { getInstallationOctokit } from '../services/github/auth';
-import { prisma } from '../db';
-import { requireAuth } from '../middleware/auth';
+import { prisma } from 'db';
+import { requireAuth } from 'middleware/auth';
+import { findUserAccessToClient, findUserAccessToRepository } from 'utils/db';
+import { GitHubRepo, UserRole } from '@prisma/client';
+import { PrismaClientKnownRequestError } from '@prisma/client/runtime/library';
+import { Maybe } from 'types/utils';
 
 const router = Router();
 
@@ -15,42 +18,46 @@ router.get(
   async (req: Request, res: Response) => {
     try {
       const { clientId } = req.params;
+      const userId = req.user!.id;
 
-      // Verify client belongs to user
-      const client = await prisma.client.findFirst({
-        where: { id: clientId, userId: req.userId || undefined },
-      });
-
-      if (!client) {
-        return res.status(404).json({ error: 'Client not found' });
+      if (userId == null) {
+        return res.status(401).json({ error: 'Access denied' });
       }
 
-      const repos = await prisma.gitHubRepo.findMany({
-        where: { clientId },
-        include: {
-          installation: true,
+      const access = await findUserAccessToClient(
+        userId,
+        clientId,
+        UserRole.SHARED_ACCESS,
+        {
+          client: {
+            githubInstallation: {
+              include: {
+                repos: true,
+                creator: true,
+              },
+            },
+          },
         },
-        orderBy: {
-          createdAt: 'desc',
-        },
-      });
+      );
+
+      if (access == null) {
+        return res.status(403).json({ error: 'Access denied' });
+      }
 
       res.json(
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        repos.map((repo: any) => ({
-          id: repo.id,
-          owner: repo.owner,
-          name: repo.name,
-          fullName: `${repo.owner}/${repo.name}`,
-          isPrivate: repo.isPrivate,
-          isEnabled: repo.isEnabled,
-          installation: {
-            id: repo.installation.id,
-            accountLogin: repo.installation.accountLogin,
-          },
-          createdAt: repo.createdAt,
-          updatedAt: repo.updatedAt,
-        })),
+        (access.client.githubInstallation?.repos ?? []).map(
+          (repo: GitHubRepo) => ({
+            id: repo.id,
+            owner: repo.owner,
+            name: repo.name,
+            fullName: `${repo.owner}/${repo.name}`,
+            isPrivate: repo.isPrivate,
+            isEnabled: repo.isEnabled,
+            installationId: access.client.githubInstallation!.id,
+            createdAt: repo.createdAt,
+            updatedAt: repo.updatedAt,
+          }),
+        ),
       );
     } catch (error) {
       console.error('Error listing repos:', error);
@@ -67,30 +74,46 @@ router.get(
   '/installations/:installationId/repos',
   async (req: Request, res: Response) => {
     try {
-      const installationId = parseInt(req.params.installationId, 10);
+      const { installationId } = req.params;
+      const userId = req.user!.id;
 
-      const installation = await prisma.gitHubInstallation.findUnique({
-        where: { installationId },
-      });
-
-      if (!installation) {
-        return res.status(404).json({ error: 'Installation not found' });
+      if (userId == null) {
+        return res.status(401).json({ error: 'Access denied' });
       }
 
-      const octokit = await getInstallationOctokit(installationId);
-      const response =
-        await octokit.rest.apps.listReposAccessibleToInstallation({
-          per_page: 100,
-        });
+      const access = await prisma.userRoleForClient.findFirst({
+        where: {
+          userId,
+          client: {
+            githubInstallation: {
+              id: installationId,
+            },
+          },
+        },
+        include: {
+          client: {
+            include: {
+              githubInstallation: {
+                include: {
+                  repos: true,
+                },
+              },
+            },
+          },
+        },
+      });
 
-      const repos = response.data.repositories.map((repo) => ({
+      if (access == null) {
+        return res.status(403).json({ error: 'Access denied' });
+      }
+
+      const repos = access.client.githubInstallation!.repos.map((repo) => ({
         id: repo.id,
-        owner: repo.owner.login,
+        owner: repo.owner,
         name: repo.name,
-        fullName: repo.full_name,
-        isPrivate: repo.private,
-        description: repo.description,
-        defaultBranch: repo.default_branch,
+        fullName: `${repo.owner}/${repo.name}`,
+        isPrivate: repo.isPrivate,
+        enabled: repo.isEnabled,
       }));
 
       res.json(repos);
@@ -108,15 +131,27 @@ router.get(
 router.post('/repos/:repoId/enable', async (req: Request, res: Response) => {
   try {
     const { repoId } = req.params;
+    const userId = req.user!.id;
 
-    const repo = await prisma.gitHubRepo.update({
-      where: { id: repoId },
-      data: { isEnabled: true },
-    });
+    if (userId == null) {
+      return res.status(401).json({ error: 'Access denied' });
+    }
 
-    res.json({ message: 'Repo enabled', repo });
+    const repo = await changeRepoActivityStatus(userId, repoId, 'enabled');
+    if (repo == null) {
+      return res.status(403).json({ error: 'Access denied' });
+    }
+
+    res.json({ message: 'Repository enabled', repo });
   } catch (error) {
-    console.error('Error enabling repo:', error);
+    if (
+      error instanceof PrismaClientKnownRequestError &&
+      error.code === 'P2025'
+    ) {
+      return res.status(403).json({ error: 'Access denied' });
+    }
+
+    console.error('Error enabling repository:', error);
     res.status(500).json({ error: 'Internal server error' });
   }
 });
@@ -128,18 +163,66 @@ router.post('/repos/:repoId/enable', async (req: Request, res: Response) => {
 router.post('/repos/:repoId/disable', async (req: Request, res: Response) => {
   try {
     const { repoId } = req.params;
+    const userId = req.user!.id;
 
-    const repo = await prisma.gitHubRepo.update({
-      where: { id: repoId },
-      data: { isEnabled: false },
-    });
+    if (userId == null) {
+      return res.status(401).json({ error: 'Access denied' });
+    }
 
-    res.json({ message: 'Repo disabled', repo });
+    const repo = await changeRepoActivityStatus(userId, repoId, 'disabled');
+    if (repo == null) {
+      return res.status(403).json({ error: 'Access denied' });
+    }
+
+    res.json({ message: 'Repository disabled', repo });
   } catch (error) {
+    if (
+      error instanceof PrismaClientKnownRequestError &&
+      error.code === 'P2025'
+    ) {
+      return res.status(403).json({ error: 'Access denied' });
+    }
+
     console.error('Error disabling repo:', error);
     res.status(500).json({ error: 'Internal server error' });
   }
 });
+
+async function changeRepoActivityStatus(
+  userId: string,
+  repoId: string,
+  newStatus: 'enabled' | 'disabled',
+): Promise<Maybe<GitHubRepo>> {
+  const isEnabled = newStatus == 'enabled';
+
+  try {
+    return prisma.gitHubRepo.update({
+      where: {
+        id: repoId,
+        installation: {
+          client: {
+            users: {
+              some: {
+                userId,
+                role: 'ADMIN',
+              },
+            },
+          },
+        },
+      },
+      data: {
+        isEnabled,
+      },
+    });
+  } catch (error) {
+    if (error instanceof PrismaClientKnownRequestError) {
+      console.info(`Failed to update repository ${repoId}: `, error);
+      return null;
+    }
+
+    throw error;
+  }
+}
 
 /**
  * GET /api/repos/:repoId
@@ -151,41 +234,31 @@ router.get(
   async (req: Request, res: Response) => {
     try {
       const { repoId } = req.params;
+      const userId = req.user!.id;
 
-      const repo = await prisma.gitHubRepo.findUnique({
-        where: { id: repoId },
-        include: {
-          installation: true,
-          _count: {
-            select: {
-              dailySummaries: true,
-              syncRuns: true,
-            },
-          },
-        },
-      });
+      if (userId == null) {
+        return res.status(401).json({ error: 'Access denied' });
+      }
 
-      if (!repo) {
-        return res.status(404).json({ error: 'Repo not found' });
+      const access = await findUserAccessToRepository(
+        userId,
+        repoId,
+        UserRole.SHARED_ACCESS,
+      );
+
+      if (access == null) {
+        return res.status(403).json({ error: 'Access denied' });
       }
 
       res.json({
-        id: repo.id,
-        owner: repo.owner,
-        name: repo.name,
-        fullName: `${repo.owner}/${repo.name}`,
-        isPrivate: repo.isPrivate,
-        isEnabled: repo.isEnabled,
-        installation: {
-          id: repo.installation.id,
-          accountLogin: repo.installation.accountLogin,
-        },
-        counts: {
-          summaries: repo._count.dailySummaries,
-          syncRuns: repo._count.syncRuns,
-        },
-        createdAt: repo.createdAt,
-        updatedAt: repo.updatedAt,
+        id: access.repo.id,
+        owner: access.repo.owner,
+        fullName: `${access.repo.owner}/${access.repo.name}`,
+        isPrivate: access.repo.isPrivate,
+        isEnabled: access.repo.isEnabled,
+        installation: access.repo.installationId,
+        createdAt: access.repo.createdAt,
+        updatedAt: access.repo.updatedAt,
       });
     } catch (error) {
       console.error('Error getting repo:', error);

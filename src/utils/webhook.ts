@@ -28,8 +28,12 @@ export function verifyWebhookSignature(
   const calculatedSignature = hmac.update(payloadBuffer).digest('hex');
 
   // Use constant-time comparison to prevent timing attacks
-  return crypto.timingSafeEqual(
-    Buffer.from(expectedSignature),
-    Buffer.from(calculatedSignature),
-  );
+  const expectedBuffer = Buffer.from(expectedSignature);
+  const calculatedBuffer = Buffer.from(calculatedSignature);
+
+  if (expectedBuffer.length !== calculatedBuffer.length) {
+    return false;
+  }
+
+  return crypto.timingSafeEqual(expectedBuffer, calculatedBuffer);
 }

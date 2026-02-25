@@ -27,6 +27,7 @@ const RepositorySchema = z
 
 const AccountSchema = z
   .object({
+    id: z.number(),
     login: z.string(),
     email: z.email().optional(),
   })

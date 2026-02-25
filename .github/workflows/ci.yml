@@ -3,7 +3,8 @@ name: CI
 on:
   push:
     branches:
-      - main
+      - 'main'
+      - 'release-candidate/**'
   pull_request:
 
 jobs:
@@ -31,6 +32,10 @@ jobs:
       - name: Lint
         run: npm run lint
 
+      # Test check
+      - name: Test
+        run: npm run test
+
       # Formatter check
       - name: Formatter
         run: npm run format:check
@@ -50,6 +55,21 @@ jobs:
         env:
           NODE_ENV: production
           DATABASE_URL: 'postgresql://postgres:postgres@localhost:5432/mydb?schema=public'
+          COINGECKO_API_KEY: ''
+          GITHUB_APP_ID: ''
+          GITHUB_CLIENT_ID: ''
+          GITHUB_CLIENT_SECRET: ''
+          GITHUB_APP_PRIVATE_KEY: ''
+          GITHUB_APP_WEBHOOK_SECRET: ''
+          SESSION_SECRET: '0.phq63b4ej8'
+          SUPABASE_URL: 'http://localhost:3030'
+          SUPABASE_ANON_KEY: 'Q4Z9bMl1v5H71S2zJRnjMq9VZIbVDO2zhfIqPd1fYtgdj8bhteE68KFp5BfORalxztxg8LTi0MV67Xw2WXUEUxPceNbhc8N06irwqDgaCoQXfbV6uw1icT3tXTY5pnsv'
+          SUPABASE_PUBLISHABLE_KEY: 'Dcr6gIqdGjdD2ktk5X11HDjjE8ZXmX6SwV8oJUsB935yRMLjoixn47X9UTcGV2gsCAT5JFX8M1BATQGEzfE5BkpfmVBxZhodFtOC2pkv2dqxGe9hodq1sRE4nC14ZRFw'
+          X_API_CONSUMER_KEY: ''
+          X_API_CONSUMER_SECRET: ''
+          X_API_TOKEN_KEY: ''
+          X_API_TOKEN_SECRET: ''
+          ADMIN_SUPERUSER_EMAIL: ''
         run: |
           node dist/index.js > app.log 2>&1 &
           echo $! > app.pid

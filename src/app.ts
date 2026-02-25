@@ -10,11 +10,23 @@ import repoRoutes from './routes/repos';
 import summaryRoutes from './routes/summaries';
 import syncRoutes from './routes/sync';
 import tokenRoutes from './routes/token';
+import socialRoutes from './routes/social';
 import githubWebhookRoutes from './routes/webhooks/github';
 import { startScheduler } from './worker/scheduler';
 import { initRedis } from './utils/redis';
+import cors from 'cors';
+import cookieParser from 'cookie-parser';
 
 const app = express();
+
+app.use(
+  cors({
+    origin: config.frontEnd.url,
+    credentials: true,
+  }),
+);
+
+app.use(cookieParser());
 
 // Session configuration
 app.use(
@@ -50,6 +62,7 @@ app.use('/api', installationRoutes);
 app.use('/api', repoRoutes);
 app.use('/api', summaryRoutes);
 app.use('/api', tokenRoutes);
+app.use('/api', socialRoutes);
 app.use('/api/sync', syncRoutes);
 
 // Serve static files (frontend) - before API routes to allow /api/auth routes

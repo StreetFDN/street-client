@@ -12,4 +12,12 @@ export default [
 
   // Turn off stylistic rules that conflict with Prettier
   eslintConfigPrettier,
+  {
+    rules: {
+      '@typescript-eslint/no-unused-vars': [
+        'error',
+        { argsIgnorePattern: '^_' },
+      ],
+    },
+  },
 ];

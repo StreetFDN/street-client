@@ -1,43 +1,73 @@
 import dotenv from 'dotenv';
+import { getDefaultEnv, getRequiredEnv } from './utils/env';
 
 dotenv.config();
 
-const port = Number(process.env.PORT) || 8080;
+const port = Number(getDefaultEnv('PORT', '8080'));
 
 // If Railway provides a public URL, use it. Otherwise fall back to localhost.
 const railwayPublicUrl = process.env.RAILWAY_PUBLIC_DOMAIN
   ? `https://${process.env.RAILWAY_PUBLIC_DOMAIN}`
   : process.env.RAILWAY_STATIC_URL || ''; // sometimes present
 
-const baseUrl =
-  process.env.BASE_URL || railwayPublicUrl || `http://localhost:${port}`;
+const baseUrl = getDefaultEnv(
+  'BASE_URL',
+  railwayPublicUrl || `http://localhost:${port}`,
+);
 
 export const config = {
   port,
-  nodeEnv: process.env.NODE_ENV || 'development',
-  databaseUrl: process.env.DATABASE_URL || '',
+  nodeEnv: getDefaultEnv('NODE_ENV', 'development'),
+  databaseUrl: getRequiredEnv('DATABASE_URL'),
+  frontEnd: {
+    url: getDefaultEnv('CLIENT_DASHBOARD_FE_URL', 'http://localhost:3000'),
+  },
+  redis: {
+    url: getDefaultEnv('REDIS_URL', 'redis://localhost:6379'),
+  },
+  coingecko: {
+    apiKey: getRequiredEnv('COINGECKO_API_KEY'),
+  },
   github: {
-    appId: process.env.GITHUB_APP_ID || '',
-    clientId: process.env.GITHUB_CLIENT_ID || '',
-    clientSecret: process.env.GITHUB_CLIENT_SECRET || '',
-    privateKey: process.env.GITHUB_APP_PRIVATE_KEY?.replace(/\\n/g, '\n') || '',
-    webhookSecret: process.env.GITHUB_APP_WEBHOOK_SECRET || '',
+    appId: getRequiredEnv('GITHUB_APP_ID'),
+    clientId: getRequiredEnv('GITHUB_CLIENT_ID'),
+    clientSecret: getRequiredEnv('GITHUB_CLIENT_SECRET'),
+    privateKey: getRequiredEnv('GITHUB_APP_PRIVATE_KEY').replace(/\\n/g, '\n'),
+    webhookSecret: getRequiredEnv('GITHUB_APP_WEBHOOK_SECRET'),
   },
   session: {
     secret:
-      process.env.SESSION_SECRET ||
-      'change-me-in-production-' + Math.random().toString(36),
+      process.env.NODE_ENV === 'production'
+        ? getRequiredEnv('SESSION_SECRET')
+        : getDefaultEnv('SESSION_SECRET', Math.random().toString(36)),
   },
   openai: {
-    apiKey: process.env.OPENAI_API_KEY || '',
+    apiKey: getDefaultEnv('OPENAI_API_KEY'),
   },
   supabase: {
-    url: process.env.SUPABASE_URL || '',
-    anonKey: process.env.SUPABASE_ANON_KEY || '',
+    url: getRequiredEnv('SUPABASE_URL'),
+    anonKey: getRequiredEnv('SUPABASE_ANON_KEY'),
+    publishableKey: getRequiredEnv('SUPABASE_PUBLISHABLE_KEY'),
+  },
+  admin: {
+    superUserEmails: new Set(
+      getRequiredEnv('ADMIN_SUPERUSER_EMAIL')
+        .replaceAll(' ', '')
+        .split(',')
+        .filter((i) => i != ''),
+    ),
+  },
+  xApi: {
+    consumer: {
+      key: getRequiredEnv('X_API_CONSUMER_KEY'),
+      secret: getRequiredEnv('X_API_CONSUMER_SECRET'),
+    },
+    token: {
+      key: getRequiredEnv('X_API_TOKEN_KEY'),
+      secret: getRequiredEnv('X_API_TOKEN_SECRET'),
+    },
+    syncCron: getDefaultEnv('X_API_SYNC_CRON', '0 */3 * * *'),
+    enabled: getDefaultEnv('X_API_SYNC_ENABLED', 'true') === 'true',
   },
   baseUrl,
 };
-
-if (!config.databaseUrl) {
-  throw new Error('DATABASE_URL is required');
-}
