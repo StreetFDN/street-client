@@ -39,11 +39,13 @@ async function handleCreateInstallationAction(
   const account = payload.installation.account;
 
   // Try to find user by GitHub login
-  // TODO: Figure out how to sanitize this.
-  //       It is required to make this safe, currently, there is no guarantee, that the account exists, or
-  //       that it can be created.
-  const githubAccount = (await prisma.githubAccount.findUnique({
+  const githubAccount = await prisma.githubAccount.upsert({
     where: { login: account.login },
+    create: {
+      githubId: account.id,
+      login: account.login,
+    },
+    update: {},
     include: {
       user: {
         include: {
@@ -55,7 +57,7 @@ async function handleCreateInstallationAction(
         },
       },
     },
-  }))!;
+  });
 
   let client: Maybe<Client> = null;
   // This is orphaned installation. Someone triggered installation outside the expected context, resulting
