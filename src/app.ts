@@ -16,6 +16,8 @@ import { startScheduler } from './worker/scheduler';
 import { initRedis } from './utils/redis';
 import cors from 'cors';
 import cookieParser from 'cookie-parser';
+import swaggerUi from 'swagger-ui-express';
+import { openApiDocument } from 'docs/openapi';
 
 const app = express();
 
@@ -72,6 +74,10 @@ app.use(express.static(path.join(__dirname, '../public')));
 app.get('/health', (req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() });
 });
+
+if (config.nodeEnv === 'development') {
+  app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(openApiDocument));
+}
 
 // Start scheduler
 startScheduler();

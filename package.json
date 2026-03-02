@@ -34,6 +34,7 @@
   "author": "",
   "license": "MIT",
   "dependencies": {
+    "@asteasolutions/zod-to-openapi": "^8.4.2",
     "@octokit/auth-app": "^6.1.0",
     "@octokit/rest": "^20.1.1",
     "@prisma/client": "^6.19.2",
@@ -48,6 +49,8 @@
     "oauth-1.0a": "^2.2.6",
     "openai": "^6.16.0",
     "redis": "^5.10.0",
+    "swagger-jsdoc": "^6.2.8",
+    "swagger-ui-express": "^5.0.1",
     "zod": "^4.3.5"
   },
   "devDependencies": {
@@ -60,6 +63,8 @@
     "@types/node": "^20.14.10",
     "@types/node-cron": "^3.0.11",
     "@types/supertest": "^6.0.3",
+    "@types/swagger-jsdoc": "^6.0.4",
+    "@types/swagger-ui-express": "^4.1.8",
     "eslint": "^9.39.2",
     "eslint-config-prettier": "^10.1.8",
     "husky": "^9.1.7",
