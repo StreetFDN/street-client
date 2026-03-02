@@ -258,7 +258,7 @@ export async function generateDailySummaries(): Promise<void> {
       });
 
     const today = new Date();
-    today.setHours(0, 0, 0, 0);
+    today.setUTCHours(0, 0, 0, 0);
     const sevenDaysAgo = new Date(today.getTime() - 7 * 24 * 60 * 60 * 1000);
 
     const repoTimeWindows = activeRepositoriesWithLatestSummary.map((repo) => {
@@ -272,8 +272,8 @@ export async function generateDailySummaries(): Promise<void> {
     const latestEvents = await prisma.repoActivityEvent.findMany({
       where: {
         OR: repoTimeWindows.map((window) => ({
-          id: window.repoId,
-          createdAt: {
+          repoId: window.repoId,
+          occurredAt: {
             gt: window.from,
             lte: today,
           },
@@ -288,7 +288,7 @@ export async function generateDailySummaries(): Promise<void> {
       const repoId = event.repoId;
       const type = event.type;
 
-      acc[repoId] ??= {};
+      acc[repoId] ??= { pr_merged: [], commit: [], release: [] };
       (acc[repoId][type] ??= []).push(event);
 
       return acc;
@@ -315,6 +315,7 @@ export async function generateDailySummaries(): Promise<void> {
 
     const result = await prisma.repoDailySummary.createMany({
       data,
+      skipDuplicates: true,
     });
     console.log('Generate daily summaries finished', {
       createdSummaries: result.count,
@@ -359,9 +360,9 @@ export async function generateWeeklyAggregateSummaries(): Promise<void> {
             },
           },
           activityEvents: {
-            orderBy: { createdAt: 'desc' },
+            orderBy: { occurredAt: 'desc' },
             where: {
-              createdAt: {
+              occurredAt: {
                 gte: sevenDaysAgo,
               },
             },
@@ -393,7 +394,7 @@ export async function generateWeeklyAggregateSummaries(): Promise<void> {
             .map((summary) => summary.summaryText),
         );
         for (const activity of repo.activityEvents) {
-          if (['pr_merged', 'commit', 'release'].includes(activity.type)) {
+          if (!['pr_merged', 'commit', 'release'].includes(activity.type)) {
             continue;
           }
 
@@ -421,7 +422,10 @@ export async function generateWeeklyAggregateSummaries(): Promise<void> {
       windowEnd: today,
     }));
 
-    const result = await prisma.clientWeeklySummary.createMany({ data });
+    const result = await prisma.clientWeeklySummary.createMany({
+      data,
+      skipDuplicates: true,
+    });
     console.log('Generate weekly summaries', {
       createdSummaries: result.count,
     });

@@ -54,7 +54,7 @@ export async function fetchXApi(
   const url = new URL(baseUrl);
   const normalized = normalizeQuery(query);
   if (query != null) {
-    url.search = new URLSearchParams(query).toString();
+    url.search = new URLSearchParams(normalized).toString();
   }
 
   const requestData = {

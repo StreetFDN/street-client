@@ -21,7 +21,7 @@ export function startScheduler(): void {
       await generateWeeklyAggregateSummaries();
       console.log('Weekly aggregates completed');
     } catch (error) {
-      console.error('Error in daily sync:', error);
+      console.error('Error in scheduled summarizer job:', error);
     }
   });
 

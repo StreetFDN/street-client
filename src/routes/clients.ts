@@ -351,7 +351,7 @@ router.put(
       if (hasXAccount) {
         if (payload.xAccountName == null) {
           try {
-            await prisma.xAccount.update({
+            await prisma.xAccount.updateMany({
               where: { clientId },
               data: {
                 clientId: null,
@@ -387,7 +387,6 @@ router.put(
                   where: { username: user.username },
                 });
 
-                console.log(maybeExists);
                 if (maybeExists) {
                   await transaction.xAccount.update({
                     where: { id: maybeExists.id },
@@ -421,7 +420,7 @@ router.put(
               });
             }
           } catch (error) {
-            console.log(error);
+            console.error('Failed to update X account', error);
             if (error instanceof Prisma.PrismaClientKnownRequestError) {
               if (error.code === 'P2002') {
                 failures.push({

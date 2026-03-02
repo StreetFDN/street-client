@@ -48,7 +48,7 @@ export class AuthenticatedUser {
         );
         const login = githubIdentity.identity_data.user_name as string;
 
-        maybeGithubAccount = await prisma.githubAccount.upsert({
+        maybeGithubAccount = await tx.githubAccount.upsert({
           where: {
             githubId,
           },
@@ -89,6 +89,7 @@ export class AuthenticatedUser {
           ...connectGithubAccountQuery,
         },
         update: {
+          superUser: config.admin.superUserEmails.has(user.email!),
           supabaseAccountId: user.id,
           ...connectGithubAccountQuery,
         },
@@ -109,5 +110,6 @@ export class AuthenticatedUser {
 export type UserAccess = {
   accessId: string;
   clientId: string;
+  clientName: string;
   role: UserRole;
 };

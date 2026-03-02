@@ -20,7 +20,7 @@ export async function syncRepo(
   }
 
   const windowStart = new Date();
-  const windowEnd = new Date(windowStart.getDate() - 7);
+  const windowEnd = new Date(windowStart.getTime() - 7 * 24 * 60 * 60 * 1000);
   // Create sync run record
   const syncRun = await prisma.repoSyncRun.create({
     data: {
@@ -100,18 +100,6 @@ export async function backfillRepo(repoId: string): Promise<void> {
   }
 
   console.log(`Starting backfill for repo ${repoId}`);
-
-  // Generate 7 calendar days, going backwards from today
-  const now = new Date();
-  const days: Date[] = [];
-
-  for (let i = 6; i >= 0; i--) {
-    const date = new Date(now);
-    date.setUTCDate(date.getUTCDate() - i);
-    date.setUTCHours(0, 0, 0, 0);
-    days.push(date);
-  }
-
   // For each day, create a 24h window (00:00 to 23:59 UTC)
   try {
     await syncRepo(repoId, 'backfill');
@@ -151,7 +139,11 @@ export async function backfillRepoActivities(
       type: 'commit',
       title: c.commit.message,
       url: c.commit.url,
-      author: c.author?.login ?? c.commit?.committer?.date ?? 'unknown',
+      author:
+        c.author?.login ??
+        c.commit?.author?.name ??
+        c.commit?.committer?.name ??
+        'unknown',
     })),
   );
 
@@ -167,11 +159,11 @@ export async function backfillRepoActivities(
 
   data.push(
     ...closedPRs
-      .filter((pr) => new Date(pr.merged_at ?? sinceIso) >= since)
+      .filter((pr) => pr.merged_at != null && new Date(pr.merged_at) >= since)
       .map((pr) => ({
         githubId: pr.id.toString(),
         repoId: repo.id,
-        occurredAt: pr.merged_at ?? new Date(),
+        occurredAt: pr.merged_at!,
         type: 'pull_request',
         title: pr.title,
         url: pr.url,
@@ -199,7 +191,7 @@ export async function backfillRepoActivities(
         type: 'release',
         title: r.name ?? r.tag_name,
         url: r.url,
-        author: r.author.login,
+        author: r.author?.login ?? 'unknown',
       })),
   );
 

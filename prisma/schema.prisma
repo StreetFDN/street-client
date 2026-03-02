@@ -98,7 +98,7 @@ model XAccount {
   id           String    @id @default(uuid(7)) @db.Uuid
   clientId     String?   @db.Uuid
   userId       String
-  username     String?
+  username     String?   @unique
   profileUrl   String?
   lastSyncedAt DateTime?
   createdAt    DateTime  @default(now())

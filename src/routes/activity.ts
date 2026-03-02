@@ -121,7 +121,7 @@ router.get(
                         repo: true,
                       },
                       where: {
-                        createdAt: {
+                        occurredAt: {
                           gte: sevenDaysAgo,
                         },
                       },
