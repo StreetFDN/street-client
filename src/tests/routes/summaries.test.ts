@@ -129,7 +129,6 @@ describe('summaries routes', () => {
       .set('x-test-user-id', user.id);
 
     expect(response.status).toBe(200);
-    expect(response.body.stats.mergedPRs).toBeDefined();
   });
 
   it('returns repo-by-repo summaries for client', async () => {

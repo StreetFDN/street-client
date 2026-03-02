@@ -987,11 +987,6 @@ router.post(
         return res.status(401).json({ error: 'Access denied' });
       }
 
-      console.log({
-        clientId,
-        // recipientId: payload.revokedId
-      });
-
       const parsed = RevokeClientAccessSchema.safeParse(req.body);
       if (!parsed.success) {
         return res.status(400).json({
