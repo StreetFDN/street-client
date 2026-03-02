@@ -245,7 +245,6 @@ router.get(
         repoId,
         UserRole.SHARED_ACCESS,
       );
-
       if (access == null) {
         return res.status(403).json({ error: 'Access denied' });
       }

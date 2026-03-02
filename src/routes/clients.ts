@@ -14,6 +14,7 @@ import {
 } from 'types/routes/clients';
 import { Prisma, UserRole } from '@prisma/client';
 import { fetchXApi } from 'utils/xApi';
+import { syncXAccount } from '../services/xApi';
 
 const router = Router();
 
@@ -24,42 +25,58 @@ const router = Router();
 router.get('/clients', requireAuth, async (req: Request, res: Response) => {
   try {
     const userId = req.user!.id;
-    const accesses = await prisma.userRoleForClient.findMany({
-      where: {
-        userId,
-      },
-      include: {
-        client: true,
-      },
-    });
 
-    const highestByClientId = new Map<
-      string,
-      { client: (typeof accesses)[number]['client']; role: UserRole }
-    >();
+    if (req.user?.isSuperUser) {
+      const clients = await prisma.client.findMany();
+      res.json(
+        Array.from(
+          clients.map((client) => ({
+            id: client.id,
+            name: client.name,
+            role: UserRole.ADMIN,
+            createdAt: client.createdAt,
+            updatedAt: client.updatedAt,
+          })),
+        ),
+      );
+    } else {
+      const accesses = await prisma.userRoleForClient.findMany({
+        where: {
+          userId,
+        },
+        include: {
+          client: true,
+        },
+      });
 
-    for (const access of accesses) {
-      const existing = highestByClientId.get(access.clientId);
-      if (
-        existing == null ||
-        RoleToValue[access.role] > RoleToValue[existing.role]
-      ) {
-        highestByClientId.set(access.clientId, {
-          client: access.client,
-          role: access.role,
-        });
+      const highestByClientId = new Map<
+        string,
+        { client: (typeof accesses)[number]['client']; role: UserRole }
+      >();
+
+      for (const access of accesses) {
+        const existing = highestByClientId.get(access.clientId);
+        if (
+          existing == null ||
+          RoleToValue[access.role] > RoleToValue[existing.role]
+        ) {
+          highestByClientId.set(access.clientId, {
+            client: access.client,
+            role: access.role,
+          });
+        }
       }
-    }
 
-    res.json(
-      Array.from(highestByClientId.values()).map(({ client, role }) => ({
-        id: client.id,
-        name: client.name,
-        role,
-        createdAt: client.createdAt,
-        updatedAt: client.updatedAt,
-      })),
-    );
+      res.json(
+        Array.from(highestByClientId.values()).map(({ client, role }) => ({
+          id: client.id,
+          name: client.name,
+          role,
+          createdAt: client.createdAt,
+          updatedAt: client.updatedAt,
+        })),
+      );
+    }
   } catch (error) {
     console.error('Error listing clients:', error);
     res.status(500).json({ error: 'Internal server error' });
@@ -149,7 +166,7 @@ router.put(
     try {
       const { clientId } = req.params;
       const userId = req.user!.id;
-      const isSuperUser = req.user!.isSuperUser === true;
+      const isSuperUser = req.user!.isSuperUser;
 
       const parsed = UpdateClientSchema.safeParse(req.body);
       if (!parsed.success) {
@@ -334,8 +351,11 @@ router.put(
       if (hasXAccount) {
         if (payload.xAccountName == null) {
           try {
-            await prisma.xAccount.deleteMany({
+            await prisma.xAccount.update({
               where: { clientId },
+              data: {
+                clientId: null,
+              },
             });
             successes.push({ field: 'xAccountName', value: null });
           } catch {
@@ -358,26 +378,50 @@ router.put(
               });
             } else {
               const profileUrl = `https://x.com/${user.username}`;
-              await prisma.xAccount.upsert({
-                where: { clientId },
-                create: {
-                  clientId,
-                  userId: user.id,
-                  username: user.username,
-                  profileUrl,
-                },
-                update: {
-                  userId: user.id,
-                  username: user.username,
-                  profileUrl,
-                },
+              await prisma.$transaction(async (transaction) => {
+                await transaction.xAccount.updateMany({
+                  where: { username: user.username },
+                  data: { clientId: null },
+                });
+                const maybeExists = await transaction.xAccount.findFirst({
+                  where: { username: user.username },
+                });
+
+                console.log(maybeExists);
+                if (maybeExists) {
+                  await transaction.xAccount.update({
+                    where: { id: maybeExists.id },
+                    data: {
+                      clientId,
+                      userId: user.id,
+                      username: user.username,
+                      profileUrl,
+                    },
+                  });
+                } else {
+                  await transaction.xAccount.create({
+                    data: {
+                      clientId,
+                      userId: user.id,
+                      username: user.username,
+                      profileUrl,
+                    },
+                  });
+                }
               });
+
+              try {
+                await syncXAccount(user.username);
+              } catch (error) {
+                console.error('Failed to sync X account', error);
+              }
               successes.push({
                 field: 'xAccountName',
                 value: user.username,
               });
             }
           } catch (error) {
+            console.log(error);
             if (error instanceof Prisma.PrismaClientKnownRequestError) {
               if (error.code === 'P2002') {
                 failures.push({
@@ -472,6 +516,44 @@ router.post('/clients', requireAuth, async (req: Request, res: Response) => {
     console.error('Error creating client:', error);
     res.status(500).json({ error: 'Internal server error' });
   }
+});
+
+router.get('/clients/:clientId/members', requireAuth, async (req, res) => {
+  const userId = req.user!.id;
+  const { clientId } = req.params;
+
+  const access = await findUserAccessToClient(
+    userId,
+    clientId,
+    UserRole.ADMIN,
+    {
+      client: {
+        users: {
+          where: {
+            role: {
+              not: UserRole.SHARED_ACCESS,
+            },
+          },
+          include: {
+            user: true,
+          },
+        },
+      },
+    },
+  );
+
+  if (access == null) {
+    return res.status(403).json({ error: 'Access denied' });
+  }
+
+  return res.status(200).json(
+    access.client.users.map((acc) => ({
+      id: acc.user.id,
+      name: acc.user.name,
+      email: acc.user.email,
+      role: acc.role,
+    })),
+  );
 });
 
 router.post(
@@ -752,6 +834,34 @@ router.post(
   },
 );
 
+router.get('/clients/:clientId/sharedAccess', requireAuth, async (req, res) => {
+  const userId = req.user!.id;
+  const { clientId } = req.params;
+
+  const access = await findUserAccessToClient(userId, clientId, UserRole.ADMIN);
+
+  if (access == null) {
+    return res.status(401).json({ error: 'Access denied' });
+  }
+
+  const accesses = await prisma.sharedClientAccess.findMany({
+    where: {
+      sharerId: clientId,
+    },
+    include: {
+      recipient: true,
+    },
+  });
+
+  return res.status(200).json(
+    accesses.map((acc) => ({
+      id: acc.id,
+      recipient: acc.recipient.name,
+      recipientId: acc.recipientId,
+    })),
+  );
+});
+
 router.post(
   '/clients/:clientId/shareAccess',
   requireAuth,
@@ -877,6 +987,11 @@ router.post(
         return res.status(401).json({ error: 'Access denied' });
       }
 
+      console.log({
+        clientId,
+        // recipientId: payload.revokedId
+      });
+
       const parsed = RevokeClientAccessSchema.safeParse(req.body);
       if (!parsed.success) {
         return res.status(400).json({
@@ -895,7 +1010,7 @@ router.post(
         return res.status(403).json({ error: 'Access denied' });
       }
 
-      await prisma.sharedClientAccess.delete({
+      const deleted = await prisma.sharedClientAccess.delete({
         where: {
           sharerId_recipientId: {
             sharerId: clientId,
@@ -904,7 +1019,15 @@ router.post(
         },
       });
 
-      return res.status(204).end();
+      if (deleted != null) {
+        await prisma.userRoleForClient.deleteMany({
+          where: {
+            sharedAccessId: deleted.id,
+          },
+        });
+      }
+
+      return res.status(204);
     } catch (error) {
       if (error instanceof Prisma.PrismaClientKnownRequestError) {
         if (error.code === 'P2025') {

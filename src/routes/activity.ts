@@ -4,7 +4,7 @@ import { prisma } from '../db';
 import { RepoActivityEvent, UserRole } from '@prisma/client';
 import { z } from 'zod';
 import { RequestError } from 'utils/errors';
-import { findUserAccessToRepository } from 'utils/db';
+import { findUserAccessToClient, findUserAccessToRepository } from 'utils/db';
 
 const router = Router();
 
@@ -91,6 +91,78 @@ router.get(
           error: 'Internal server error',
         });
       }
+    }
+  },
+);
+
+router.get(
+  '/clients/:clientId/activity/7days',
+  requireAuth,
+  async (req, res) => {
+    const userId = req.user!.id;
+    const { clientId } = req.params;
+
+    try {
+      const sevenDaysAgo = new Date();
+      sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+
+      const userAccess = await findUserAccessToClient(
+        userId,
+        clientId,
+        UserRole.SHARED_ACCESS,
+        {
+          client: {
+            githubInstallation: {
+              include: {
+                repos: {
+                  include: {
+                    activityEvents: {
+                      include: {
+                        repo: true,
+                      },
+                      where: {
+                        createdAt: {
+                          gte: sevenDaysAgo,
+                        },
+                      },
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
+      );
+
+      if (userAccess == null) {
+        return res.status(403).json({ error: 'Access Denied' });
+      }
+
+      const events =
+        userAccess.client.githubInstallation?.repos.flatMap((repo) =>
+          repo.activityEvents.filter((event) =>
+            ['commit', 'pr_merged', 'release'].includes(event.type),
+          ),
+        ) ?? [];
+
+      const eventStats = events.reduce<Record<string, number>>((acc, event) => {
+        acc[event.type] = (acc[event.type] ?? 0) + 1;
+        return acc;
+      }, {});
+      const lastEvents = events
+        .sort(
+          (a, b) =>
+            new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
+        )
+        .slice(0, 5);
+
+      return res.status(200).json({
+        eventStats,
+        lastEvents,
+      });
+    } catch (error) {
+      console.error('Failed query 7day activity', error);
+      return res.status(500).json({ error: 'Internal server error' });
     }
   },
 );

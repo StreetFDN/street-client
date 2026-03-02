@@ -1,14 +1,13 @@
-import { prisma } from '../db';
-import { generateSummary } from './summarizer';
-import { RepoActivityEvent } from '@prisma/client';
+import { prisma } from 'db';
+import { Prisma, RepoActivityEvent } from '@prisma/client';
+import { getInstallationOctokit } from './github/auth';
+import { uniqueBy } from 'utils/array';
 
 /**
  * Syncs a single repo for a specific time window
  */
 export async function syncRepo(
   repoId: string,
-  windowStart: Date,
-  windowEnd: Date,
   runType: 'daily' | 'backfill',
 ): Promise<void> {
   const repo = await prisma.gitHubRepo.findUnique({
@@ -20,6 +19,8 @@ export async function syncRepo(
     throw new Error(`Repo ${repoId} not found or not enabled`);
   }
 
+  const windowStart = new Date();
+  const windowEnd = new Date(windowStart.getDate() - 7);
   // Create sync run record
   const syncRun = await prisma.repoSyncRun.create({
     data: {
@@ -47,38 +48,9 @@ export async function syncRepo(
       },
     });
 
-    const activity = activityEvents.reduce<
-      Record<'pr_merged' | 'commit' | 'release', RepoActivityEvent[]>
-    >(
-      (acc, event) => {
-        if (event.type == 'pr_merged') {
-          acc['pr_merged'].push(event);
-        } else if (event.type == 'release') {
-          acc['release'].push(event);
-        } else if (event.type == 'commit') {
-          acc['commit'].push(event);
-        } else {
-          console.warn(`Unhandled repo event: ${event.type}`);
-        }
-
-        return acc;
-      },
-      {
-        pr_merged: [],
-        release: [],
-        commit: [],
-      },
-    );
-
-    // Generate summary
-    const summaryText = await generateSummary(activity);
-    const noChanges =
-      activity['pr_merged'].length === 0 &&
-      activity['release'].length === 0 &&
-      activity['commit'].length === 0;
-    console.log(
-      `Summary for ${repo.owner}/${repo.name}: ${noChanges ? 'NO CHANGES' : 'HAS CHANGES'} - "${summaryText.substring(0, 100)}..."`,
-    );
+    if (activityEvents.length === 0 && runType === 'backfill') {
+      await backfillRepoActivities(repo);
+    }
 
     // Get date for the summary
     // For daily sync, use today's date. For backfill, use window start's date
@@ -92,41 +64,6 @@ export async function syncRepo(
       date = new Date(windowStart);
       date.setUTCHours(0, 0, 0, 0);
     }
-
-    // Store or update summary (idempotent by repo_id + date)
-    await prisma.repoDailySummary.upsert({
-      where: {
-        repoId_date: {
-          repoId,
-          date,
-        },
-      },
-      create: {
-        repoId,
-        date,
-        windowStart,
-        windowEnd,
-        summaryText,
-        stats: {
-          prMerged: activity['pr_merged'].length,
-          releases: activity['release'].length,
-          commits: activity['commit'].length,
-        },
-        noChanges,
-      },
-      update: {
-        windowStart,
-        windowEnd,
-        summaryText,
-        stats: {
-          prMerged: activity['pr_merged'].length,
-          releases: activity['release'].length,
-          commits: activity['commit'].length,
-        },
-        noChanges,
-        updatedAt: new Date(),
-      },
-    });
 
     // Mark sync run as successful
     await prisma.repoSyncRun.update({
@@ -148,34 +85,6 @@ export async function syncRepo(
     });
     throw error;
   }
-}
-
-/**
- * Syncs all enabled repos for the last 24 hours (daily sync)
- */
-export async function syncAllReposDaily(): Promise<void> {
-  const windowEnd = new Date();
-  // Use last 48 hours to ensure we capture all activity (some commits might be slightly delayed)
-  const windowStart = new Date(windowEnd.getTime() - 48 * 60 * 60 * 1000); // 48 hours ago
-
-  const enabledRepos = await prisma.gitHubRepo.findMany({
-    where: { isEnabled: true },
-  });
-
-  console.log(
-    `Starting daily sync for ${enabledRepos.length} repos (window: ${windowStart.toISOString()} to ${windowEnd.toISOString()})`,
-  );
-
-  for (const repo of enabledRepos) {
-    try {
-      await syncRepo(repo.id, windowStart, windowEnd, 'daily');
-      console.log(`✓ Synced ${repo.owner}/${repo.name}`);
-    } catch (error) {
-      console.error(`✗ Failed to sync ${repo.owner}/${repo.name}:`, error);
-    }
-  }
-
-  console.log(`Daily sync completed for ${enabledRepos.length} repos`);
 }
 
 /**
@@ -204,20 +113,103 @@ export async function backfillRepo(repoId: string): Promise<void> {
   }
 
   // For each day, create a 24h window (00:00 to 23:59 UTC)
-  for (const dayStart of days) {
-    const dayEnd = new Date(dayStart);
-    dayEnd.setUTCHours(23, 59, 59, 999);
-
-    try {
-      await syncRepo(repoId, dayStart, dayEnd, 'backfill');
-      console.log(
-        `✓ Backfilled ${dayStart.toISOString().split('T')[0]} for ${repo.owner}/${repo.name}`,
-      );
-    } catch (error) {
-      console.error(
-        `✗ Failed to backfill ${dayStart.toISOString().split('T')[0]} for ${repo.owner}/${repo.name}:`,
-        error,
-      );
-    }
+  try {
+    await syncRepo(repoId, 'backfill');
+    console.log(`✓ Backfilled for ${repo.owner}/${repo.name}`);
+  } catch (error) {
+    console.error(
+      `✗ Failed to backfill for ${repo.owner}/${repo.name}:`,
+      error,
+    );
   }
+}
+
+export async function backfillRepoActivities(
+  repo: Prisma.GitHubRepoGetPayload<{ include: { installation: true } }>,
+): Promise<RepoActivityEvent[]> {
+  const octokit = await getInstallationOctokit(repo.installation.githubId);
+
+  const since = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+  const sinceIso = since.toISOString();
+
+  const data = [];
+
+  // 1) Commits since (defaults to repo's default branch unless you pass sha)
+  const commits = await octokit.paginate('GET /repos/{owner}/{repo}/commits', {
+    owner: repo.owner,
+    repo: repo.name,
+    since: sinceIso,
+    per_page: 100,
+  });
+
+  data.push(
+    ...commits.map((c) => ({
+      githubId: c.sha,
+      repoId: repo.id,
+      occurredAt:
+        c.commit?.author?.date ?? c.commit?.committer?.date ?? new Date(),
+      type: 'commit',
+      title: c.commit.message,
+      url: c.commit.url,
+      author: c.author?.login ?? c.commit?.committer?.date ?? 'unknown',
+    })),
+  );
+
+  // 2) Merged PRs in last 7 days
+  const closedPRs = await octokit.paginate('GET /repos/{owner}/{repo}/pulls', {
+    owner: repo.owner,
+    repo: repo.name,
+    state: 'closed',
+    sort: 'updated',
+    direction: 'desc',
+    per_page: 100,
+  });
+
+  data.push(
+    ...closedPRs
+      .filter((pr) => new Date(pr.merged_at ?? sinceIso) >= since)
+      .map((pr) => ({
+        githubId: pr.id.toString(),
+        repoId: repo.id,
+        occurredAt: pr.merged_at ?? new Date(),
+        type: 'pull_request',
+        title: pr.title,
+        url: pr.url,
+        author: pr.user?.login ?? 'unknown',
+      })),
+  );
+
+  // 3) Releases published in last 7 days
+  const releases = await octokit.paginate(
+    'GET /repos/{owner}/{repo}/releases',
+    {
+      owner: repo.owner,
+      repo: repo.name,
+      per_page: 100,
+    },
+  );
+
+  data.push(
+    ...releases
+      .filter((r) => new Date(r.published_at ?? r.created_at ?? since) >= since)
+      .map((r) => ({
+        githubId: r.id.toString(),
+        repoId: repo.id,
+        occurredAt: r.published_at ?? r.created_at ?? new Date(),
+        type: 'release',
+        title: r.name ?? r.tag_name,
+        url: r.url,
+        author: r.author.login,
+      })),
+  );
+
+  const uniqueData = uniqueBy(data, (item) => [
+    item.githubId,
+    item.type,
+    item.repoId,
+  ]);
+
+  return prisma.repoActivityEvent.createManyAndReturn({
+    data: uniqueData,
+  });
 }

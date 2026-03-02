@@ -1,7 +1,10 @@
 import cron from 'node-cron';
-import { syncAllReposDaily } from '../services/sync';
 import { syncXAccounts } from '../services/xApi';
 import { config } from '../config';
+import {
+  generateDailySummaries,
+  generateWeeklyAggregateSummaries,
+} from '../services/summarizer';
 
 /**
  * Sets up the daily sync scheduler
@@ -10,10 +13,13 @@ import { config } from '../config';
 export function startScheduler(): void {
   // Run daily at 2 AM UTC
   cron.schedule('0 2 * * *', async () => {
-    console.log('Starting scheduled daily sync...');
+    console.log('Starting scheduled daily summarizer...');
     try {
-      await syncAllReposDaily();
-      console.log('Daily sync completed');
+      await generateDailySummaries();
+      console.log('Daily summaries completed');
+
+      await generateWeeklyAggregateSummaries();
+      console.log('Weekly aggregates completed');
     } catch (error) {
       console.error('Error in daily sync:', error);
     }

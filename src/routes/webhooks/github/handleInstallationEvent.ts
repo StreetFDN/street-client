@@ -125,8 +125,13 @@ async function handleCreateInstallationAction(
             isPrivate: repo.private,
             isEnabled: true,
           },
+          // GitHub installation model, does not allow to have single repository as part of multiple *active*
+          // installations. If we receive installation with the repo, it automatically means that previous installation
+          // was revoked, and it is safe to re-enable and associate it with new installation.
           update: {
             isPrivate: repo.private,
+            installationId: githubInstallation.id,
+            isEnabled: true,
           },
         });
 
@@ -167,7 +172,7 @@ async function handleDeletedInstallationAction(
 ): Promise<void> {
   const installationId = payload.installation.id;
 
-  await prisma.gitHubInstallation.updateMany({
+  const updated = await prisma.gitHubInstallation.updateManyAndReturn({
     where: {
       githubId: installationId,
     },
@@ -175,6 +180,17 @@ async function handleDeletedInstallationAction(
       revokedAt: new Date(),
     },
   });
+
+  if (updated.length !== 0) {
+    await prisma.gitHubRepo.updateMany({
+      where: {
+        installationId: updated[0]!.id,
+      },
+      data: {
+        isEnabled: false,
+      },
+    });
+  }
 
   console.log(`Installation revoked: ${installationId}.`);
 }

@@ -2,7 +2,6 @@ import { Router, Request, Response } from 'express';
 import { prisma } from '../db';
 import { backfillRepo } from '../services/sync';
 import { requireAuth } from '../middleware/auth';
-import { generateAggregateSummary } from '../services/summarizer';
 import {
   findUserAccessToClient,
   findUserAccessToRepository,
@@ -212,103 +211,24 @@ router.get(
         return res.status(403).json({ error: 'Access denied' });
       }
 
-      if (access.client.githubInstallationId == null) {
-        return [];
+      const latestWeeklySummary = await prisma.clientWeeklySummary.findFirst({
+        where: {
+          clientId,
+        },
+        orderBy: {
+          createdAt: 'desc',
+        },
+      });
+
+      if (latestWeeklySummary == null) {
+        return res.status(200).json(null);
       }
 
-      // Get date range (last 7 days)
-      const to = new Date();
-      to.setUTCHours(23, 59, 59, 999);
-      const from = new Date(to);
-      from.setUTCDate(from.getUTCDate() - 6);
-      from.setUTCHours(0, 0, 0, 0);
-
-      // Fetch all summaries from last 7 days with full repo info
-      const summaries = await prisma.repoDailySummary.findMany({
-        where: {
-          repo: {
-            installationId: access.client.githubInstallationId,
-            isEnabled: true,
-          },
-          date: {
-            gte: from,
-            lte: to,
-          },
-        },
-        include: {
-          repo: {
-            select: {
-              id: true,
-              owner: true,
-              name: true,
-            },
-          },
-        },
-        orderBy: {
-          date: 'desc',
-        },
-      });
-
-      // Fetch actual activity events for concrete data (PR titles, commits, releases)
-      const activityEvents = await prisma.repoActivityEvent.findMany({
-        where: {
-          repo: {
-            installationId: access.client.githubInstallationId,
-            isEnabled: true,
-          },
-          occurredAt: {
-            gte: from,
-            lte: to,
-          },
-        },
-        include: {
-          repo: {
-            select: {
-              owner: true,
-              name: true,
-            },
-          },
-        },
-        orderBy: {
-          occurredAt: 'desc',
-        },
-        take: 100, // Limit to avoid token bloat
-      });
-
-      // Generate aggregate summary with actual activity events
-      const aggregateSummary = await generateAggregateSummary(
-        summaries,
-        activityEvents,
-      );
-
-      // Calculate aggregate stats
-      const stats = summaries.reduce(
-        (acc, summary) => {
-          if (summary.stats) {
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            const s = summary.stats as any;
-            acc.mergedPRs += s.mergedPRs || 0;
-            acc.releases += s.releases || 0;
-            acc.commits += s.commits || 0;
-            acc.repos.add(summary.repoId);
-          }
-          return acc;
-        },
-        { mergedPRs: 0, releases: 0, commits: 0, repos: new Set<string>() },
-      );
-
-      res.json({
-        summary: aggregateSummary,
-        stats: {
-          mergedPRs: stats.mergedPRs,
-          releases: stats.releases,
-          commits: stats.commits,
-          repos: stats.repos.size,
-          days: summaries.filter((s) => !s.noChanges).length,
-        },
+      res.status(200).json({
+        summary: latestWeeklySummary.summaryText,
         period: {
-          from: from.toISOString(),
-          to: to.toISOString(),
+          from: latestWeeklySummary.windowStart.toISOString(),
+          to: latestWeeklySummary.windowEnd.toISOString(),
         },
       });
     } catch (error) {
@@ -404,13 +324,6 @@ router.get(
             return null;
           }
 
-          // Generate summary for this repo using the aggregate function
-          // but with only this repo's data
-          const repoSummary = await generateAggregateSummary(
-            activeSummaries,
-            activityEvents,
-          );
-
           // Calculate stats
           const stats = summaries.reduce(
             (acc, summary) => {
@@ -433,7 +346,7 @@ router.get(
               name: repo.name,
               fullName: `${repo.owner}/${repo.name}`,
             },
-            summary: repoSummary,
+            summaries: activeSummaries,
             stats: {
               mergedPRs: stats.mergedPRs,
               releases: stats.releases,

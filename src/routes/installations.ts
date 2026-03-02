@@ -4,8 +4,40 @@ import { requireAuth } from '../middleware/auth';
 import { getInstallationOctokit } from '../services/github/auth';
 import { backfillRepo } from '../services/sync';
 import { UserRole } from '@prisma/client';
+import { PostInstallationBinding } from '../types/routes/installation';
+import { z } from 'zod';
+import { findUserAccessToClient } from '../utils/db';
 
 const router = Router();
+
+router.get('/installations', requireAuth, async (req, res) => {
+  const userId = req.user!.id;
+
+  const installations = await prisma.gitHubInstallation.findMany({
+    where: {
+      creator: {
+        user: {
+          id: userId,
+        },
+      },
+    },
+    include: {
+      client: true,
+      creator: true,
+    },
+  });
+
+  return res.status(200).json(
+    installations.map((installation) => ({
+      id: installation.id,
+      githubId: installation.githubId,
+      userLogin: installation.creator.login,
+      clientId: installation.client?.id,
+      createdAt: installation.createdAt,
+      revokedAt: installation.revokedAt,
+    })),
+  );
+});
 
 /**
  * POST /api/installations/:installationId/sync
@@ -133,5 +165,53 @@ router.post(
     }
   },
 );
+
+export const POST_INSTALLATIONS: Record<
+  number,
+  { clientId: string; createdAt: Date }
+> = {};
+
+router.post('/installation/post-install', requireAuth, async (req, res) => {
+  const userId = req.user!.id;
+  const parsed = PostInstallationBinding.safeParse(req.body);
+  if (!parsed.success) {
+    return res.status(400).json({
+      error: 'Invalid request body',
+      details: z.treeifyError(parsed.error),
+    });
+  }
+
+  const payload = parsed.data;
+  const access = await findUserAccessToClient(
+    userId,
+    payload.clientId,
+    UserRole.ADMIN,
+  );
+  if (access == null) {
+    return res.status(401).json({ error: 'Unauthorized' });
+  }
+
+  const maybeInstallation = await prisma.gitHubInstallation.findUnique({
+    where: {
+      githubId: payload.installationId,
+    },
+  });
+
+  if (maybeInstallation != null) {
+    await prisma.client.update({
+      where: {
+        id: payload.clientId,
+      },
+      data: {
+        githubInstallationId: maybeInstallation.id,
+      },
+    });
+  } else {
+    POST_INSTALLATIONS[payload.installationId] = {
+      clientId: payload.clientId,
+      createdAt: new Date(),
+    };
+  }
+});
 
 export default router;

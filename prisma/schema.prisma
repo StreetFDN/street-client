@@ -85,25 +85,26 @@ model Client {
   xAccount             XAccount?
 
   /// To which clients this client gave access to see this clients data.
-  givenAccesses    SharedClientAccess[] @relation("givenAccesses")
+  givenAccesses    SharedClientAccess[]  @relation("givenAccesses")
   /// Which clients granted this client accesses to see theirs data.
-  receivedAccesses SharedClientAccess[] @relation("recievedAccesses")
+  receivedAccesses SharedClientAccess[]  @relation("recievedAccesses")
   tokens           ClientTokens[]
+  weeklySummaries  ClientWeeklySummary[]
 
   @@index([githubInstallationId])
 }
 
 model XAccount {
-  id           String   @id @default(uuid(7)) @db.Uuid
-  clientId     String   @db.Uuid
+  id           String    @id @default(uuid(7)) @db.Uuid
+  clientId     String?   @db.Uuid
   userId       String
   username     String?
   profileUrl   String?
   lastSyncedAt DateTime?
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
 
-  client    Client             @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  client    Client?            @relation(fields: [clientId], references: [id], onDelete: Cascade)
   snapshots XAccountSnapshot[]
   posts     XPostSnapshot[]
 
@@ -261,4 +262,19 @@ model RepoDailySummary {
   updatedAt   DateTime   @updatedAt
 
   @@unique([repoId, date])
+}
+
+model ClientWeeklySummary {
+  id          String   @id @default(uuid(7)) @db.Uuid
+  clientId    String   @db.Uuid
+  summaryText String
+  date        DateTime
+  windowStart DateTime
+  windowEnd   DateTime
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  client Client @relation(fields: [clientId], references: [id], onDelete: Cascade)
+
+  @@unique([clientId, date])
 }
