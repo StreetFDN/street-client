@@ -4,13 +4,63 @@ import { requireAuth } from '../middleware/auth';
 import { getInstallationOctokit } from '../services/github/auth';
 import { backfillRepo } from '../services/sync';
 import { UserRole } from '@prisma/client';
+import { registry } from 'docs/registry';
+import z from 'zod';
 
 const router = Router();
 
-/**
- * POST /api/installations/:installationId/sync
- * Manually sync repositories for an installation (fetches all repos from GitHub)
- */
+registry.registerPath({
+  method: 'post',
+  path: '/api/installations/{installationId}/sync',
+  description:
+    'Manually sync repositories for an installation (fetches all repos from GitHub)',
+  tags: ['installation'],
+  parameters: [
+    {
+      name: 'installationId',
+      in: 'path',
+      required: true,
+      schema: {
+        type: 'string',
+      },
+    },
+  ],
+  security: [{ bearerAuth: [] }],
+  responses: {
+    200: {
+      description: 'Successful installations and synced repos',
+      content: {
+        'application/json': {
+          schema: z.object({
+            message: z.string(),
+            synced: z.number(),
+            backfilled: z.object({
+              id: z.string(),
+              githubId: z.number(),
+              name: z.string(),
+            }),
+          }),
+        },
+      },
+    },
+    401: {
+      description: 'Unauthenticated',
+      content: {
+        'application/json': {
+          schema: z.object({ error: z.string() }),
+        },
+      },
+    },
+    403: {
+      description: 'Unauthorized',
+      content: {
+        'application/json': {
+          schema: z.object({ error: z.string() }),
+        },
+      },
+    },
+  },
+});
 router.post(
   '/installations/:installationId/sync',
   requireAuth,

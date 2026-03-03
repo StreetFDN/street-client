@@ -3,13 +3,32 @@ import { requireAuth } from 'middleware/auth';
 import { syncRepo, syncAllReposDaily } from 'services/sync';
 import { findUserAccessToRepository } from 'utils/db';
 import { UserRole } from '@prisma/client';
+import z from 'zod';
+import { registry } from 'docs/registry';
 
 const router = Router();
 
-/**
- * POST /api/sync/trigger
- * Manually trigger a sync for all repos (last 24 hours, updates today's date)
- */
+registry.registerPath({
+  method: 'post',
+  path: '/api/sync/trigger',
+  description:
+    "Manually trigger a sync for all repos (last 24 hours, updates today's date)",
+  tags: ['installation', 'github', 'repo'],
+  security: [{ bearerAuth: [] }],
+  responses: {
+    200: {
+      description: 'Successful installations and synced repos',
+      content: {
+        'application/json': {
+          schema: z.object({
+            message: z.string(),
+            status: z.string(),
+          }),
+        },
+      },
+    },
+  },
+});
 router.post('/trigger', requireAuth, async (req: Request, res: Response) => {
   // TODO (mlacko): Fix this. The authorization is wrong.
   try {
@@ -33,10 +52,36 @@ router.post('/trigger', requireAuth, async (req: Request, res: Response) => {
   }
 });
 
-/**
- * POST /api/sync/repos/:repoId
- * Manually trigger a sync for a specific repo (last 24 hours)
- */
+registry.registerPath({
+  method: 'post',
+  path: '/api/sync/repos/{repoId}',
+  description: 'Manually trigger a sync for a specific repo (last 24 hours)',
+  tags: ['installation', 'github', 'repo'],
+  parameters: [
+    {
+      name: 'repoId',
+      in: 'path',
+      required: true,
+      schema: {
+        type: 'string',
+      },
+    },
+  ],
+  security: [{ bearerAuth: [] }],
+  responses: {
+    200: {
+      description: 'Successful installations and synced repo',
+      content: {
+        'application/json': {
+          schema: z.object({
+            message: z.string(),
+            repoId: z.string(),
+          }),
+        },
+      },
+    },
+  },
+});
 router.post(
   '/repos/:repoId',
   requireAuth,

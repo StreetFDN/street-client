@@ -6,13 +6,52 @@ import { findUserAccessToClient } from 'utils/db';
 import { UserRole } from '@prisma/client';
 import { SocialWindowSchema } from 'types/routes/social';
 import { z } from 'zod';
+import { registry } from 'docs/registry';
+import { XFollowerMetricResponseSchema } from 'docs/schema/social';
 
 const router = Router();
 
-/**
- * GET /api/clients/:clientId/social/x/followers-metrics
- * List follower snapshots for the client's X account.
- */
+registry.registerPath({
+  method: 'get',
+  path: '/api/clients/{clientId}/social/x/followers-metrics',
+  description: "List follower snapshot for client's X Account",
+  parameters: [
+    {
+      name: 'clientId',
+      in: 'path',
+      required: true,
+      schema: {
+        type: 'string',
+      },
+    },
+    {
+      name: 'start_time',
+      in: 'query',
+      schema: {
+        type: 'string',
+      },
+    },
+    {
+      name: 'end_time',
+      in: 'query',
+      schema: {
+        type: 'string',
+      },
+    },
+  ],
+  tags: ['social'],
+  security: [{ bearerAuth: [] }],
+  responses: {
+    200: {
+      description: "Snapshot of followers for a client's X Account",
+      content: {
+        'application/json': {
+          schema: XFollowerMetricResponseSchema,
+        },
+      },
+    },
+  },
+});
 router.get(
   '/clients/:clientId/social/x/followers-metrics',
   requireAuth,
@@ -89,10 +128,48 @@ router.get(
   },
 );
 
-/**
- * GET /api/clients/:clientId/social/x/post-metrics
- * List 24h metrics snapshots for the client's X account.
- */
+registry.registerPath({
+  method: 'get',
+  path: '/api/clients/${clientId}/social/x/post-metrics',
+  description:
+    "Manually trigger a sync for all repos (last 24 hours, updates today's date)",
+  parameters: [
+    {
+      name: 'clientId',
+      in: 'path',
+      required: true,
+      schema: {
+        type: 'string',
+      },
+    },
+    {
+      name: 'start_time',
+      in: 'query',
+      schema: {
+        type: 'string',
+      },
+    },
+    {
+      name: 'end_time',
+      in: 'query',
+      schema: {
+        type: 'string',
+      },
+    },
+  ],
+  tags: ['social'],
+  security: [{ bearerAuth: [] }],
+  responses: {
+    200: {
+      description: "Snapshot of followers for a client's X Account",
+      content: {
+        'application/json': {
+          schema: XFollowerMetricResponseSchema,
+        },
+      },
+    },
+  },
+});
 router.get(
   '/clients/:clientId/social/x/post-metrics',
   requireAuth,
