@@ -7,6 +7,35 @@ import { UserRole } from '@prisma/client';
 
 const router = Router();
 
+router.get('/installations', requireAuth, async (req, res) => {
+  const userId = req.user!.id;
+
+  const installations = await prisma.gitHubInstallation.findMany({
+    where: {
+      creator: {
+        user: {
+          id: userId,
+        },
+      },
+    },
+    include: {
+      client: true,
+      creator: true,
+    },
+  });
+
+  return res.status(200).json(
+    installations.map((installation) => ({
+      id: installation.id,
+      githubId: installation.githubId,
+      userLogin: installation.creator.login,
+      clientId: installation.client?.id,
+      createdAt: installation.createdAt,
+      revokedAt: installation.revokedAt,
+    })),
+  );
+});
+
 /**
  * POST /api/installations/:installationId/sync
  * Manually sync repositories for an installation (fetches all repos from GitHub)

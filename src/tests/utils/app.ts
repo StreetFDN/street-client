@@ -6,7 +6,6 @@ import installationRoutes from 'routes/installations';
 import repoRoutes from 'routes/repos';
 import socialRoutes from 'routes/social';
 import summaryRoutes from 'routes/summaries';
-import syncRoutes from 'routes/sync';
 import tokenRoutes from 'routes/token';
 
 export function createTestApp() {
@@ -34,7 +33,6 @@ export function createTestApp() {
   app.use('/api', socialRoutes);
   app.use('/api', summaryRoutes);
   app.use('/api', tokenRoutes);
-  app.use('/api/sync', syncRoutes);
 
   return app;
 }

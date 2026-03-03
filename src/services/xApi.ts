@@ -7,7 +7,6 @@ import { Tweet, UserResult } from 'types/xApi';
 const USER_BATCH_SIZE = 100;
 
 export async function syncXAccounts(): Promise<void> {
-  // TODO(mlacko): Add ability to disable clients, skip accounts of disabled clients.
   const xAccounts = await prisma.xAccount.findMany();
 
   if (xAccounts.length === 0) {
@@ -103,6 +102,69 @@ export async function syncXAccounts(): Promise<void> {
       console.error(`X API sync failed for XAccount ${account.id}:`, error);
     }
   }
+}
+
+export async function syncXAccount(username: string): Promise<void> {
+  const now = new Date();
+  const existingAccount = await prisma.xAccount.findFirst({
+    where: {
+      username,
+    },
+  });
+
+  if (!existingAccount) {
+    return;
+  }
+
+  const userResults = (
+    await fetchUsersByIds(new Set([existingAccount.userId]))
+  ).get(existingAccount.userId);
+  if (!userResults || !userResults.ok) {
+    return;
+  }
+
+  const user = userResults.data;
+  const followers = user.public_metrics.followers_count;
+  await prisma.xAccountSnapshot.create({
+    data: {
+      xAccountId: existingAccount.id,
+      followers,
+      createdAt: now,
+    },
+  });
+
+  const tweetsByUserId = await fetchUsersTweetsLast24h(
+    [user.username],
+    new Date(now.getTime() - 24 * 60 * 60 * 1000),
+  );
+  const tweets = tweetsByUserId.get(existingAccount.userId) ?? [];
+  if (tweets.length === 0) {
+    return;
+  }
+  const profileUrl = `https://x.com/${user.username}`;
+  await prisma.xPostSnapshot.createMany({
+    data: tweets.map((tweet) => ({
+      xAccountId: existingAccount.id,
+      postId: tweet.id,
+      postCreatedAt: tweet.created_at,
+      likes: tweet.public_metrics.like_count,
+      reposts: tweet.public_metrics.retweet_count,
+      replies: tweet.public_metrics.reply_count,
+      impressions: tweet.public_metrics.impression_count,
+      createdAt: now,
+    })),
+  });
+
+  await prisma.xAccount.update({
+    where: {
+      id: existingAccount.id,
+    },
+    data: {
+      username: user.username ?? existingAccount.username,
+      profileUrl: profileUrl ?? existingAccount.profileUrl,
+      lastSyncedAt: now,
+    },
+  });
 }
 
 export async function fetchUsersByIds(

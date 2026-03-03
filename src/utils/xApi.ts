@@ -50,14 +50,17 @@ export async function fetchXApi(
   path: string,
   query?: Record<string, string | readonly string[]>,
 ): Promise<ApiResponse<unknown>> {
-  const url = new URL(`${X_API_BASE_URL}${path}`);
+  const baseUrl = `${X_API_BASE_URL}${path}`;
+  const url = new URL(baseUrl);
+  const normalized = normalizeQuery(query);
   if (query != null) {
-    url.search = new URLSearchParams(query).toString();
+    url.search = new URLSearchParams(normalized).toString();
   }
 
   const requestData = {
-    url: url.toString(),
+    url: baseUrl,
     method: 'GET',
+    data: normalized,
   };
 
   const authHeader = oauth.toHeader(
@@ -109,4 +112,17 @@ export function createSearchTweetsQueryBatches(usernames: string[]): string[] {
   }
 
   return batches;
+}
+
+function normalizeQuery(
+  query?: Record<string, string | readonly string[]>,
+): Record<string, string> | undefined {
+  if (!query) return undefined;
+
+  return Object.fromEntries(
+    Object.entries(query).map(([k, v]) => [
+      k,
+      Array.isArray(v) ? v.join(',') : v,
+    ]),
+  ) as Record<string, string>;
 }

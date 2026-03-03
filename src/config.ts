@@ -46,7 +46,7 @@ export const config = {
   },
   supabase: {
     url: getRequiredEnv('SUPABASE_URL'),
-    anonKey: getRequiredEnv('SUPABASE_ANON_KEY'),
+    // anonKey: getRequiredEnv('SUPABASE_ANON_KEY'),
     publishableKey: getRequiredEnv('SUPABASE_PUBLISHABLE_KEY'),
   },
   admin: {

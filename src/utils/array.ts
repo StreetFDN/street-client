@@ -8,3 +8,15 @@ export function chunkArray<T>(items: T[], size: number): T[][] {
   }
   return chunks;
 }
+
+export function uniqueBy<T, K>(
+  items: readonly T[],
+  selector: (item: T) => K,
+): T[] {
+  const uniques = new Map<string, T>();
+  for (const item of items) {
+    const strKey = JSON.stringify(selector(item));
+    uniques.set(strKey, item);
+  }
+  return [...uniques.values()];
+}

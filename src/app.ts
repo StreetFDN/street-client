@@ -8,7 +8,6 @@ import clientRoutes from './routes/clients';
 import installationRoutes from './routes/installations';
 import repoRoutes from './routes/repos';
 import summaryRoutes from './routes/summaries';
-import syncRoutes from './routes/sync';
 import tokenRoutes from './routes/token';
 import socialRoutes from './routes/social';
 import githubWebhookRoutes from './routes/webhooks/github';
@@ -16,6 +15,8 @@ import { startScheduler } from './worker/scheduler';
 import { initRedis } from './utils/redis';
 import cors from 'cors';
 import cookieParser from 'cookie-parser';
+import { logger } from 'express-winston';
+import * as winston from 'winston';
 
 const app = express();
 
@@ -27,6 +28,15 @@ app.use(
 );
 
 app.use(cookieParser());
+app.use(
+  logger({
+    transports: [new winston.transports.Console()],
+    meta: false,
+    msg: '{{req.method}} {{req.url}}',
+    expressFormat: true,
+    colorize: false,
+  }),
+);
 
 // Session configuration
 app.use(
@@ -63,7 +73,6 @@ app.use('/api', repoRoutes);
 app.use('/api', summaryRoutes);
 app.use('/api', tokenRoutes);
 app.use('/api', socialRoutes);
-app.use('/api/sync', syncRoutes);
 
 // Serve static files (frontend) - before API routes to allow /api/auth routes
 app.use(express.static(path.join(__dirname, '../public')));

@@ -1,6 +1,7 @@
 import OpenAI from 'openai';
 import { config } from '../config';
 import { RepoActivityEvent } from '@prisma/client';
+import { prisma } from '../db';
 
 const openai = new OpenAI({
   apiKey: config.openai.apiKey as string | undefined,
@@ -11,7 +12,7 @@ const openai = new OpenAI({
  */
 export async function generateSummary(
   activities: Record<'pr_merged' | 'commit' | 'release', RepoActivityEvent[]>,
-): Promise<string> {
+): Promise<[string, boolean]> {
   if (config.openai.apiKey) {
     return generateSummaryWithLLM(activities);
   } else {
@@ -21,7 +22,7 @@ export async function generateSummary(
 
 async function generateSummaryWithLLM(
   activities: Record<'pr_merged' | 'commit' | 'release', RepoActivityEvent[]>,
-): Promise<string> {
+): Promise<[string, boolean]> {
   const items: string[] = [];
 
   for (const pr of activities['pr_merged']) {
@@ -44,7 +45,7 @@ async function generateSummaryWithLLM(
   }
 
   if (items.length === 0) {
-    return 'No relevant GitHub changes in the last 24h.';
+    return ['No relevant GitHub changes in the last 24h.', true];
   }
 
   const prompt = `Summarize the following GitHub activity in a brief, factual paragraph. Be concise, technical, and slightly dry. No hype, no marketing language, no emojis. Focus on concrete changes and what was BUILT or ACCOMPLISHED, not just what was merged. Recognize scope: a "landing page" means an entire page was built, "authentication" means a full system was implemented. Use language that reflects the work: "Built", "Implemented", "Added", "Created" - not just "Merged". INCLUDE all meaningful changes - don't filter out unless it's truly only assets/images/icons or formatting. Format as plain text, no markdown:
@@ -69,10 +70,11 @@ ${items.join('\n')}`;
       max_completion_tokens: 200,
     });
 
-    return (
+    return [
       completion.choices[0]?.message?.content?.trim() ||
-      generateSummaryFallback(activities)
-    );
+        generateSummaryFallback(activities)[0],
+      false,
+    ];
   } catch (error) {
     console.error('Error generating LLM summary:', error);
     return generateSummaryFallback(activities);
@@ -81,12 +83,12 @@ ${items.join('\n')}`;
 
 function generateSummaryFallback(
   activities: Record<'pr_merged' | 'commit' | 'release', RepoActivityEvent[]>,
-): string {
+): [string, boolean] {
   const mergedPRs = activities['pr_merged'];
   const releases = activities['release'];
   const commits = activities['commit'];
   if (mergedPRs.length == 0 && releases.length == 0 && commits.length == 0) {
-    return 'No relevant GitHub changes in the last 24h.';
+    return ['No relevant GitHub changes in the last 24h.', true];
   }
   const parts: string[] = [];
 
@@ -118,7 +120,7 @@ function generateSummaryFallback(
     }
   }
 
-  return parts.join(', ') + '.';
+  return [parts.join(', ') + '.', false];
 }
 
 /**
@@ -126,178 +128,63 @@ function generateSummaryFallback(
  * Uses founder-level, non-cringe tone with concrete activity events
  */
 export async function generateAggregateSummary(
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  summaries: any[],
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  activityEvents: any[] = [],
+  dailySummaries: string[],
+  stats: Record<'pr_merged' | 'commit' | 'release', RepoActivityEvent[]>,
 ): Promise<string> {
-  if (summaries.length === 0) {
-    return 'No activity recorded in the last 7 days.';
+  if (config.openai.apiKey) {
+    return await generateAggregateSummaryLLM(dailySummaries, stats);
+  } else {
+    return generateAggregateSummaryFallback(stats);
+  }
+}
+
+function generateAggregateSummaryFallback(
+  stats: Record<'pr_merged' | 'commit' | 'release', RepoActivityEvent[]>,
+): string {
+  const parts: string[] = [];
+  const mergedPRs = stats['pr_merged']?.length ?? 0;
+  const releases = stats['release']?.length ?? 0;
+  const commits = stats['commit']?.length ?? 0;
+  const reposWithPRs = new Set(
+    (stats['pr_merged'] ?? []).map((event) => event.repoId),
+  );
+  const reposWithReleases = new Set(
+    (stats['release'] ?? []).map((event) => event.repoId),
+  );
+
+  if (mergedPRs) {
+    parts.push(`${mergedPRs} pull request${mergedPRs > 1 ? 's' : ''} merged`);
   }
 
-  // Filter out "no changes" summaries
-  const activeSummaries = summaries.filter((s) => !s.noChanges);
+  if (releases > 0) {
+    parts.push(`${releases} release${releases > 1 ? 's' : ''} published`);
+  }
 
-  if (activeSummaries.length === 0) {
+  if (commits > 0 && mergedPRs === 0) {
+    parts.push(`${commits} commit${commits > 1 ? 's' : ''}`);
+  }
+
+  if (parts.length === 0) {
     return 'No meaningful changes across repositories in the last 7 days.';
   }
 
-  // Aggregate activity
-  const stats = activeSummaries.reduce(
-    (acc, summary) => {
-      if (summary.stats) {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const s = summary.stats as any;
-        acc.mergedPRs += s.mergedPRs || 0;
-        acc.releases += s.releases || 0;
-        acc.commits += s.commits || 0;
-        if (s.mergedPRs > 0) acc.reposWithPRs.add(summary.repoId);
-        if (s.releases > 0) acc.reposWithReleases.add(summary.repoId);
-      }
-      return acc;
-    },
-    {
-      mergedPRs: 0,
-      releases: 0,
-      commits: 0,
-      reposWithPRs: new Set<string>(),
-      reposWithReleases: new Set<string>(),
-    },
-  );
+  return `Progress across ${reposWithPRs.size + reposWithReleases.size} repositories: ${parts.join(', ')}.`;
+}
 
-  // If we have OpenAI, generate a summary
-  if (config.openai.apiKey) {
-    console.log(
-      `[Aggregate Summary] OpenAI key found, generating LLM summary. Activity events: ${activityEvents.length}, Summaries: ${activeSummaries.length}`,
-    );
+async function generateAggregateSummaryLLM(
+  dailySummaries: string[],
+  stats: Record<'pr_merged' | 'commit' | 'release', RepoActivityEvent[]>,
+): Promise<string> {
+  if (dailySummaries.length === 0) {
+    return 'No meaningful changes in the last 7 days.';
+  }
+  if (dailySummaries.length === 1) {
+    return dailySummaries[0];
+  }
 
-    // Build concrete activity list from actual events
-    const activityItems: string[] = [];
-    const repoNames = new Set<string>();
-
-    // Group events by type and repo
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const prs: any[] = [];
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const releases: any[] = [];
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const commits: any[] = [];
-
-    for (const event of activityEvents) {
-      if (event.repo) {
-        repoNames.add(`${event.repo.owner}/${event.repo.name}`);
-      }
-
-      if (event.type === 'pr_merged') {
-        prs.push({
-          repo: event.repo
-            ? `${event.repo.owner}/${event.repo.name}`
-            : 'unknown',
-          title: event.title,
-          url: event.url,
-        });
-      } else if (event.type === 'release') {
-        releases.push({
-          repo: event.repo
-            ? `${event.repo.owner}/${event.repo.name}`
-            : 'unknown',
-          title: event.title,
-          url: event.url,
-        });
-      } else if (event.type === 'commit') {
-        commits.push({
-          repo: event.repo
-            ? `${event.repo.owner}/${event.repo.name}`
-            : 'unknown',
-          title: event.title,
-          url: event.url,
-        });
-      }
-    }
-
-    console.log(
-      `[Aggregate Summary] Grouped events - PRs: ${prs.length}, Releases: ${releases.length}, Commits: ${commits.length}`,
-    );
-
-    // Build concrete activity list
-    for (const pr of prs.slice(0, 15)) {
-      activityItems.push(`[${pr.repo}] Merged PR: "${pr.title}"`);
-    }
-
-    for (const release of releases.slice(0, 10)) {
-      activityItems.push(`[${release.repo}] Release: "${release.title}"`);
-    }
-
-    // Include commits if no PRs, or if commits are significant (many commits = likely important)
-    if (prs.length === 0 && commits.length > 0) {
-      for (const commit of commits.slice(0, 10)) {
-        activityItems.push(`[${commit.repo}] Commit: "${commit.title}"`);
-      }
-    } else if (commits.length > 5 && prs.length < 3) {
-      // If many commits but few PRs, include representative commits
-      for (const commit of commits.slice(0, 5)) {
-        activityItems.push(`[${commit.repo}] Commit: "${commit.title}"`);
-      }
-    }
-
-    // Always include summary texts for more context (even if we have events)
-    // This gives the LLM more information about what was actually done
-    const summaryTexts: string[] = [];
-    const repoSummaryMap = new Map<string, string[]>();
-
-    for (const summary of activeSummaries) {
-      if (summary.repo && summary.summaryText && !summary.noChanges) {
-        const repoName = `${summary.repo.owner}/${summary.repo.name}`;
-        if (!repoSummaryMap.has(repoName)) {
-          repoSummaryMap.set(repoName, []);
-        }
-        repoSummaryMap.get(repoName)!.push(summary.summaryText);
-      }
-    }
-
-    // Add summary texts grouped by repo
-    for (const [repoName, texts] of repoSummaryMap.entries()) {
-      // Combine all daily summaries for this repo into one entry
-      const combinedText = texts.join(' ');
-      if (combinedText.length > 0) {
-        summaryTexts.push(
-          `[${repoName}] Daily summaries: ${combinedText.substring(0, 300)}`,
-        );
-      }
-    }
-
-    // If no activity events, use summaries as primary source
-    if (activityItems.length === 0) {
-      console.log(
-        `[Aggregate Summary] No activity events found (${activityEvents.length} events passed), using summary texts...`,
-      );
-      activityItems.push(...summaryTexts);
-      console.log(
-        `[Aggregate Summary] Using ${activityItems.length} summary texts as fallback`,
-      );
-    } else {
-      // Add summary texts as additional context even when we have events
-      console.log(
-        `[Aggregate Summary] Adding ${summaryTexts.length} repo summary texts as additional context`,
-      );
-      activityItems.push(...summaryTexts);
-    }
-
-    if (activityItems.length === 0) {
-      console.log(
-        `[Aggregate Summary] No activity items found, returning quiet week message`,
-      );
-      return 'Quiet shipping week. Focused on polish and reliability.';
-    }
-
-    console.log(
-      `[Aggregate Summary] Sending ${activityItems.length} activity items to LLM`,
-    );
-
-    const prompt = `Generate a concise, specific founder update from the GitHub activity below.
+  const prompt = `Generate a concise, specific founder update from the GitHub summaries below.
 
 REQUIREMENTS:
-- Be SPECIFIC: Include actual PR titles, feature names, or concrete changes
 - Never mention repository names - translate to product surfaces
 - Focus on what was BUILT or ACCOMPLISHED, not just what was merged
 - Recognize scope: "landing page" = entire new page built, "authentication" = full auth system, etc.
@@ -318,72 +205,231 @@ EXAMPLES:
 - Bad: "Merged landing page PR" or "2 pull requests merged"
 
 Activity and summaries (last 7 days):
-${activityItems.join('\n\n')}
+${dailySummaries.join('\n\n')}
 
 Generate the summary (include more bullets if there's substantial content):`;
 
-    try {
-      const completion = await openai.chat.completions.create({
-        model: 'gpt-4o-mini',
-        messages: [
-          {
-            role: 'system',
-            content:
-              'You generate concise, specific founder updates. Always include actual PR titles, feature names, or concrete changes. Never say generic things like "X pull requests merged" or "Merged PR" - describe what was BUILT or ACCOMPLISHED. Recognize scope: a "landing page" PR means an entire page was built, "authentication" means a full system was implemented. Use language that reflects the actual work: "Built", "Implemented", "Added", "Created" - not just "Merged". Never mention repository names. Be factual and specific. No hype words, no emojis.',
-          },
-          {
-            role: 'user',
-            content: prompt,
-          },
-        ],
-        temperature: 0.3, // Lower temperature for more factual output
-        max_completion_tokens: 700, // Increased to allow for more bullet points
-      });
-
-      const llmResult = completion.choices[0]?.message?.content?.trim();
-      if (llmResult) {
-        console.log(
-          `[Aggregate Summary] LLM generated summary (${llmResult.length} chars)`,
-        );
-        return llmResult;
-      } else {
-        console.log(`[Aggregate Summary] LLM returned empty, using fallback`);
-        return generateAggregateSummaryFallback(stats);
-      }
-    } catch (error) {
-      console.error('[Aggregate Summary] Error generating LLM summary:', error);
+  try {
+    const completion = await openai.chat.completions.create({
+      model: 'gpt-4o-mini',
+      messages: [
+        {
+          role: 'system',
+          content:
+            'You generate concise, specific founder updates. Always include actual PR titles, feature names, or concrete changes. Never say generic things like "X pull requests merged" or "Merged PR" - describe what was BUILT or ACCOMPLISHED. Recognize scope: a "landing page" PR means an entire page was built, "authentication" means a full system was implemented. Use language that reflects the actual work: "Built", "Implemented", "Added", "Created" - not just "Merged". Never mention repository names. Be factual and specific. No hype words, no emojis.',
+        },
+        {
+          role: 'user',
+          content: prompt,
+        },
+      ],
+      temperature: 0.3, // Lower temperature for more factual output
+      max_completion_tokens: 700, // Increased to allow for more bullet points
+    });
+    const llmResult = completion.choices[0]?.message?.content?.trim();
+    if (llmResult) {
+      console.log(
+        `[Aggregate Summary] LLM generated summary (${llmResult.length} chars)`,
+      );
+      return llmResult;
+    } else {
+      console.log(`[Aggregate Summary] LLM returned empty, using fallback`);
       return generateAggregateSummaryFallback(stats);
     }
+  } catch (error) {
+    console.error('[Aggregate Summary] Error generating LLM summary:', error);
+    return generateAggregateSummaryFallback(stats);
   }
-
-  // Fallback to template (no OpenAI key)
-  console.log(`[Aggregate Summary] No OpenAI key, using template fallback`);
-  return generateAggregateSummaryFallback(stats);
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-function generateAggregateSummaryFallback(stats: any): string {
-  const parts: string[] = [];
+export async function generateDailySummaries(): Promise<void> {
+  try {
+    const activeRepositoriesWithLatestSummary =
+      await prisma.gitHubRepo.findMany({
+        where: {
+          isEnabled: true,
+        },
+        include: {
+          dailySummaries: {
+            orderBy: { createdAt: 'desc' },
+            take: 1,
+          },
+        },
+      });
 
-  if (stats.mergedPRs > 0) {
-    parts.push(
-      `${stats.mergedPRs} pull request${stats.mergedPRs > 1 ? 's' : ''} merged`,
+    const today = new Date();
+    today.setUTCHours(0, 0, 0, 0);
+    const sevenDaysAgo = new Date(today.getTime() - 7 * 24 * 60 * 60 * 1000);
+
+    const repoTimeWindows = activeRepositoriesWithLatestSummary.map((repo) => {
+      const maybeLatestSummaryDate = repo.dailySummaries[0]?.createdAt;
+      return {
+        repoId: repo.id,
+        from: maybeLatestSummaryDate ?? sevenDaysAgo,
+      };
+    });
+
+    const latestEvents = await prisma.repoActivityEvent.findMany({
+      where: {
+        OR: repoTimeWindows.map((window) => ({
+          repoId: window.repoId,
+          occurredAt: {
+            gt: window.from,
+            lte: today,
+          },
+        })),
+      },
+      orderBy: { createdAt: 'desc' },
+    });
+
+    const eventsByRepoAndType = latestEvents.reduce<
+      Record<string, Record<string, typeof latestEvents>>
+    >((acc, event) => {
+      const repoId = event.repoId;
+      const type = event.type;
+
+      acc[repoId] ??= { pr_merged: [], commit: [], release: [] };
+      (acc[repoId][type] ??= []).push(event);
+
+      return acc;
+    }, {});
+
+    const promises = Object.entries(eventsByRepoAndType).map(
+      async ([repoId, eventsByType]) => {
+        const [summary, hasChanges] = await generateSummary(eventsByType);
+        return [repoId, summary, hasChanges] as [string, string, boolean];
+      },
     );
-  }
 
-  if (stats.releases > 0) {
-    parts.push(
-      `${stats.releases} release${stats.releases > 1 ? 's' : ''} published`,
+    const dailySummaries = await Promise.all(promises);
+
+    const data = dailySummaries.map(([repoId, summary, noChanges]) => ({
+      repoId,
+      date: today,
+      windowStart: repoTimeWindows.find((window) => window.repoId === repoId)!
+        .from,
+      windowEnd: today,
+      summaryText: summary,
+      noChanges,
+    }));
+
+    const result = await prisma.repoDailySummary.createMany({
+      data,
+      skipDuplicates: true,
+    });
+    console.log('Generate daily summaries finished', {
+      createdSummaries: result.count,
+    });
+  } catch (error) {
+    console.error('Failed to generate summaries', error);
+  }
+}
+
+export async function generateWeeklyAggregateSummaries(): Promise<void> {
+  const today = new Date();
+  today.setUTCHours(0, 0, 0, 0);
+  const sevenDaysAgo = new Date(today.getTime() - 7 * 24 * 60 * 60 * 1000);
+
+  try {
+    const activeClientsWithDailySummariesAndActivity =
+      await prisma.gitHubRepo.findMany({
+        where: {
+          isEnabled: true,
+          installation: {
+            client: {
+              isNot: null,
+            },
+          },
+        },
+        include: {
+          installation: {
+            select: {
+              client: {
+                select: {
+                  id: true,
+                },
+              },
+            },
+          },
+          dailySummaries: {
+            orderBy: { createdAt: 'desc' },
+            where: {
+              createdAt: {
+                gte: sevenDaysAgo,
+              },
+            },
+          },
+          activityEvents: {
+            orderBy: { occurredAt: 'desc' },
+            where: {
+              occurredAt: {
+                gte: sevenDaysAgo,
+              },
+            },
+          },
+        },
+      });
+
+    const summariesAndStatsByClient =
+      activeClientsWithDailySummariesAndActivity.reduce<
+        Record<
+          string,
+          {
+            dailySummaries: string[];
+            stats: Record<
+              'pr_merged' | 'commit' | 'release',
+              RepoActivityEvent[]
+            >;
+          }
+        >
+      >((acc, repo) => {
+        acc[repo.installation.client!.id] ??= {
+          dailySummaries: [],
+          stats: { pr_merged: [], commit: [], release: [] },
+        };
+        const vals = acc[repo.installation.client!.id];
+        vals.dailySummaries.push(
+          ...repo.dailySummaries
+            .filter((summary) => !summary.noChanges)
+            .map((summary) => summary.summaryText),
+        );
+        for (const activity of repo.activityEvents) {
+          if (!['pr_merged', 'commit', 'release'].includes(activity.type)) {
+            continue;
+          }
+
+          vals.stats[activity.type as 'pr_merged' | 'commit' | 'release'].push(
+            activity,
+          );
+        }
+
+        return acc;
+      }, {});
+
+    const promises = Object.entries(summariesAndStatsByClient).map(
+      async ([clientId, { dailySummaries, stats }]) => {
+        const summary = await generateAggregateSummary(dailySummaries, stats);
+        return [clientId, summary] as [string, string];
+      },
     );
-  }
 
-  if (stats.commits > 0 && stats.mergedPRs === 0) {
-    parts.push(`${stats.commits} commit${stats.commits > 1 ? 's' : ''}`);
-  }
+    const weeklySummaries = await Promise.all(promises);
+    const data = weeklySummaries.map(([clientId, summaryText]) => ({
+      clientId,
+      summaryText,
+      date: today,
+      windowStart: sevenDaysAgo,
+      windowEnd: today,
+    }));
 
-  if (parts.length === 0) {
-    return 'No meaningful changes across repositories in the last 7 days.';
+    const result = await prisma.clientWeeklySummary.createMany({
+      data,
+      skipDuplicates: true,
+    });
+    console.log('Generate weekly summaries', {
+      createdSummaries: result.count,
+    });
+  } catch (error) {
+    console.error('Failed to generate weekly summaries', error);
   }
-
-  return `Progress across ${stats.reposWithPRs.size + stats.reposWithReleases.size} repositories: ${parts.join(', ')}.`;
 }
