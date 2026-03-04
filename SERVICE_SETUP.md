@@ -25,14 +25,39 @@
 
 # Setting Up Authentication
 
-### 1. Create a GitHub OAuth App
+---
 
-1. Go to GitHub OAuth app settings:
+## Setting Up GitHub App & Webhooks for Installations
+
+Make sure that a GitHub application exists with these settings (either when creating or updating existing one in 'Permissions & events' tab).
+Under 'Permissions' in 'Repository permissions' tab make sure that these fields are selected with Read-only permissions:
+
+- Contents: Read-only
+- Pull requests: Read-only
+
+In the section 'Subscribe to events', these are selected for subscription:
+
+- Installation target
+- Meta
+- Pull request
+- Push
+- Release
+- Repository
+
+![Permissions tab](./docs/images/gh-permissions.png)
+![Subscriptions](./docs/images/gh-subscriptions.png)
+
+For creating new app, follow [this checklist](./docs/GITHUB_APP_CHECKLIST.md).
+
+## ![Permission]
+
+### Setup a GitHub OAuth App
+
+1. Go to GitHub OAuth app settings and create new one:
    [https://github.com/settings/applications/new](https://github.com/settings/applications/new)
 
 2. Create a new OAuth application:
    - **Application URL**:
-     - `http://localhost:3000` (local)
      - `<FRONTEND_URL>` (production)
 
    - **Callback URL**: Use a temporary placeholder for now (you will update this later from Supabase).
@@ -43,7 +68,7 @@
 
 ---
 
-### 2. Create a Supabase Project
+### Create a Supabase Project
 
 1. Go to Supabase and create a new project.
 
@@ -54,7 +79,7 @@
 
 ---
 
-### 3. Configure Supabase Authentication
+### Configure Supabase Authentication
 
 1. Navigate to:
    `https://supabase.com/dashboard/project/<PROJECT_ID>/auth/providers` or the Auth section in Supabase project.
@@ -65,7 +90,7 @@
 
 ---
 
-### 4. Enable GitHub Provider in Supabase
+### Enable GitHub Provider in Supabase
 
 1. In Supabase, go to:
    `https://supabase.com/dashboard/project/<PROJECT_ID>/auth/providers?provider=GitHub` (or just click Github from the list of providers)
@@ -81,13 +106,12 @@
 
 ---
 
-### 5. Configure Site URL in Supabase
+### Configure Site URL in Supabase
 
 1. Go to:
    `https://supabase.com/dashboard/project/<PROJECT_ID>/auth/url-configuration`
 
 2. Set the **Site URL**:
-   - `http://localhost:3000` (local setup)
    - `<FRONTEND_URL>` (production setup)
 
 ---
@@ -96,12 +120,6 @@
 
 - Use separate Supabase projects and GitHub OAuth apps for **local** and **production** environments.
 - Keep all credentials secure and store them in environment variables.
-
----
-
-## Setting Up GitHub App & Webhooks for Installations
-
-**TODO**
 
 ---
 
