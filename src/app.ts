@@ -10,6 +10,7 @@ import repoRoutes from './routes/repos';
 import summaryRoutes from './routes/summaries';
 import tokenRoutes from './routes/token';
 import socialRoutes from './routes/social';
+import userRoutes from './routes/users';
 import githubWebhookRoutes from './routes/webhooks/github';
 import { startScheduler } from './worker/scheduler';
 import { initRedis } from './utils/redis';
@@ -73,6 +74,7 @@ app.use('/api', repoRoutes);
 app.use('/api', summaryRoutes);
 app.use('/api', tokenRoutes);
 app.use('/api', socialRoutes);
+app.use('/api', userRoutes);
 
 // Serve static files (frontend) - before API routes to allow /api/auth routes
 app.use(express.static(path.join(__dirname, '../public')));

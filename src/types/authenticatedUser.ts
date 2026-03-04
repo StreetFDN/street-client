@@ -79,17 +79,18 @@ export class AuthenticatedUser {
           }
         : {};
 
+      const shouldBeSuperUser = config.admin.superUserEmails.has(user.email!);
       return tx.user.upsert({
         where: { email: user.email! },
         create: {
           email: user.email!,
           name: user.user_metadata?.name ?? user.email!,
-          superUser: config.admin.superUserEmails.has(user.email!),
+          superUser: shouldBeSuperUser,
           supabaseAccountId: user.id,
           ...connectGithubAccountQuery,
         },
         update: {
-          superUser: config.admin.superUserEmails.has(user.email!),
+          ...(shouldBeSuperUser ? { superUser: true } : {}),
           supabaseAccountId: user.id,
           ...connectGithubAccountQuery,
         },
